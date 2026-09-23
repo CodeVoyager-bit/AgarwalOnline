@@ -72,7 +72,7 @@ Every sensitive change is authorized on the server and written to the audit log.
 ```
 src/
   app/            Pages and API routes (App Router)
-    api/          Auth, chat, uploads, evidence, invoices, payments, catalog suggestions
+    api/          Auth, chat, uploads, evidence, invoices, payments, catalog suggestions, cron jobs
     account/      Customer account, orders, support chat, complaints
     admin/        Admin workspaces
     super-admin/  Staff, approvals, promotions, refunds, audit
@@ -215,6 +215,7 @@ The app validates these on startup and refuses to run with an invalid combinatio
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | For online payment | Set all three, or checkout offers cash on delivery only. Production requires `rzp_live_` keys. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Production | Set all three or none. Without them, photos are saved to `.local/uploads` on the server's disk. |
 | `ATLAS_SEARCH_ENABLED` | No | `true` switches product search to Atlas Search. Enable it only after creating the index. |
+| `CRON_SECRET` | On Vercel | 16 or more characters. Vercel Cron sends it to the job routes, which refuse every call without it. |
 | `EVIDENCE_RETENTION_DAYS` | No | Days to keep evidence photos. Defaults to 90. |
 | `AUDIT_RETENTION_DAYS` | No | Days to keep audit entries. Defaults to 730. |
 | `SEED_DEMO`, `DEMO_STAFF_PASSWORD` | Seeding only | Needed by `npm run seed`. The seed refuses to run in production. |
@@ -295,10 +296,13 @@ git switch -c feature/short-description
 1. Import the GitHub repository in Vercel.
 2. In **Settings**, then **General**, set Node.js to 22.x.
 3. Add every production variable under **Settings**, then **Environment Variables**. Use fresh secrets that aren't used anywhere else, `APP_ORIGIN` set to your HTTPS domain, and `MOCK_OTP=false`. Leave out `SEED_DEMO` and `DEMO_STAFF_PASSWORD`.
-4. In Atlas, allow `0.0.0.0/0` in the IP Access List.
-5. Deploy, then add your domain.
+4. Add `CRON_SECRET` to the Production environment, so the scheduled jobs can run.
+5. In Atlas, allow `0.0.0.0/0` in the IP Access List.
+6. Deploy, then add your domain.
 
-Vercel's free Hobby plan is for non-commercial use only. A live store needs the Pro plan.
+`vercel.json` pins functions to the Mumbai region, `bom1`, next to the Atlas cluster in AWS `ap-south-1`. If your cluster is in another region, change it to the nearest Vercel region.
+
+Vercel's free Hobby plan is for non-commercial use only, and it only allows cron jobs that run once a day. A live store needs the Pro plan, which also allows the every-minute jobs in `vercel.json`.
 
 Support chat polls an API route. It checks every 4 seconds while active, every 12 seconds when quiet, and pauses in hidden tabs. It needs no extra service and works on Vercel.
 
@@ -323,13 +327,13 @@ Put HTTPS in front of it, and set the same environment variables.
 
 These must run in production:
 
-| Job | How often |
-|---|---|
-| `npm run reservations:expire` | Every minute |
-| `npm run approvals:publish` | Every minute |
-| `npm run retention:run` | Daily |
+| Job | How often | On Vercel | On other hosts |
+|---|---|---|---|
+| Expire abandoned checkout reservations | Every minute | `/api/cron/expire-reservations` | `npm run reservations:expire` |
+| Publish approved scheduled changes | Every minute | `/api/cron/publish-scheduled` | `npm run approvals:publish` |
+| Delete expired data | Daily at 03:00 IST | `/api/cron/retention` | `npm run retention:run` |
 
-On a VPS, use cron. On Vercel, see [Known gaps](#known-gaps).
+On Vercel, `vercel.json` schedules these automatically on production deployments, using `CRON_SECRET`. Previews don't run crons. On other hosts, run the npm scripts from cron instead.
 
 ### Production checklist
 
@@ -339,7 +343,7 @@ On a VPS, use cron. On Vercel, see [Known gaps](#known-gaps).
 - [ ] SMS gateway configured, with DLT registration complete
 - [ ] Razorpay live keys and webhook set up
 - [ ] Cloudinary configured
-- [ ] Scheduled jobs running
+- [ ] `CRON_SECRET` set, and the three jobs showing successful runs under **Settings**, then **Cron Jobs**, in Vercel
 - [ ] Only verified service areas enabled
 - [ ] A paid Atlas tier with backups, and a tested restore
 - [ ] Monitoring and error alerts
@@ -359,7 +363,6 @@ On a VPS, use cron. On Vercel, see [Known gaps](#known-gaps).
 These still need work before a full launch:
 
 - **No way to create the first owner account in production.** The seed script is demo-only. A small one-time script to create a super-admin is still needed.
-- **Scheduled jobs don't run on Vercel yet.** Vercel Cron can only call API routes, so each job needs a protected route and a `vercel.json` schedule.
 - **Evidence photos are public.** Cloudinary stores them as public images, and the app only guards the link. Complaint and delivery photos should use private assets with short-lived signed links.
 - **Deferred features.** GPS tracking, route optimisation, push notifications, advanced reporting, loyalty, subscriptions, custom roles and two-factor sign-in for super admins aren't built.
 

@@ -13,6 +13,7 @@ const schema = z
       .string()
       .regex(/^\d{6}$/)
       .default("246810"),
+    CRON_SECRET: z.string().min(16).optional(),
     SMS_API_URL: z.string().optional(),
     SMS_API_TOKEN: z.string().optional(),
     CLOUDINARY_CLOUD_NAME: z.string().optional(),
