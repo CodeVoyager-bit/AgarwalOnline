@@ -302,7 +302,7 @@ git switch -c feature/short-description
 
 `vercel.json` pins functions to the Mumbai region, `bom1`, next to the Atlas cluster in AWS `ap-south-1`. If your cluster is in another region, change it to the nearest Vercel region.
 
-Vercel's free Hobby plan is for non-commercial use only, and it only allows cron jobs that run once a day. A live store needs the Pro plan, which also allows the every-minute jobs in `vercel.json`.
+Vercel's free Hobby plan is for non-commercial use only, so a live store needs the Pro plan. Hobby also rejects any cron job that runs more than once a day, so `vercel.json` schedules every job daily.
 
 Support chat polls an API route. It checks every 4 seconds while active, every 12 seconds when quiet, and pauses in hidden tabs. It needs no extra service and works on Vercel.
 
@@ -327,13 +327,17 @@ Put HTTPS in front of it, and set the same environment variables.
 
 These must run in production:
 
-| Job | How often | On Vercel | On other hosts |
-|---|---|---|---|
-| Expire abandoned checkout reservations | Every minute | `/api/cron/expire-reservations` | `npm run reservations:expire` |
-| Publish approved scheduled changes | Every minute | `/api/cron/publish-scheduled` | `npm run approvals:publish` |
-| Delete expired data | Daily at 03:00 IST | `/api/cron/retention` | `npm run retention:run` |
+| Job | Ideal frequency | Vercel schedule now | Route | On other hosts |
+|---|---|---|---|---|
+| Expire abandoned Razorpay checkouts and release their stock | Every minute | Daily, 02:30 IST | `/api/cron/expire-reservations` | `npm run reservations:expire` |
+| Delete expired data | Daily | Daily, 03:00 IST | `/api/cron/retention` | `npm run retention:run` |
+| Publish approved scheduled changes | Every minute | Daily, 06:00 IST | `/api/cron/publish-scheduled` | `npm run approvals:publish` |
 
-On Vercel, `vercel.json` schedules these automatically on production deployments, using `CRON_SECRET`. Previews don't run crons. On other hosts, run the npm scripts from cron instead.
+On Vercel, `vercel.json` schedules these automatically on production deployments, using `CRON_SECRET`. Previews don't run crons. Hobby may run each job up to 59 minutes after its scheduled time.
+
+The daily schedules keep the project deployable on the free Hobby plan. Daily is fine for retention. It's also fine for the other two while Razorpay is off and nobody schedules approvals. Once you switch to Pro and turn on Razorpay, change the first and third schedules to `* * * * *`. Otherwise stock held by an abandoned online payment stays reserved until the next daily run.
+
+On other hosts, run the npm scripts from cron instead.
 
 ### Production checklist
 

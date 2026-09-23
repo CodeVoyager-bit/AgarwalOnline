@@ -2,8 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["bom1"],
   "crons": [
-    { "path": "/api/cron/expire-reservations", "schedule": "* * * * *" },
-    { "path": "/api/cron/publish-scheduled", "schedule": "* * * * *" },
-    { "path": "/api/cron/retention", "schedule": "30 21 * * *" }
+    { "path": "/api/cron/expire-reservations", "schedule": "0 21 * * *" },
+    { "path": "/api/cron/retention", "schedule": "30 21 * * *" },
+    { "path": "/api/cron/publish-scheduled", "schedule": "30 0 * * *" }
   ]
 }
