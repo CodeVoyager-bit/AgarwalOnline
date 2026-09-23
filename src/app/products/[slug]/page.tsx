@@ -1,0 +1,269 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronRight, Star, Truck } from "lucide-react";
+import { productImages } from "@/lib/catalog/images";
+import { currentUser } from "@/lib/auth/session";
+import { ActionForm } from "@/components/action-form";
+import { cartAction } from "@/lib/commerce/actions";
+import { catalogCategories, productBySlug } from "@/lib/catalog/queries";
+import { WishlistButton } from "@/components/wishlist-button";
+import { currentLocale } from "@/lib/i18n";
+import { ProductReview } from "@/lib/reviews/models";
+import { Order } from "@/lib/commerce/models";
+import { ProductVariant, User } from "@/lib/db/models";
+import { WishlistItem } from "@/lib/engagement/models";
+import { reviewAction, reportReviewAction } from "@/lib/reviews/actions";
+import { recommendationsFor } from "@/lib/catalog/recommendations";
+import { ProductCard } from "@/components/product-card";
+import { deliveryRules } from "@/lib/commerce/service";
+import { ProductGallery } from "@/components/product-gallery";
+import { discountPercent, formatPrice } from "@/lib/display";
+export const dynamic = "force-dynamic";
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const user = await currentUser();
+  const p = await productBySlug((await params).slug);
+  if (!p) notFound();
+  const requestedLocale = (await searchParams).lang;
+  const locale = requestedLocale
+    ? requestedLocale === "mr"
+      ? "mr"
+      : "en"
+    : await currentLocale();
+  const mr = locale === "mr";
+  const image = p.image ?? productImages[p.slug];
+  const [reviews, related, rules, saved, categories] = await Promise.all([
+    ProductReview.find({ productId: p.id, status: "published" })
+      .sort({ createdAt: -1 })
+      .limit(20),
+    recommendationsFor({
+      customerId: user?.role === "customer" ? user.id : undefined,
+      category: p.categorySlug,
+      excludeSlug: p.slug,
+      limit: 5,
+    }),
+    deliveryRules(),
+    user?.role === "customer"
+      ? WishlistItem.exists({ customerId: user.id, productId: p.id })
+      : null,
+    catalogCategories(),
+  ]);
+  const categoryName =
+    categories.find((category) => category.slug === p.categorySlug)?.[locale] ?? p.categorySlug;
+  // the shop is the only seller; saying so is a row of noise
+  const specs = p.specifications.filter((spec) => spec.label.en !== "Seller");
+  const reviewUsers = await User.find({
+    _id: { $in: reviews.map((review) => review.customerId) },
+  }).select("name");
+  const variantIds = await ProductVariant.find({ productId: p.id }).distinct("_id");
+  const canReview =
+    user?.role === "customer" &&
+    (await Order.exists({
+      customerId: user.id,
+      deliveryStatus: "delivered",
+      "items.variantId": { $in: variantIds },
+    }));
+  const averageRating = reviews.length
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
+  const deliveryDay = rules.cutoffHour > new Date().getHours() ? "today" : "tomorrow";
+  return (
+    <section className="page-container">
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link href="/catalog">{mr ? "सर्व उत्पादने" : "All products"}</Link>
+        <ChevronRight size={14} aria-hidden="true" />
+        <Link href={`/catalog?category=${p.categorySlug}&lang=${locale}`}>
+          {categoryName}
+        </Link>
+        <ChevronRight size={14} aria-hidden="true" />
+        <span aria-current="page">{p.name[locale]}</span>
+      </nav>
+      <div className="product-detail">
+        <ProductGallery
+          images={[
+            ...p.images,
+            ...(image && !p.images.includes(image) ? [image] : []),
+          ]}
+          name={p.name.en}
+          category={p.categorySlug}
+        />
+        <div>
+          <div className="product-title-row">
+            <span className="eyebrow">{categoryName}</span>
+            <WishlistButton productId={p.id} saved={Boolean(saved)} />
+          </div>
+          <h1 lang={locale}>{p.name[locale]}</h1>
+          <p className="muted" lang={mr ? "en" : "mr"}>
+            {p.name[mr ? "en" : "mr"]}
+          </p>
+          <div className="product-assurance-row">
+            <span>
+              <Star size={14} aria-hidden="true" />
+              {averageRating ? `${averageRating.toFixed(1)} · ${reviews.length} verified reviews` : "New in store"}
+            </span>
+            <span>
+              <Truck size={14} aria-hidden="true" /> Delivery {deliveryDay}
+            </span>
+          </div>
+          <p className="description">{p.description[locale]}</p>
+          <h2 className="variant-heading">{mr ? "पॅक आकार निवडा" : "Choose your pack"}</h2>
+          <div className="variant-list">
+            {p.variants.map((v) => {
+              const off = discountPercent(v.pricePaise, v.mrpPaise);
+              const max = Math.min(v.maxQuantity, v.available);
+              return (
+                <div className="panel variant-card" key={v.id}>
+                  <div className="variant-info">
+                    <strong>{v.label}</strong>
+                    <span className="variant-price">
+                      <b>{formatPrice(v.pricePaise)}</b>
+                      {off > 0 && (
+                        <>
+                          <del>{formatPrice(v.mrpPaise)}</del>
+                          <em>−{off}%</em>
+                        </>
+                      )}
+                    </span>
+                    <small className="muted">
+                      {v.available > 0
+                        ? `${v.available} available · up to ${v.maxQuantity} per order`
+                        : "Currently out of stock"}
+                    </small>
+                  </div>
+                  {v.available > 0 ? (
+                    <ActionForm action={cartAction} submit="Add to basket">
+                      <input type="hidden" name="variantId" value={v.id} />
+                      <label>
+                        Quantity
+                        <input
+                          type="number"
+                          name="quantity"
+                          defaultValue={1}
+                          min={1}
+                          max={max}
+                          inputMode="numeric"
+                          required
+                        />
+                      </label>
+                    </ActionForm>
+                  ) : (
+                    <span className="status-pill">Sold out</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="notice product-delivery-note">
+            Live stock and delivery charges are confirmed at checkout.
+          </p>
+          {specs.length > 0 && (
+            <dl className="product-specs">
+              {specs.map((specification) => (
+                <div key={specification.label.en}>
+                  <dt>{specification.label[locale]}</dt>
+                  <dd>{specification.value[locale]}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      </div>
+      {(reviews.length > 0 || canReview) && (
+      <section className="section reviews-section" id="reviews">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Verified purchases</span>
+            <h2>Ratings &amp; reviews</h2>
+          </div>
+          {averageRating > 0 && <strong>{averageRating.toFixed(1)} ★</strong>}
+        </div>
+        {canReview && (
+          <div className="panel review-form-card">
+            <h3>Share your experience</h3>
+            <ActionForm action={reviewAction} submit="Publish verified review">
+              <input type="hidden" name="productId" value={p.id} />
+              <input type="hidden" name="slug" value={p.slug} />
+              <label>
+                Rating
+                <select name="rating" defaultValue="5">
+                  <option value="5">5 — Excellent</option>
+                  <option value="4">4 — Good</option>
+                  <option value="3">3 — Okay</option>
+                  <option value="2">2 — Poor</option>
+                  <option value="1">1 — Very poor</option>
+                </select>
+              </label>
+              <label>
+                Review title
+                <input name="title" maxLength={80} />
+              </label>
+              <label>
+                Your review
+                <textarea name="body" rows={4} maxLength={1000} />
+              </label>
+            </ActionForm>
+          </div>
+        )}
+        <div className="reviews-grid">
+          {reviews.map((review) => {
+            const author = reviewUsers.find(
+              (candidate) => String(candidate._id) === String(review.customerId),
+            );
+            return (
+              <article className="panel review-card" key={String(review._id)}>
+                <div>
+                  <strong aria-label={`${review.rating} out of 5`}>
+                    {"★".repeat(review.rating)}
+                  </strong>
+                  <span className="verified-chip">Verified purchase</span>
+                </div>
+                {review.title && <h3>{review.title}</h3>}
+                {review.body && <p>{review.body}</p>}
+                <small>{author?.name ?? "Verified customer"}</small>
+                {user && String(review.customerId) !== user.id && (
+                  <details>
+                    <summary>Report</summary>
+                    <ActionForm action={reportReviewAction} submit="Send report">
+                      <input type="hidden" name="reviewId" value={String(review._id)} />
+                      <label>
+                        Reason
+                        <input name="reason" minLength={5} maxLength={300} required />
+                      </label>
+                    </ActionForm>
+                  </details>
+                )}
+              </article>
+            );
+          })}
+          {!reviews.length && (
+            <div className="panel empty-state">
+              <h3>No reviews yet</h3>
+              <p>Customers who received this item can share the first verified review.</p>
+            </div>
+          )}
+        </div>
+      </section>
+      )}
+      {related.length > 0 && (
+        <section className="section">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">You may also like</span>
+              <h2>More from your store</h2>
+            </div>
+          </div>
+          <div className="product-grid">
+            {related.map((product) => (
+              <ProductCard key={product.id} product={product} locale={locale} />
+            ))}
+          </div>
+        </section>
+      )}
+    </section>
+  );
+}

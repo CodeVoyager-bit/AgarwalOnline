@@ -1,0 +1,464 @@
+import AxeBuilder from "@axe-core/playwright";
+import { test, expect } from "@playwright/test";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import {
+  User,
+  Category,
+  Product,
+  ProductVariant,
+  InventoryItem,
+  ServiceArea,
+} from "../../src/lib/db/models";
+import {
+  Order,
+  InventoryReservation,
+  DeliverySlot,
+} from "../../src/lib/commerce/models";
+const uri = "mongodb://127.0.0.1:27028/ags_test_e2e?replicaSet=ags-local";
+test.beforeAll(async () => {
+  await mongoose.connect(uri);
+  await mongoose.connection.dropDatabase();
+  const c = await Category.create({
+    slug: "staples",
+    name: { en: "Staples", mr: "धान्य" },
+  });
+  const p = await Product.create({
+    slug: "everyday-basmati-rice",
+    name: { en: "Everyday Basmati Rice", mr: "रोजचा बासमती तांदूळ" },
+    description: { en: "Fictional test rice", mr: "प्रात्यक्षिक तांदूळ" },
+    brand: "PANTRY SELECT",
+    categoryId: c._id,
+    categorySlug: "staples",
+    status: "published",
+    aliases: ["chawal"],
+  });
+  const v = await ProductVariant.create({
+    productId: p._id,
+    sku: "E2E-RICE",
+    label: "1 kg",
+    unit: "kg",
+    packQuantity: 1,
+    pricePaise: 10900,
+    mrpPaise: 14000,
+  });
+  await InventoryItem.create({ variantId: v._id, onHand: 10 });
+  const a = await ServiceArea.create({
+    key: "fictional-e2e",
+    name: "Fictional test area",
+    enabled: true,
+    pincodes: ["999999"],
+    feePaise: 3000,
+  });
+  await DeliverySlot.create({
+    areaId: a._id,
+    date: "2099-01-01",
+    label: "4:00 PM – 7:00 PM",
+    capacity: 5,
+  });
+  await User.create([
+    {
+      phone: "9000000081",
+      name: "Fictional Admin",
+      email: "admin@e2e.test",
+      role: "admin",
+      passwordHash: await bcrypt.hash("Local-test-password-123", 12),
+    },
+    {
+      phone: "9000000082",
+      name: "Fictional Delivery",
+      email: "delivery@e2e.test",
+      role: "delivery",
+      passwordHash: await bcrypt.hash("Local-test-password-123", 12),
+    },
+    {
+      phone: "9000000083",
+      name: "Fictional Owner",
+      email: "owner@e2e.test",
+      role: "super-admin",
+      passwordHash: await bcrypt.hash("Local-test-password-123", 12),
+    },
+  ]);
+});
+test.afterAll(async () => {
+  await mongoose.connection.dropDatabase();
+  await mongoose.disconnect();
+});
+async function login(page: import("@playwright/test").Page) {
+  if (await User.exists({ phone: "9000000088" })) {
+    await page.goto("/login");
+    await page.getByRole("button", { name: /Use OTP/ }).click();
+    await page.getByLabel("Mobile number").fill("9000000088");
+    await page.getByRole("button", { name: "Sign in with OTP" }).click();
+  } else {
+    await page.goto("/signup");
+    await page.getByLabel("Email address").fill("neighbour@e2e.test");
+    await page.getByLabel("Mobile number").fill("9000000088");
+    await page.getByRole("button", { name: "Start account creation" }).click();
+    await page.getByLabel("Your name").fill("Neighbour");
+    await page.getByLabel("Create password").fill("Local-test-password-123");
+    await page.getByLabel("Confirm password").fill("Local-test-password-123");
+  }
+  await page.getByLabel("Verification code").fill("246810");
+  await page.getByRole("button", { name: "Verify & continue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Hello, Neighbour" }),
+  ).toBeVisible();
+}
+test("customer OTP, basket, address, COD, tracking and cancellation", async ({
+  page,
+}) => {
+  await login(page);
+  const sessionCookie = (await page.context().cookies()).find(
+    (c) => c.name === "ags_session",
+  );
+  expect(sessionCookie?.httpOnly).toBe(true);
+  expect(sessionCookie?.sameSite).toBe("Lax");
+  await page.goto("/products/everyday-basmati-rice");
+  await page.getByRole("button", { name: "Add to basket" }).click();
+  await expect(page.getByRole("status")).toContainText("Basket updated");
+  await page.goto("/account/addresses");
+  await page.getByLabel("Recipient name").fill("Fictional Neighbour");
+  await page.getByLabel("Mobile number").fill("9000000088");
+  await page
+    .getByLabel("House, building, street")
+    .fill("Fictional House 1, Test Street");
+  await page.getByLabel("PIN code").fill("999999");
+  await page.getByRole("button", { name: "Save address" }).click();
+  await expect(page.getByRole("status")).toContainText("Address saved");
+  await page.goto("/checkout");
+  await page
+    .getByLabel("Delivery slot")
+    .selectOption({ label: "2099-01-01 · 4:00 PM – 7:00 PM" });
+  await expect(
+    page.getByRole("heading", { name: "Total to collect: ₹139" }),
+  ).toBeVisible();
+  await page.getByRole("checkbox").check();
+  await page
+    .getByRole("button", { name: "Confirm Cash on Delivery order" })
+    .click();
+  await expect(page).toHaveURL(/\/account\/orders\/[a-f0-9]+/);
+  await expect(page.getByText(/^Order: placed$/i)).toBeVisible();
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Cancel this order" }).click();
+  // the confirm dialog is aria-modal, so it must take focus and close on Escape
+  await expect(
+    page.getByRole("button", { name: "Confirm", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".confirm-modal")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Cancel this order" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Cancel this order" }).click();
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(
+    page.getByText(/^Order: cancelled$/i),
+  ).toBeVisible();
+  await page.goto("/admin");
+  await expect(
+    page.getByRole("heading", { name: "Access restricted" }),
+  ).toBeVisible();
+});
+test("multilingual search and empty results", async ({ page }) => {
+  for (const q of ["Rice", "Chawal", "तांदूळ"]) {
+    await page.goto(`/catalog?q=${encodeURIComponent(q)}`);
+    await expect(
+      page.getByRole("heading", { name: "Everyday Basmati Rice", exact: true }),
+    ).toBeVisible();
+  }
+  await page.goto("/catalog?q=nothing-here");
+  await expect(
+    page.getByRole("heading", { name: "No products found" }),
+  ).toBeVisible();
+  await page.goto("/catalog?lang=mr");
+  await expect(
+    page.getByRole("heading", { name: "रोजचा बासमती तांदूळ", exact: true }),
+  ).toBeVisible();
+});
+test("staff login and delivery role restrictions", async ({ page }) => {
+  await page.goto("/staff/login");
+  await page.getByLabel("Work email").fill("delivery@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Local-test-password-123");
+  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await expect(page).toHaveURL("/delivery");
+  await page.goto("/admin");
+  await expect(
+    page.getByRole("heading", { name: "Access restricted" }),
+  ).toBeVisible();
+  await page.goto("/super-admin");
+  await expect(
+    page.getByRole("heading", { name: "Access restricted" }),
+  ).toBeVisible();
+});
+
+test("Super Admin manages staff and reviews the audit trail", async ({
+  page,
+}) => {
+  await page.goto("/staff/login");
+  await page.getByLabel("Work email").fill("owner@e2e.test");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill("Local-test-password-123");
+  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await expect(page).toHaveURL("/super-admin");
+  await expect(
+    page.getByRole("heading", { name: "Good morning, Fictional Owner" }),
+  ).toBeVisible();
+
+  await page
+    .getByRole("link", { name: /Staff & roles/ })
+    .first()
+    .click();
+  await page.getByText("Add a staff member").click();
+  const form = page.locator(".create-staff form");
+  await form.getByLabel("Name").fill("New Delivery Partner");
+  await form.getByLabel("Work email").fill("new-delivery@e2e.test");
+  await form.getByLabel("Phone").fill("9000000084");
+  await form.getByLabel("Role").selectOption("delivery");
+  await form.getByLabel("Temporary password").fill("Temporary-password-123");
+  await form.getByRole("button", { name: "Create staff account" }).click();
+  await expect(page.getByRole("status")).toContainText("Staff account created");
+  await expect(page.getByText("New Delivery Partner")).toBeVisible();
+
+  await page.goto("/super-admin/audit");
+  await expect(page.getByText("staff.create", { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("mobile storefront stays within viewport and navigation is visible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.getByRole("combobox", { name: "Search products" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Shop by aisle" })).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Mobile navigation" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: ".local/mobile-storefront.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({
+    path: ".local/desktop-storefront.png",
+    fullPage: true,
+  });
+});
+
+test("core screens have no automated WCAG AA violations", async ({ page }) => {
+  for (const path of ["/", "/catalog", "/login"]) {
+    await page.goto(path);
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    expect(
+      results.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        nodes: v.nodes.map((n) => n.target),
+      })),
+    ).toEqual([]);
+  }
+});
+
+test("admin packing through partner delivery and cash reconciliation", async ({
+  page,
+  browser,
+}) => {
+  test.slow();
+  await login(page);
+  const customer = await User.findOne({ phone: "9000000088" });
+  const variant = await ProductVariant.findOne({ sku: "E2E-RICE" });
+  const slot = await DeliverySlot.findOne({ date: "2099-01-01" });
+  const order = await Order.create({
+    customerId: customer!._id,
+    number: "E2E-OPS-1",
+    idempotencyKey: "e2e-ops",
+    items: [
+      {
+        variantId: variant!._id,
+        name: "Everyday Basmati Rice",
+        label: "1 kg",
+        quantity: 1,
+        pricePaise: 10900,
+        linePaise: 10900,
+      },
+    ],
+    address: {
+      name: "Fictional Customer",
+      phone: "9000000088",
+      line: "Fictional Test Street",
+      pin: "999999",
+      areaName: "Fictional test area",
+    },
+    slotId: slot!._id,
+    deliveryDate: "2099-01-01",
+    deliveryWindow: "4–7 PM",
+    paymentMethod: "cod",
+    subtotalPaise: 10900,
+    deliveryPaise: 0,
+    totalPaise: 10900,
+  });
+  await InventoryItem.updateOne(
+    { variantId: variant!._id },
+    { $inc: { reserved: 1 } },
+  );
+  await InventoryReservation.create({
+    orderId: order._id,
+    variantId: variant!._id,
+    quantity: 1,
+  });
+  const adminContext = await browser.newContext({
+    baseURL: "http://127.0.0.1:3002",
+    viewport: page.viewportSize()!,
+  });
+  const partnerContext = await browser.newContext({
+    baseURL: "http://127.0.0.1:3002",
+    viewport: page.viewportSize()!,
+  });
+  const adminPage = await adminContext.newPage();
+  const partnerPage = await partnerContext.newPage();
+  try {
+    for (const [p, email] of [
+      [adminPage, "admin@e2e.test"],
+      [partnerPage, "delivery@e2e.test"],
+    ] as const) {
+      await p.goto("/staff/login");
+      await p.getByLabel("Work email").fill(email);
+      await p
+        .getByLabel("Password", { exact: true })
+        .fill("Local-test-password-123");
+      await p.getByRole("button", { name: "Sign in securely" }).click();
+      await expect(p).not.toHaveURL(/staff\/login/);
+    }
+    await adminPage.goto(`/admin/orders/${order._id}`);
+    await adminPage
+      .getByRole("button", { name: "Confirm order", exact: true })
+      .click();
+    await adminPage.getByRole("button", { name: "Start picking" }).click();
+    await adminPage.getByLabel("Packed quantity").fill("1");
+    await adminPage
+      .getByRole("button", { name: "Save packing checklist" })
+      .click();
+    await expect(adminPage.getByText("All quantities checked.")).toBeVisible();
+    await adminPage.getByRole("button", { name: "Mark packed" }).click();
+    await adminPage.getByRole("button", { name: "Ready for pickup" }).click();
+    await adminPage
+      .getByRole("combobox", { name: "Partner", exact: true })
+      .selectOption({ label: "Fictional Delivery" });
+    await adminPage
+      .getByRole("button", { name: "Assign delivery", exact: true })
+      .click();
+    await expect(
+      adminPage.getByText("delivery: unassigned → assigned"),
+    ).toBeVisible();
+    await partnerPage.goto(`/delivery/orders/${order._id}`);
+    await partnerPage
+      .getByRole("button", { name: "Start delivery", exact: true })
+      .click();
+    await expect(
+      partnerPage.getByLabel("Customer delivery code"),
+    ).toBeVisible();
+    await page.goto(`/account/orders/${order._id}`);
+    await page
+      .getByRole("button", { name: "Request delivery confirmation code" })
+      .click();
+    await expect(
+      page.getByText("Development delivery code: 246810"),
+    ).toBeVisible();
+    await partnerPage.getByLabel("Customer delivery code").fill("246810");
+    await partnerPage.getByRole("checkbox").check();
+    await partnerPage
+      .getByRole("button", { name: "Verify code & mark delivered" })
+      .click();
+    await expect(partnerPage).toHaveURL("/delivery");
+    await adminPage.goto(`/admin/orders/${order._id}`);
+    await adminPage
+      .getByRole("button", { name: "Complete order", exact: true })
+      .click();
+    await adminPage
+      .getByRole("button", { name: "Record cash handover" })
+      .click();
+    await expect(
+      adminPage.getByText("Cash reconciled", { exact: true }),
+    ).toBeVisible();
+  } finally {
+    await adminContext.close();
+    await partnerContext.close();
+  }
+});
+
+test("customer and support exchange messages in real time", async ({
+  page,
+  browser,
+}) => {
+  await login(page);
+  await page.goto("/account/support");
+  await page.getByLabel("Subject").fill("A question for the store");
+  await page.getByRole("button", { name: "Start conversation" }).click();
+  await expect(page).toHaveURL(/account\/support\/[a-f\d]+/);
+  const conversationId = page.url().split("/").pop()!;
+  const context = await browser.newContext({
+    baseURL: "http://127.0.0.1:3002",
+    viewport: page.viewportSize()!,
+  });
+  const support = await context.newPage();
+  try {
+    await support.goto("/staff/login");
+    await support.getByLabel("Work email").fill("admin@e2e.test");
+    await support
+      .getByLabel("Password", { exact: true })
+      .fill("Local-test-password-123");
+    await support.getByRole("button", { name: "Sign in securely" }).click();
+    await expect(support).toHaveURL("/admin");
+    await support.goto(`/admin/support/${conversationId}`);
+    await expect(
+      page.getByText("Connected to the store", { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByLabel("Your message", { exact: true })
+      .fill("Can you help with my grocery list?");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(
+      support.getByText("Can you help with my grocery list?", { exact: true }),
+    ).toBeVisible();
+    await support.getByLabel("Internal note", { exact: true }).check();
+    await support
+      .getByLabel("Your message", { exact: true })
+      .fill("Internal follow-up, customers must not see this");
+    await support.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(
+      support.getByText("Internal follow-up, customers must not see this", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Internal follow-up, customers must not see this", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await support.getByLabel("Internal note", { exact: true }).uncheck();
+    await support
+      .getByLabel("Your message", { exact: true })
+      .fill("Of course. Tell us what you need.");
+    await support.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(
+      page.getByText("Of course. Tell us what you need.", { exact: true }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});

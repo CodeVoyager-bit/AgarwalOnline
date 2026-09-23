@@ -1,0 +1,22 @@
+{
+  "analyzer": "lucene.standard",
+  "searchAnalyzer": "lucene.standard",
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "name": {
+        "type": "document",
+        "fields": { "en": { "type": "string" }, "mr": { "type": "string" } }
+      },
+      "brand": { "type": "string" },
+      "aliases": { "type": "string" }
+    }
+  },
+  "synonyms": [
+    {
+      "name": "grocery-synonyms",
+      "analyzer": "lucene.standard",
+      "source": { "collection": "searchsynonyms" }
+    }
+  ]
+}
