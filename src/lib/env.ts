@@ -5,7 +5,11 @@ const schema = z
       .enum(["development", "test", "production"])
       .default("development"),
     MONGODB_URI: z.string().startsWith("mongodb"),
-    APP_ORIGIN: z.string().url(),
+    // Browsers send Origin without a path or trailing slash, so compare against the bare origin.
+    APP_ORIGIN: z
+      .string()
+      .url()
+      .transform((value) => new URL(value).origin),
     AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_SECRET: z.string().min(32).optional(),
     MOCK_OTP: z.enum(["true", "false"]).default("false"),
@@ -42,10 +46,12 @@ const schema = z
           message: "Mock OTP is forbidden in production",
           path: ["MOCK_OTP"],
         });
-      // The default code is published in the README, and one repeated digit is the first guess.
+      // The default code is published in the README; repeated digits and straight runs are the first guesses.
       else if (
         env.MOCK_OTP_CODE === "246810" ||
-        /^(\d)\1{5}$/.test(env.MOCK_OTP_CODE)
+        /^(\d)\1{5}$/.test(env.MOCK_OTP_CODE) ||
+        "0123456789".includes(env.MOCK_OTP_CODE) ||
+        "9876543210".includes(env.MOCK_OTP_CODE)
       )
         ctx.addIssue({
           code: "custom",

@@ -18,8 +18,14 @@ describe("security boundaries", () => {
     const allow = { ...prod, ALLOW_MOCK_OTP_IN_PRODUCTION: "true" };
     expect(() => parseEnv(allow)).toThrow(); // default 246810 is public
     expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "000000" })).toThrow();
+    expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "123456" })).toThrow();
+    expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "654321" })).toThrow();
     expect(() => parseEnv({ ...prod, MOCK_OTP_CODE: "583014" })).toThrow();
     expect(parseEnv({ ...allow, MOCK_OTP_CODE: "583014" }).MOCK_OTP).toBe("true");
+  });
+  it("reduces APP_ORIGIN to a bare origin", () => {
+    expect(parseEnv({ ...env, APP_ORIGIN: "https://example.test/" }).APP_ORIGIN).toBe("https://example.test");
+    expect(parseEnv({ ...env, APP_ORIGIN: "https://example.test/shop?x=1" }).APP_ORIGIN).toBe("https://example.test");
   });
   it("requires secure production origin and secret", () => {
     expect(() =>

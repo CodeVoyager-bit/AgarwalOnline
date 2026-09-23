@@ -205,13 +205,13 @@ The app validates these on startup and refuses to run with an invalid combinatio
 | Variable | Required | Description |
 |---|---|---|
 | `MONGODB_URI` | Yes | Connection string for a replica set. The database name comes from the path. |
-| `APP_ORIGIN` | Yes | Exact public origin. Must use `https://` in production. |
+| `APP_ORIGIN` | Yes | Public origin, such as `https://agarwal-online.vercel.app`. A trailing slash or path is ignored. Must use `https://` in production. |
 | `AUTH_SECRET` | Yes | 32 or more random characters. Also hashes delivery handover codes, so don't rotate it casually. |
 | `BETTER_AUTH_SECRET` | Production | 32 or more random characters. It signs session cookies. It falls back to `AUTH_SECRET` when blank. |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | With more than one server | Base64 AES key, 16, 24 or 32 bytes. It must be identical on every instance and at build time. |
 | `MOCK_OTP` | No | `true` accepts `MOCK_OTP_CODE` instead of sending SMS. Forbidden in production. |
 | `MOCK_OTP_CODE` | No | Six-digit code used when mock OTP is on. Defaults to `246810`. |
-| `ALLOW_MOCK_OTP_IN_PRODUCTION` | Pre-launch testing only | `true` lets mock OTP run on a Vercel test deployment, which always runs in production mode. It also requires a private `MOCK_OTP_CODE`, not the default and not one repeated digit. Remove it before real customers use the site. |
+| `ALLOW_MOCK_OTP_IN_PRODUCTION` | Pre-launch testing only | `true` lets mock OTP run on a Vercel test deployment, which always runs in production mode. It also requires a private `MOCK_OTP_CODE`: not the default, not one repeated digit, and not a straight run like `123456`. Remove it before real customers use the site. |
 | `SMS_API_URL`, `SMS_API_TOKEN` | Production | SMS gateway. Set both or neither. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | For online payment | Set all three, or checkout offers cash on delivery only. Production requires `rzp_live_` keys. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Production | Set all three or none. Without them, photos are saved to `.local/uploads` on the server's disk. |
