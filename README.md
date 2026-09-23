@@ -211,6 +211,7 @@ The app validates these on startup and refuses to run with an invalid combinatio
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | With more than one server | Base64 AES key, 16, 24 or 32 bytes. It must be identical on every instance and at build time. |
 | `MOCK_OTP` | No | `true` accepts `MOCK_OTP_CODE` instead of sending SMS. Forbidden in production. |
 | `MOCK_OTP_CODE` | No | Six-digit code used when mock OTP is on. Defaults to `246810`. |
+| `ALLOW_MOCK_OTP_IN_PRODUCTION` | Pre-launch testing only | `true` lets mock OTP run on a Vercel test deployment, which always runs in production mode. It also requires a private `MOCK_OTP_CODE`, not the default and not one repeated digit. Remove it before real customers use the site. |
 | `SMS_API_URL`, `SMS_API_TOKEN` | Production | SMS gateway. Set both or neither. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | For online payment | Set all three, or checkout offers cash on delivery only. Production requires `rzp_live_` keys. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Production | Set all three or none. Without them, photos are saved to `.local/uploads` on the server's disk. |
@@ -341,7 +342,7 @@ On other hosts, run the npm scripts from cron instead.
 
 ### Production checklist
 
-- [ ] Fresh production secrets, with `MOCK_OTP=false`
+- [ ] Fresh production secrets, with `MOCK_OTP=false` and `ALLOW_MOCK_OTP_IN_PRODUCTION` removed
 - [ ] `APP_ORIGIN` set to the HTTPS domain
 - [ ] better-auth indexes created on the production database
 - [ ] SMS gateway configured, with DLT registration complete

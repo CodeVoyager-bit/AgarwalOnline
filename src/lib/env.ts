@@ -9,6 +9,8 @@ const schema = z
     AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_SECRET: z.string().min(32).optional(),
     MOCK_OTP: z.enum(["true", "false"]).default("false"),
+    // Pre-launch escape hatch: lets a test deployment on Vercel (which always runs in production mode) use mock OTP.
+    ALLOW_MOCK_OTP_IN_PRODUCTION: z.enum(["true", "false"]).default("false"),
     MOCK_OTP_CODE: z
       .string()
       .regex(/^\d{6}$/)
@@ -33,12 +35,24 @@ const schema = z
       .default(730),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === "production" && env.MOCK_OTP === "true")
-      ctx.addIssue({
-        code: "custom",
-        message: "Mock OTP is forbidden in production",
-        path: ["MOCK_OTP"],
-      });
+    if (env.NODE_ENV === "production" && env.MOCK_OTP === "true") {
+      if (env.ALLOW_MOCK_OTP_IN_PRODUCTION !== "true")
+        ctx.addIssue({
+          code: "custom",
+          message: "Mock OTP is forbidden in production",
+          path: ["MOCK_OTP"],
+        });
+      // The default code is published in the README, and one repeated digit is the first guess.
+      else if (
+        env.MOCK_OTP_CODE === "246810" ||
+        /^(\d)\1{5}$/.test(env.MOCK_OTP_CODE)
+      )
+        ctx.addIssue({
+          code: "custom",
+          message: "Set a private MOCK_OTP_CODE before allowing mock OTP in production",
+          path: ["MOCK_OTP_CODE"],
+        });
+    }
     if (env.NODE_ENV === "production" && !env.APP_ORIGIN.startsWith("https://"))
       ctx.addIssue({
         code: "custom",
