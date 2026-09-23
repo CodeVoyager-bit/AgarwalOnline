@@ -39,26 +39,18 @@ const schema = z
       .default(730),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === "production" && env.MOCK_OTP === "true") {
-      if (env.ALLOW_MOCK_OTP_IN_PRODUCTION !== "true")
-        ctx.addIssue({
-          code: "custom",
-          message: "Mock OTP is forbidden in production",
-          path: ["MOCK_OTP"],
-        });
-      // The default code is published in the README; repeated digits and straight runs are the first guesses.
-      else if (
-        env.MOCK_OTP_CODE === "246810" ||
-        /^(\d)\1{5}$/.test(env.MOCK_OTP_CODE) ||
-        "0123456789".includes(env.MOCK_OTP_CODE) ||
-        "9876543210".includes(env.MOCK_OTP_CODE)
-      )
-        ctx.addIssue({
-          code: "custom",
-          message: "Set a private MOCK_OTP_CODE before allowing mock OTP in production",
-          path: ["MOCK_OTP_CODE"],
-        });
-    }
+    // Owner decision (2026-09-23): the pre-launch test site may use any code, including 000000.
+    // Anyone who knows the code can sign in as any phone number, so remove the flag before launch.
+    if (
+      env.NODE_ENV === "production" &&
+      env.MOCK_OTP === "true" &&
+      env.ALLOW_MOCK_OTP_IN_PRODUCTION !== "true"
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Mock OTP is forbidden in production",
+        path: ["MOCK_OTP"],
+      });
     if (env.NODE_ENV === "production" && !env.APP_ORIGIN.startsWith("https://"))
       ctx.addIssue({
         code: "custom",

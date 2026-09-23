@@ -13,15 +13,10 @@ describe("security boundaries", () => {
       parseEnv({ ...env, NODE_ENV: "production", MOCK_OTP: "true" }),
     ).toThrow();
   });
-  it("allows mock OTP in production only with the opt-in flag and a private code", () => {
-    const prod = { ...env, NODE_ENV: "production", MOCK_OTP: "true" };
-    const allow = { ...prod, ALLOW_MOCK_OTP_IN_PRODUCTION: "true" };
-    expect(() => parseEnv(allow)).toThrow(); // default 246810 is public
-    expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "000000" })).toThrow();
-    expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "123456" })).toThrow();
-    expect(() => parseEnv({ ...allow, MOCK_OTP_CODE: "654321" })).toThrow();
-    expect(() => parseEnv({ ...prod, MOCK_OTP_CODE: "583014" })).toThrow();
-    expect(parseEnv({ ...allow, MOCK_OTP_CODE: "583014" }).MOCK_OTP).toBe("true");
+  it("allows mock OTP in production only with the opt-in flag", () => {
+    const prod = { ...env, NODE_ENV: "production", MOCK_OTP: "true", MOCK_OTP_CODE: "000000" };
+    expect(() => parseEnv(prod)).toThrow();
+    expect(parseEnv({ ...prod, ALLOW_MOCK_OTP_IN_PRODUCTION: "true" }).MOCK_OTP_CODE).toBe("000000");
   });
   it("reduces APP_ORIGIN to a bare origin", () => {
     expect(parseEnv({ ...env, APP_ORIGIN: "https://example.test/" }).APP_ORIGIN).toBe("https://example.test");
