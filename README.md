@@ -13,6 +13,7 @@ All seeded brands, products, people, addresses, orders and analytics are fiction
 - [Environment variables](#environment-variables)
 - [Scripts](#scripts)
 - [Testing](#testing)
+- [Branches and workflow](#branches-and-workflow)
 - [Deployment](#deployment)
 - [Security](#security)
 - [Known gaps](#known-gaps)
@@ -261,7 +262,31 @@ npm run test:e2e
 - **Playwright starts its own app** on port 3002, with the `ags_test_e2e` database on the local MongoDB at port 27028. Change the URI in `playwright.config.ts` if your MongoDB runs elsewhere.
 - **Accessibility checks.** axe-core checks cover WCAG A and AA rules automatically. They don't replace testing on real devices, with a keyboard and with a screen reader.
 
-GitHub Actions runs lint, the typecheck, and unit and integration tests against a temporary MongoDB replica set on every push to `main` and on every pull request. See `.github/workflows/ci.yml`.
+GitHub Actions runs lint, the typecheck, and unit and integration tests against a temporary MongoDB replica set on every push to `main` or `dev` and on every pull request. See `.github/workflows/ci.yml`.
+
+## Branches and workflow
+
+| Branch | Purpose | Deploys to |
+|---|---|---|
+| `main` | Production. Only changes through a reviewed pull request from `dev`. | The live site |
+| `dev` | Day-to-day work. Feature branches start here and merge back here. | Vercel preview deployments |
+
+1. Start from `dev`. For anything bigger than a small fix, create a feature branch from it.
+
+```bash
+git switch dev
+```
+
+```bash
+git switch -c feature/short-description
+```
+
+2. Push the branch and open a pull request into `dev`. CI must pass before merging.
+3. When `dev` is ready to release, open a pull request from `dev` into `main`. Merging it deploys the live site.
+
+**Protect `main` on GitHub.** Under **Settings**, then **Branches**, add a rule for `main`. Require a pull request before merging, require the CI `verify` check to pass, and block force pushes.
+
+**Keep `dev` away from live data.** In Vercel, set `main` as the production branch under **Settings**, then **Git**. Give the Preview environment its own `MONGODB_URI`, pointing at a separate database such as `agarwal_dev`, plus its own secrets. Otherwise, testing a `dev` preview would read and change real orders.
 
 ## Deployment
 
