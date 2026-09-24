@@ -96,6 +96,7 @@ export function AuthForm({
                 pattern="[6-9][0-9]{9}"
                 maxLength={10}
                 autoComplete="username"
+                defaultValue={customerSigned.phone}
                 placeholder={mr ? "१० अंकी मोबाईल क्रमांक" : "10-digit mobile number"}
                 required
               />
@@ -126,6 +127,7 @@ export function AuthForm({
               name="email"
               type="email"
               autoComplete="username"
+              defaultValue={emailSigned.email}
               placeholder="name@example.com"
               required
             />

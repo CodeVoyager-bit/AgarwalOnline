@@ -205,6 +205,22 @@ function buildAuth() {
   });
 }
 
+/** Staff sessions last 12 hours from sign-in. Better Auth extends `expiresAt` on activity, so the create hook alone
+ *  cannot enforce that; the cap is checked on every read and an over-age staff session is deleted. */
+export const STAFF_SESSION_MS = 12 * 60 * 60 * 1000;
+export async function sessionUserId(headers: Headers): Promise<string | null> {
+  const auth = getAuth();
+  const found = await auth.api.getSession({ headers });
+  if (!found) return null;
+  const roles = (found.user as { roles?: string[] }).roles ?? [];
+  const age = Date.now() - new Date(found.session.createdAt).getTime();
+  if (roles.some((role) => role !== "customer") && age > STAFF_SESSION_MS) {
+    await (await auth.$context).internalAdapter.deleteSession(found.session.token);
+    return null;
+  }
+  return found.user.id;
+}
+
 export function getAuth() {
   const env = getEnv();
   const key = `${env.MONGODB_URI}|${env.APP_ORIGIN}|${env.BETTER_AUTH_SECRET ?? env.AUTH_SECRET}`;

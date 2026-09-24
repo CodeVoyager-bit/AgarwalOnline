@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB } from "../db/connect";
 import { User } from "../db/models";
-import { getAuth } from "../auth/better-auth";
+import { sessionUserId } from "../auth/better-auth";
 import { hasPermission, type Role } from "../auth/permissions";
 import { Order } from "../commerce/models";
 import { objectId } from "../commerce/service";
@@ -38,9 +38,9 @@ export async function chatIdentity(userId: string): Promise<ChatIdentity> {
   return { id: String(user._id), name: user.name, roles: user.roles as Role[] };
 }
 export async function requestIdentity(headers: Headers) {
-  const authSession = await getAuth().api.getSession({ headers });
-  if (!authSession) throw Error("UNAUTHENTICATED");
-  return chatIdentity(authSession.user.id);
+  const userId = await sessionUserId(headers);
+  if (!userId) throw Error("UNAUTHENTICATED");
+  return chatIdentity(userId);
 }
 export function scope(user: ChatIdentity) {
   if (user.roles.includes("super-admin")) return {};

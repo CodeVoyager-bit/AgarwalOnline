@@ -4,15 +4,13 @@ import { redirect } from "next/navigation";
 import { connectDB } from "../db/connect";
 import { User } from "../db/models";
 import { assertPermission, hasPermission, type Permission, type Role } from "./permissions";
-import { getAuth } from "./better-auth";
+import { sessionUserId } from "./better-auth";
 export type Identity = { id: string; name: string; phone: string; roles: Role[] };
 export async function currentUser(): Promise<Identity | null> {
   await connectDB();
-  const authSession = await getAuth().api.getSession({
-    headers: await headers(),
-  });
-  if (!authSession) return null;
-  const user = await User.findOne({ _id: authSession.user.id, active: true });
+  const userId = await sessionUserId(await headers());
+  if (!userId) return null;
+  const user = await User.findOne({ _id: userId, active: true });
   return user
     ? {
         id: String(user._id),

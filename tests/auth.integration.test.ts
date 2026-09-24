@@ -2,7 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db/connect";
 import { User } from "../src/lib/db/models";
-import { getAuth } from "../src/lib/auth/better-auth";
+import { getAuth, sessionUserId } from "../src/lib/auth/better-auth";
+import { makeSignature } from "better-auth/crypto";
 
 const uri = process.env.TEST_MONGODB_URI;
 
@@ -99,6 +100,27 @@ describe.skipIf(!uri)("Better Auth MongoDB integration", () => {
     const hours = (session!.expiresAt.getTime() - Date.now()) / 3600000;
     expect(hours).toBeGreaterThan(11);
     expect(hours).toBeLessThan(13);
+  });
+
+  it("ends a staff session 12 hours after sign-in even though activity extends it", async () => {
+    const staff = await User.create({
+      name: "Night Admin",
+      email: "night@example.test",
+      phone: "9000000092",
+      roles: ["customer", "admin"],
+    });
+    const ctx = await getAuth().$context;
+    const { token } = await ctx.internalAdapter.createSession(String(staff._id));
+    const cookie = `${ctx.authCookies.sessionToken.name}=${token}.${await makeSignature(token, ctx.secret)}`;
+    const headers = new Headers({ cookie });
+    expect(await sessionUserId(headers)).toBe(String(staff._id));
+    // simulate what Better Auth's refresh does: a session from 13 hours ago whose expiry was pushed out again
+    await mongoose.connection.collection("authSessions").updateOne(
+      { token },
+      { $set: { createdAt: new Date(Date.now() - 13 * 3600000), expiresAt: new Date(Date.now() + 6 * 86400000) } },
+    );
+    expect(await sessionUserId(headers)).toBeNull();
+    expect(await mongoose.connection.collection("authSessions").countDocuments({ token })).toBe(0);
   });
 
   it("refuses the phone flow for a paused account", async () => {

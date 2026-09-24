@@ -61,14 +61,15 @@ export async function customerPasswordLoginAction(
       .parse(Object.fromEntries(form));
     await rateLimit(`customer-password:${digest(input.phone)}`, 5);
     const user = await User.findOne({ phone: input.phone, active: true });
-    if (!user) return { error: "Invalid mobile number or password." };
+    if (!user)
+      return { error: "Invalid mobile number or password.", phone: input.phone };
     try {
       await getAuth().api.signInPhoneNumber({
         body: { phoneNumber: input.phone, password: input.password },
         headers: await headers(),
       });
     } catch {
-      return { error: "Invalid mobile number or password." };
+      return { error: "Invalid mobile number or password.", phone: input.phone };
     }
     const { mergeGuestCart } = await import("../commerce/guest-cart");
     const merged = await mergeGuestCart(String(user._id));
@@ -95,7 +96,7 @@ export async function customerEmailLoginAction(
       .parse(Object.fromEntries(form));
     await rateLimit(`customer-email:${digest(input.email)}`, 5);
     const user = await User.findOne({ email: input.email, active: true });
-    if (!user) return { error: "Invalid email or password." };
+    if (!user) return { error: "Invalid email or password.", email: input.email };
     try {
       await ensureStaffCredential(String(user._id));
       await getAuth().api.signInEmail({
@@ -103,7 +104,7 @@ export async function customerEmailLoginAction(
         headers: await headers(),
       });
     } catch {
-      return { error: "Invalid email or password." };
+      return { error: "Invalid email or password.", email: input.email };
     }
     const { mergeGuestCart } = await import("../commerce/guest-cart");
     const merged = await mergeGuestCart(String(user._id));

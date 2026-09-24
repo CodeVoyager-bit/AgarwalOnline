@@ -25,7 +25,7 @@ export default defineConfig({
       url: "http://127.0.0.1:3002/login",
       reuseExistingServer: false,
       env: appEnv,
-      timeout: 60000,
+      timeout: 120000, // a cold .next-e2e compile after large edits can take over a minute
     },
   ],
 });
