@@ -104,6 +104,6 @@ await AuditLog.create({
   details: { email: data.email, role: "super-admin", source: "scripts/create-owner.ts" },
 });
 console.log(
-  `${byEmail ? "Updated" : "Created"} owner ${data.email} (super-admin) on database "${database}" at ${host}. Sign in at /staff/login.`,
+  `${byEmail ? "Updated" : "Created"} owner ${data.email} (super-admin) on database "${database}" at ${host}. Sign in at /login and open Governance from the account menu.`,
 );
 await mongoose.disconnect();
