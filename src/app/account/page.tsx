@@ -10,6 +10,7 @@ import {
   Bell,
 } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
+import { staffHome } from "@/lib/auth/permissions";
 import { logoutAction } from "@/lib/auth/actions";
 import { ActionForm } from "@/components/action-form";
 import { profileAction } from "@/lib/profile/actions";
@@ -19,12 +20,11 @@ import { User } from "@/lib/db/models";
 import { currentLocale } from "@/lib/i18n";
 export default async function Account() {
   const user = await requirePage("profile:own");
+  const home = staffHome(user.roles);
   const locale = await currentLocale();
   const mr = locale === "mr";
   const profile = await User.findById(user.id).select("preferredPaymentMethod substitutionPreference");
-  const customerOverview =
-    user.role === "customer"
-      ? await Promise.all([
+  const customerOverview = await Promise.all([
           Order.findOne({
             customerId: user.id,
             orderStatus: { $in: ["placed", "confirmed"] },
@@ -34,8 +34,7 @@ export default async function Account() {
           Order.countDocuments({ customerId: user.id }),
           WishlistItem.countDocuments({ customerId: user.id }),
           Notification.countDocuments({ userId: user.id, readAt: null }),
-        ])
-      : null;
+        ]);
   return (
     <section className="page-container">
       <div className="workspace-heading">
@@ -83,8 +82,7 @@ export default async function Account() {
         </>
       )}
       <div className="dashboard-links">
-        {(user.role === "customer"
-          ? [
+        {[
               [
                 mr ? "ऑर्डर" : "Orders",
                 mr ? "मागोवा, रद्द करणे किंवा मदत" : "Track, cancel or get help",
@@ -121,20 +119,17 @@ export default async function Account() {
                 "/account/complaints",
                 RotateCcw,
               ],
-            ]
-          : [
-              [
-                "Open your workspace",
-                "Manage today’s store work",
-                user.role === "delivery"
-                  ? "/delivery"
-                  : user.role === "super-admin"
-                    ? "/super-admin"
-                    : "/admin",
-                Store,
-              ],
-            ]
-        ).map(([label, description, href, Icon]) => (
+              ...(home
+                ? [
+                    [
+                      mr ? "तुमचे कामाचे ठिकाण उघडा" : "Open your workspace",
+                      mr ? "आजचे दुकानाचे काम सांभाळा" : "Manage today’s store work",
+                      home,
+                      Store,
+                    ],
+                  ]
+                : []),
+            ].map(([label, description, href, Icon]) => (
           <Link className="account-tile" key={String(href)} href={String(href)}>
             <span className="account-tile-icon">
               <Icon size={22} />

@@ -11,13 +11,13 @@ import {
 } from "../db/models";
 import { InventoryMovement, SystemSetting } from "../commerce/models";
 import { objectId } from "../commerce/service";
-import { assertPermission, type Permission } from "../auth/permissions";
+import { assertPermission, type Permission, type Role } from "../auth/permissions";
 import { ApprovalRequest, ApprovalHistory } from "./models";
 async function authorize(id: string, permission: Permission) {
   await connectDB();
   const user = await User.findOne({ _id: objectId.parse(id), active: true });
   if (!user) throw Error("UNAUTHENTICATED");
-  assertPermission(user.role, permission);
+  assertPermission(user.roles as Role[], permission);
 }
 export const productInput = z
   .object({

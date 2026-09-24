@@ -6,15 +6,12 @@ import {
   customerPasswordLoginAction,
   sendOTPAction,
   verifyOTPAction,
-  staffLoginAction,
 } from "@/lib/auth/actions";
 export function AuthForm({
-  staff = false,
   mock = false,
   locale = "en",
   initialMode = "password",
 }: {
-  staff?: boolean;
   mock?: boolean;
   locale?: "en" | "mr";
   initialMode?: "password" | "signup";
@@ -22,7 +19,6 @@ export function AuthForm({
   const mr = locale === "mr";
   const [sent, send, sending] = useActionState(sendOTPAction, {});
   const [verified, verify, verifying] = useActionState(verifyOTPAction, {});
-  const [signed, sign, signing] = useActionState(staffLoginAction, {});
   const [customerSigned, customerSign, customerSigning] = useActionState(
     customerPasswordLoginAction,
     {},
@@ -55,32 +51,6 @@ export function AuthForm({
     if (wasSending.current && !sending && sent.challengeId) setResendIn(30);
     wasSending.current = sending;
   }, [sending, sent.challengeId]);
-  if (staff)
-    return (
-      <form action={sign} className="form-stack">
-        <label>
-          Work email
-          <input type="email" name="email" autoComplete="username" required />
-        </label>
-        <label>
-          Password
-          <PasswordInput
-            name="password"
-            autoComplete="current-password"
-            minLength={1}
-            maxLength={72}
-          />
-        </label>
-        {signed.error && (
-          <p role="alert" className="error-message">
-            {signed.error}
-          </p>
-        )}
-        <button className="primary-button" disabled={signing}>
-          {signing ? "Signing in…" : "Sign in securely"}
-        </button>
-      </form>
-    );
   return (
     <>
       {!sent.challengeId && (

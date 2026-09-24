@@ -5,7 +5,7 @@ import { connectDB } from "../db/connect";
 import { User, AuditLog } from "../db/models";
 import { Order } from "../commerce/models";
 import { objectId } from "../commerce/service";
-import { assertPermission, type Permission } from "../auth/permissions";
+import { assertPermission, type Permission, type Role } from "../auth/permissions";
 import { Complaint, ReturnRequest } from "./models";
 import { rateLimit } from "../auth/rate-limit";
 import { notify } from "../engagement/service";
@@ -13,7 +13,7 @@ async function authorize(id: string, permission: Permission) {
   await connectDB();
   const user = await User.findOne({ _id: objectId.parse(id), active: true });
   if (!user) throw Error("UNAUTHENTICATED");
-  assertPermission(user.role, permission);
+  assertPermission(user.roles as Role[], permission);
 }
 export async function createComplaint(actorId: string, input: unknown) {
   await authorize(actorId, "complaint:own");

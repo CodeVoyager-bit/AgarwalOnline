@@ -87,7 +87,7 @@ Ownership and transition conditions further restrict every grant. Anonymous acce
 - `/`: service area selector, categories, promotions, featured/deals/new/bestsellers, authenticated reorders.
 - `/catalog`, `/products/[slug]`: filters, search, bilingual content, variants, stock.
 - `/cart`, `/checkout`, `/checkout/confirmation/[id]`.
-- `/login`, `/staff/login`; `/account`, `/account/addresses`, `/account/wishlist`, `/account/orders`, `/account/orders/[id]`, `/account/support`, `/account/complaints`.
+- `/login` (staff too; `/staff/login` redirects there); `/account`, `/account/addresses`, `/account/wishlist`, `/account/orders`, `/account/orders/[id]`, `/account/support`, `/account/complaints`.
 - `/delivery`: assigned queue, `/delivery/orders/[id]`, history, cash summary.
 - `/admin`: orders, packing, products, categories, inventory, customers, delivery, COD, support, complaints, returns, coupons, analytics.
 - `/super-admin`: approvals, staff/permissions, delivery rules, synonyms, settings, audit, revenue/refunds/COD reports.

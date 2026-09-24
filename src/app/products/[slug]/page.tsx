@@ -42,13 +42,13 @@ export default async function ProductPage({
       .sort({ createdAt: -1 })
       .limit(20),
     recommendationsFor({
-      customerId: user?.role === "customer" ? user.id : undefined,
+      customerId: user?.id,
       category: p.categorySlug,
       excludeSlug: p.slug,
       limit: 5,
     }),
     deliveryRules(),
-    user?.role === "customer"
+    user
       ? WishlistItem.exists({ customerId: user.id, productId: p.id })
       : null,
     catalogCategories(),
@@ -62,7 +62,7 @@ export default async function ProductPage({
   }).select("name");
   const variantIds = await ProductVariant.find({ productId: p.id }).distinct("_id");
   const canReview =
-    user?.role === "customer" &&
+    user !== null &&
     (await Order.exists({
       customerId: user.id,
       deliveryStatus: "delivered",

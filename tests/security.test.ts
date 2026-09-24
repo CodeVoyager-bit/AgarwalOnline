@@ -34,12 +34,14 @@ describe("security boundaries", () => {
     expect(() => parseEnv({ ...env, BETTER_AUTH_SECRET: "short" })).toThrow();
   });
   it("denies customer and delivery access to operations", () => {
-    expect(hasPermission("customer", "order:manage")).toBe(false);
-    expect(hasPermission("delivery", "analytics:read")).toBe(false);
-    expect(() => assertPermission("admin", "settings:write")).toThrow(
+    expect(hasPermission(["customer"], "order:manage")).toBe(false);
+    expect(hasPermission(["customer", "delivery"], "analytics:read")).toBe(false);
+    expect(() => assertPermission(["customer", "admin"], "settings:write")).toThrow(
       "FORBIDDEN",
     );
-    expect(hasPermission("super-admin", "settings:write")).toBe(true);
+    expect(hasPermission(["customer", "super-admin"], "settings:write")).toBe(true);
+    // a staff member keeps every customer permission
+    expect(hasPermission(["customer", "admin"], "cart:own")).toBe(true);
   });
   it("separates OTP subjects and uses opaque high-entropy session tokens", () => {
     expect(

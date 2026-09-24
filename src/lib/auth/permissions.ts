@@ -1,5 +1,8 @@
 export const roles = ["customer", "delivery", "admin", "super-admin"] as const;
 export type Role = (typeof roles)[number];
+/** Everyone holds "customer"; at most one of these is added on top. */
+export const staffRoles = ["delivery", "admin", "super-admin"] as const;
+export type StaffRole = (typeof staffRoles)[number];
 export const grants = {
   customer: [
     "profile:own",
@@ -45,9 +48,34 @@ export const grants = {
   ],
 } as const satisfies Record<Role, readonly string[]>;
 export type Permission = (typeof grants)[Role][number];
-export function hasPermission(role: Role, permission: Permission) {
-  return (grants[role] as readonly string[]).includes(permission);
+export function hasPermission(userRoles: readonly Role[], permission: Permission) {
+  return userRoles.some((role) =>
+    (grants[role] as readonly string[]).includes(permission),
+  );
 }
-export function assertPermission(role: Role, permission: Permission) {
-  if (!hasPermission(role, permission)) throw new Error("FORBIDDEN");
+export function assertPermission(userRoles: readonly Role[], permission: Permission) {
+  if (!hasPermission(userRoles, permission)) throw new Error("FORBIDDEN");
+}
+/** The staff role a user holds, if any. */
+export function staffRoleOf(userRoles: readonly Role[]): StaffRole | null {
+  return (
+    (["super-admin", "admin", "delivery"] as const).find((role) =>
+      userRoles.includes(role),
+    ) ?? null
+  );
+}
+/** Where a staff member's workspace lives, or null for a plain customer. */
+export function staffHome(userRoles: readonly Role[]) {
+  const role = staffRoleOf(userRoles);
+  return role === "super-admin"
+    ? "/super-admin"
+    : role === "admin"
+      ? "/admin"
+      : role === "delivery"
+        ? "/delivery"
+        : null;
+}
+/** The full roles array for a person with this staff role (or none). */
+export function rolesFor(staffRole: StaffRole | null): Role[] {
+  return staffRole ? ["customer", staffRole] : ["customer"];
 }

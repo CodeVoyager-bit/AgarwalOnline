@@ -63,12 +63,12 @@ describe.skipIf(!uri)("Transactional COD checkout", () => {
     const a = await User.create({
       name: "Test Customer",
       phone: "9000000091",
-      role: "customer",
+      roles: ["customer"],
     });
     const b = await User.create({
       name: "Other Customer",
       phone: "9000000092",
-      role: "customer",
+      roles: ["customer"],
     });
     customer = String(a._id);
     other = String(b._id);

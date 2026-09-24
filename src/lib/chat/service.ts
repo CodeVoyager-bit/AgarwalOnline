@@ -9,7 +9,10 @@ import { objectId } from "../commerce/service";
 import { ChatConversation, ChatMessage, ChatReceipt } from "./models";
 import { rateLimit } from "../auth/rate-limit";
 import { notify } from "../engagement/service";
-export type ChatIdentity = { id: string; name: string; role: Role };
+export type ChatIdentity = { id: string; name: string; roles: Role[] };
+/** Staff are customers too, so the side they act on is decided by the conversation, not the account. */
+const actsAsCustomer = (user: ChatIdentity, c: { customerId: unknown }) =>
+  String(c.customerId) === user.id;
 export type MessageDTO = {
   id: string;
   conversationId: string;
@@ -28,11 +31,11 @@ export async function chatIdentity(userId: string): Promise<ChatIdentity> {
   });
   if (
     !user ||
-    (!hasPermission(user.role, "chat:own") &&
-      !hasPermission(user.role, "chat:support"))
+    (!hasPermission(user.roles as Role[], "chat:own") &&
+      !hasPermission(user.roles as Role[], "chat:support"))
   )
     throw Error("FORBIDDEN");
-  return { id: String(user._id), name: user.name, role: user.role };
+  return { id: String(user._id), name: user.name, roles: user.roles as Role[] };
 }
 export async function requestIdentity(headers: Headers) {
   const authSession = await getAuth().api.getSession({ headers });
@@ -40,11 +43,11 @@ export async function requestIdentity(headers: Headers) {
   return chatIdentity(authSession.user.id);
 }
 export function scope(user: ChatIdentity) {
-  return user.role === "customer"
-    ? { customerId: user.id }
-    : user.role === "super-admin"
-      ? {}
-      : { $or: [{ assignedAdminId: user.id }, { assignedAdminId: null }] };
+  if (user.roles.includes("super-admin")) return {};
+  const own = { customerId: user.id };
+  return hasPermission(user.roles, "chat:support")
+    ? { $or: [own, { assignedAdminId: user.id }, { assignedAdminId: null }] }
+    : own;
 }
 export async function authorizeConversation(
   user: ChatIdentity,
@@ -59,8 +62,7 @@ export async function authorizeConversation(
   return conversation;
 }
 export async function createConversation(userId: string, input: unknown) {
-  const user = await chatIdentity(userId);
-  if (user.role !== "customer") throw Error("FORBIDDEN");
+  await chatIdentity(userId); // must be an active account
   const data = z
     .object({
       title: z.string().trim().min(3).max(100),
@@ -104,8 +106,11 @@ export async function sendMessage(
       internal: z.boolean().default(false),
     })
     .parse(input);
-  if (user.role === "customer" && data.internal) throw Error("FORBIDDEN");
-  await authorizeConversation(user, data.conversationId);
+  const asCustomer = actsAsCustomer(
+    user,
+    await authorizeConversation(user, data.conversationId),
+  );
+  if (asCustomer && data.internal) throw Error("FORBIDDEN");
   await rateLimit(`chat-message:${user.id}`, 30, 60000);
   let result: MessageDTO | undefined;
   let notifyCustomer: string | undefined;
@@ -131,10 +136,7 @@ export async function sendMessage(
         ...(!data.internal
           ? {
               $set: {
-                status:
-                  user.role === "customer"
-                    ? "waiting-support"
-                    : "waiting-customer",
+                status: asCustomer ? "waiting-support" : "waiting-customer",
               },
             }
           : {}),
@@ -152,14 +154,14 @@ export async function sendMessage(
             "",
           ),
           senderId: user.id,
-          senderName: user.role === "customer" ? user.name : "Store team",
+          senderName: asCustomer ? user.name : "Store team",
           sequence: c.sequence,
         },
       ],
       { session },
     );
     result = dto(m.toObject());
-    if (user.role !== "customer" && !data.internal)
+    if (!asCustomer && !data.internal)
       notifyCustomer = String(c.customerId);
   });
   if (notifyCustomer)
@@ -184,7 +186,7 @@ export async function syncConversation(user: ChatIdentity, input: unknown) {
   const filter: Record<string, unknown> = {
     conversationId: c._id,
     sequence: { $gt: data.after },
-    ...(user.role === "customer" ? { internal: false } : {}),
+    ...(actsAsCustomer(user, c) ? { internal: false } : {}),
   };
   if (data.q)
     filter.body = {
@@ -271,7 +273,7 @@ export async function changeConversation(userId: string, input: unknown) {
     .parse(input);
   const c = await authorizeConversation(user, data.conversationId);
   if (
-    user.role === "customer" &&
+    actsAsCustomer(user, c) &&
     (data.status !== "open" ||
       !["closed", "resolved"].includes(c.status) ||
       data.assignToSelf)

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { assertPermission } from "../auth/permissions";
+import { assertPermission, type Role } from "../auth/permissions";
 import { connectDB } from "../db/connect";
 import { InventoryItem, Product, ProductVariant, User } from "../db/models";
 import { Order } from "../commerce/models";
@@ -14,7 +14,7 @@ export async function analytics(actorId: string, input: unknown) {
   await connectDB();
   const actor = await User.findOne({ _id: actorId, active: true });
   if (!actor) throw Error("UNAUTHENTICATED");
-  assertPermission(actor.role, "analytics:read");
+  assertPermission(actor.roles as Role[], "analytics:read");
   const parsed = dateInput.catch({}).parse(input);
   const end = parsed.to
     ? new Date(`${parsed.to}T23:59:59.999+05:30`)

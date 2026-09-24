@@ -21,7 +21,7 @@ import {
   verifyHmac,
 } from "./provider";
 import { digest } from "../auth/crypto";
-import { assertPermission } from "../auth/permissions";
+import { assertPermission, type Role } from "../auth/permissions";
 import { notify } from "../engagement/service";
 async function releaseOrder(
   order: mongoose.Document & {
@@ -90,7 +90,7 @@ export async function initiatePayment(
 ) {
   const id = objectId.parse(orderInput);
   await connectDB();
-  if (!(await User.exists({ _id: customerId, active: true, role: "customer" })))
+  if (!(await User.exists({ _id: customerId, active: true, roles: "customer" })))
     throw Error("UNAUTHENTICATED");
   const order = await Order.findOne({
     _id: id,
@@ -327,7 +327,7 @@ async function refundActor(actorId: string) {
     active: true,
   });
   if (!user) throw Error("UNAUTHENTICATED");
-  assertPermission(user.role, "refund:write");
+  assertPermission(user.roles as Role[], "refund:write");
   return user;
 }
 

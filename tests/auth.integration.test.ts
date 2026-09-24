@@ -58,7 +58,7 @@ describe.skipIf(!uri)("Better Auth MongoDB integration", () => {
     expect(await User.countDocuments()).toBe(0);
     const result = await verify();
     expect(result.user).toBeTruthy();
-    const customer = await User.findOne({ role: "customer", active: true });
+    const customer = await User.findOne({ roles: ["customer"], active: true });
     expect(customer?.phone).toBe("9000000091");
     expect(
       await mongoose.connection.collection("authSessions").countDocuments(),
@@ -81,16 +81,34 @@ describe.skipIf(!uri)("Better Auth MongoDB integration", () => {
     ).toHaveLength(1);
   });
 
-  it("prevents staff authentication through the customer phone flow", async () => {
+  it("signs staff in through the same phone flow with a shorter session", async () => {
     await User.create({
       name: "Fictional Admin",
       email: "admin@example.test",
       emailVerified: true,
       phone: "9000000091",
-      role: "admin",
+      roles: ["customer", "admin"],
       active: true,
     });
-    await expect(send()).rejects.toThrow("staff");
+    await send();
+    const result = await verify();
+    expect(result.user).toBeTruthy();
+    const session = await mongoose.connection
+      .collection("authSessions")
+      .findOne({ userId: (await User.findOne({ phone: "9000000091" }))!._id });
+    const hours = (session!.expiresAt.getTime() - Date.now()) / 3600000;
+    expect(hours).toBeGreaterThan(11);
+    expect(hours).toBeLessThan(13);
+  });
+
+  it("refuses the phone flow for a paused account", async () => {
+    await User.create({
+      name: "Paused",
+      phone: "9000000091",
+      roles: ["customer"],
+      active: false,
+    });
+    await expect(send()).rejects.toThrow("not active");
   });
 
   it("uses Better Auth rate limits for repeated OTP sends", async () => {

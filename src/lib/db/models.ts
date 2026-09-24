@@ -14,7 +14,10 @@ const userSchema = new Schema(
     emailVerified: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
     passwordHash: { type: String, select: false },
-    role: { type: String, enum: roles, required: true },
+    roles: {
+      type: [{ type: String, enum: roles }],
+      default: () => ["customer"],
+    },
     active: { type: Boolean, default: true },
     locale: { type: String, enum: ["en", "mr"], default: "en" },
     preferredPaymentMethod: {
@@ -35,7 +38,7 @@ userSchema.index(
   { email: 1 },
   { unique: true, partialFilterExpression: { email: { $type: "string" } } },
 );
-userSchema.index({ role: 1, active: 1, createdAt: -1 });
+userSchema.index({ roles: 1, active: 1, createdAt: -1 });
 const otpSchema = new Schema(
   {
     subjectHash: { type: String, required: true },

@@ -16,7 +16,7 @@ import { CartLineControls } from "@/components/cart-line-controls";
 export default async function Cart() {
   const user = await currentUser();
   const lines =
-    user?.role === "customer" ? await cartFor(user.id) : await guestCartLines();
+    user ? await cartFor(user.id) : await guestCartLines();
   const rules = await deliveryRules();
   const promotionCode = (await cookies()).get("ags_promotion")?.value;
   const baseSubtotal = lines.reduce(

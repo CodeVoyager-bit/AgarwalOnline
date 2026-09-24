@@ -236,7 +236,7 @@ export default async function Home() {
   ]);
   const [recommended, activeOffers, areaDocs] = await Promise.all([
     recommendationsFor({
-      customerId: user?.role === "customer" ? user.id : undefined,
+      customerId: user?.id,
       limit: 8,
     }),
     Promotion.find({ active: true, startsAt: { $lte: now }, endsAt: { $gte: now } })
@@ -246,7 +246,7 @@ export default async function Home() {
     connectDB().then(() => ServiceArea.find({}).select("name")),
   ]);
   const previousOrder =
-    user?.role === "customer"
+    user
       ? await Order.findOne({ customerId: user.id })
           .sort({ createdAt: -1 })
           .select("items.variantId")
@@ -585,7 +585,7 @@ export default async function Home() {
             </div>
           </Section>
         )}
-        {user?.role === "customer" && pickedRow.length > 0 && (
+        {user && pickedRow.length > 0 && (
           <Section
             id="picked-title"
             icon={Heart}

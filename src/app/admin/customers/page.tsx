@@ -20,7 +20,7 @@ export default async function CustomersPage({
   const { q = "" } = await searchParams;
   const term = q.trim().slice(0, 80);
   const customers = await User.find({
-    role: "customer",
+    roles: "customer",
     ...(term
       ? {
           $or: [

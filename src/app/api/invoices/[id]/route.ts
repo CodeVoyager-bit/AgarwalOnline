@@ -1,4 +1,5 @@
 import { currentUser } from "@/lib/auth/session";
+import { hasPermission } from "@/lib/auth/permissions";
 import { Order } from "@/lib/commerce/models";
 import { objectId } from "@/lib/commerce/service";
 
@@ -19,12 +20,12 @@ export async function GET(
   const { id } = await params;
   if (!objectId.safeParse(id).success)
     return new Response("Invoice not found", { status: 404 });
+  // staff who manage orders may open any invoice; everyone else only their own
   const order = await Order.findOne({
     _id: id,
-    ...(user.role === "customer" ? { customerId: user.id } : {}),
+    ...(hasPermission(user.roles, "order:manage") ? {} : { customerId: user.id }),
   });
-  if (!order || user.role === "delivery")
-    return new Response("Invoice not found", { status: 404 });
+  if (!order) return new Response("Invoice not found", { status: 404 });
   const rows = order.items
     .map(
       (item: {

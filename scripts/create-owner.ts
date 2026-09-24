@@ -83,14 +83,17 @@ const user =
     name: data.name,
     email: data.email,
     phone: data.phone,
-    role: "super-admin",
+    roles: ["customer", "super-admin"],
     emailVerified: true,
     active: true,
   }));
 if (byEmail)
   await User.updateOne(
     { _id: user._id },
-    { $set: { name: data.name, phone: data.phone, role: "super-admin", emailVerified: true, active: true } },
+    {
+      $set: { name: data.name, phone: data.phone, emailVerified: true, active: true },
+      $addToSet: { roles: { $each: ["customer", "super-admin"] } },
+    },
   );
 await setStaffCredential(String(user._id), await hashStaffPassword(data.password));
 await revokeStaffSessions(String(user._id)); // a reset signs out every older session

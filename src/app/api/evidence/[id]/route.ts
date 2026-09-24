@@ -16,9 +16,9 @@ export async function GET(
   const evidence = await UploadedEvidence.findById(id);
   if (!evidence) return new Response("Not found", { status: 404 });
   let allowed =
-    ["admin", "super-admin"].includes(user.role) ||
+    user.roles.some((role) => role === "admin" || role === "super-admin") ||
     String(evidence.ownerId) === user.id;
-  if (!allowed && user.role === "delivery" && evidence.orderId)
+  if (!allowed && user.roles.includes("delivery") && evidence.orderId)
     allowed = Boolean(
       await Order.exists({ _id: evidence.orderId, assignedTo: user.id }),
     );

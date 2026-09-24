@@ -3,9 +3,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { connectDB } from "../db/connect";
 import { User } from "../db/models";
-import { assertPermission, type Permission, type Role } from "./permissions";
+import { assertPermission, hasPermission, type Permission, type Role } from "./permissions";
 import { getAuth } from "./better-auth";
-export type Identity = { id: string; name: string; phone: string; role: Role };
+export type Identity = { id: string; name: string; phone: string; roles: Role[] };
 export async function currentUser(): Promise<Identity | null> {
   await connectDB();
   const authSession = await getAuth().api.getSession({
@@ -18,20 +18,20 @@ export async function currentUser(): Promise<Identity | null> {
         id: String(user._id),
         name: user.name,
         phone: user.phone,
-        role: user.role,
+        roles: user.roles as Role[],
       }
     : null;
 }
 export async function requirePermission(permission: Permission) {
   const user = await currentUser();
   if (!user) throw new Error("UNAUTHENTICATED");
-  assertPermission(user.role, permission);
+  assertPermission(user.roles, permission);
   return user;
 }
 export async function requirePage(permission: Permission) {
   const user = await currentUser();
   if (!user) redirect("/login");
-  if (!(await import("./permissions")).hasPermission(user.role, permission))
+  if (!hasPermission(user.roles, permission))
     redirect("/forbidden");
   return user;
 }

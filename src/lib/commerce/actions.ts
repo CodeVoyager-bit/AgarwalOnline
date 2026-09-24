@@ -33,7 +33,7 @@ export async function cartAction(
 ): Promise<MutationState> {
   try {
     const user = await currentUser();
-    if (user?.role === "customer")
+    if (user)
       await setCartLine(user.id, form.get("variantId"), form.get("quantity"));
     else {
       const { setGuestCartLine } = await import("./guest-cart");
@@ -170,8 +170,6 @@ export async function quickAddAction(
 ): Promise<MutationState> {
   const user = await currentUser();
   try {
-    if (user && user.role !== "customer")
-      return { error: "Use a customer account to shop." };
     if (!user) {
       const { guestCartLines, setGuestCartLine } = await import("./guest-cart");
       const variantId = objectId.parse(form.get("variantId"));

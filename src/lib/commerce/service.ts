@@ -108,7 +108,7 @@ export async function checkout(customerId: string, input: unknown) {
   const user = await User.findOne({
     _id: customerId,
     active: true,
-    role: "customer",
+    roles: "customer",
   });
   if (!user) throw Error("UNAUTHENTICATED");
   let resultId = "";
@@ -416,7 +416,7 @@ export async function reorder(customerId: string, orderInput: unknown) {
   await connectDB();
   const user = await User.exists({
     _id: customerId,
-    role: "customer",
+    roles: "customer",
     active: true,
   });
   if (!user) throw Error("UNAUTHENTICATED");

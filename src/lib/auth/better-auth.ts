@@ -44,10 +44,11 @@ function buildAuth() {
     user: {
       modelName: "users",
       additionalFields: {
-        role: {
-          type: ["customer", "delivery", "admin", "super-admin"],
+        // everyone is a customer; staff carry one extra role, granted only from the Super Admin page
+        roles: {
+          type: "string[]",
           required: true,
-          defaultValue: "customer",
+          defaultValue: ["customer"],
           input: false,
         },
         active: {
@@ -105,7 +106,7 @@ function buildAuth() {
               active: true,
             });
             if (!user) return false;
-            if (user.role !== "customer")
+            if ((user.roles as string[] | undefined)?.some((role) => role !== "customer"))
               return {
                 data: {
                   ...session,
@@ -125,9 +126,9 @@ function buildAuth() {
         ) {
           const phone = String(ctx.body?.phoneNumber ?? "");
           const user = await db.collection("users").findOne({ phone });
-          if (user && (user.role !== "customer" || user.active !== true))
+          if (user && user.active !== true)
             throw new APIError("FORBIDDEN", {
-              message: "Use the staff sign-in page for staff accounts.",
+              message: "This account is not active. Please contact the store.",
             });
           if (user && !user.email)
             await db.collection("users").updateOne(

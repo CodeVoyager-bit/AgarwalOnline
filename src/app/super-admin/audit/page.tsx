@@ -1,3 +1,4 @@
+import { staffRoleOf, type Role } from "@/lib/auth/permissions";
 import Link from "next/link";
 import mongoose from "mongoose";
 import { requirePage } from "@/lib/auth/session";
@@ -48,10 +49,10 @@ export default async function AuditPage({
     AuditLog.find(query)
       .sort({ at: -1 })
       .limit(200)
-      .populate("actorId", "name email role"),
-    User.find({ role: { $in: ["delivery", "admin", "super-admin"] } })
+      .populate("actorId", "name email roles"),
+    User.find({ roles: { $in: ["delivery", "admin", "super-admin"] } })
       .sort({ name: 1 })
-      .select("name role"),
+      .select("name roles"),
     AuditLog.countDocuments(query),
   ]);
   return (
@@ -80,7 +81,7 @@ export default async function AuditPage({
             <option value="">Everyone</option>
             {actors.map((actor) => (
               <option key={String(actor._id)} value={String(actor._id)}>
-                {actor.name} · {actor.role}
+                {actor.name} · {staffRoleOf(actor.roles as Role[]) ?? "customer"}
               </option>
             ))}
           </select>
@@ -104,7 +105,7 @@ export default async function AuditPage({
             const actor = event.actorId as unknown as {
               name?: string;
               email?: string;
-              role?: string;
+              roles?: string[];
             } | null;
             return (
               <article className="audit-row" key={String(event._id)}>
@@ -115,7 +116,7 @@ export default async function AuditPage({
                   <strong>{event.action}</strong>
                   <small>
                     {actor?.name ?? "System"}
-                    {actor?.role ? ` · ${actor.role}` : ""} ·{" "}
+                    {actor?.roles ? ` · ${staffRoleOf(actor.roles as Role[]) ?? "customer"}` : ""} ·{" "}
                     {new Date(event.at).toLocaleString("en-IN", {
                       timeZone: "Asia/Kolkata",
                       dateStyle: "medium",

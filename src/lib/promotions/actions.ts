@@ -26,7 +26,7 @@ export async function applyPromotionAction(
       .parse(form.get("code"));
     const user = await currentUser();
     const lines =
-      user?.role === "customer" ? await cartFor(user.id) : await guestCartLines();
+      user ? await cartFor(user.id) : await guestCartLines();
     const quote = await quoteCart(lines, { code, customerId: user?.id });
     if (quote.rejectedCodeReason) return { error: quote.rejectedCodeReason };
     (await cookies()).set(PROMOTION_COOKIE, code, {

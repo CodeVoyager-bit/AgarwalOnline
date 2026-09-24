@@ -113,7 +113,7 @@ for (const [index, role] of [
     {
       $setOnInsert: {
         name: `Demo ${role}`,
-        role,
+        roles: role === "customer" ? ["customer"] : ["customer", role],
         ...(role !== "customer"
           ? { email: `${role}@demo.ags.test`, emailVerified: true }
           : {
@@ -131,7 +131,7 @@ for (const name of ["Nagothane", "Roha", "Pali", "RIL Township", "NMD"])
     { $setOnInsert: { name, pincodes: [], enabled: false, feePaise: 3000 } },
     { upsert: true },
   );
-const superAdmin = await User.findOne({ role: "super-admin" });
+const superAdmin = await User.findOne({ roles: "super-admin" });
 if (superAdmin) {
   await Promotion.updateOne(
     { code: "LOCAL10" },
@@ -191,8 +191,8 @@ for (const [key, synonyms] of Object.entries({
     { upsert: true },
   );
 }
-const customer = await User.findOne({ role: "customer" });
-const deliveryPartner = await User.findOne({ role: "delivery" });
+const customer = await User.findOne({ roles: "customer" });
+const deliveryPartner = await User.findOne({ roles: "delivery" });
 const demoArea = await ServiceArea.findOne({ key: "nagothane" });
 const firstVariants = await ProductVariant.find({}).sort({ sku: 1 }).limit(4);
 const productIds = firstVariants.map((variant) => variant.productId);

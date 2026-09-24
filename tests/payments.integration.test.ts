@@ -47,7 +47,7 @@ describe.skipIf(!uri)("Payment event reconciliation", () => {
     const user = await User.create({
       phone: "9000000091",
       name: "Fictional customer",
-      role: "customer",
+      roles: ["customer"],
     });
     variantId = String(new mongoose.Types.ObjectId());
     const slot = await DeliverySlot.create({

@@ -1,11 +1,10 @@
 import { ActionForm } from "@/components/action-form";
 import { PasswordInput } from "@/components/password-input";
 import { requirePage } from "@/lib/auth/session";
-import { grants, type Role } from "@/lib/auth/permissions";
+import { grants, staffRoleOf, staffRoles, type Role } from "@/lib/auth/permissions";
 import { User } from "@/lib/db/models";
 import { staffAction } from "@/lib/staff/actions";
 
-const staffRoles = ["delivery", "admin", "super-admin"] as const;
 const labels: Record<string, string> = {
   delivery: "Delivery Partner",
   admin: "Admin",
@@ -14,16 +13,16 @@ const labels: Record<string, string> = {
 
 export default async function StaffManagement() {
   const actor = await requirePage("staff:manage");
-  const staff = await User.find({ role: { $in: staffRoles } })
-    .sort({ active: -1, role: 1, name: 1 })
-    .select("name phone email role active createdAt");
+  const staff = await User.find({ roles: { $in: staffRoles } })
+    .sort({ active: -1, name: 1 })
+    .select("name phone email roles active createdAt");
   return (
     <section className="page-container">
       <div className="workspace-heading">
         <div>
           <span className="eyebrow">ACCESS CONTROL</span>
           <h1>Staff & roles</h1>
-          <p>Create accounts, assign roles and immediately revoke access.</p>
+          <p>Give a customer a staff role, create a new account, or revoke access at once.</p>
         </div>
         <span className="live-chip">
           {staff.filter((member) => member.active).length} active
@@ -34,15 +33,12 @@ export default async function StaffManagement() {
         <summary>Add a staff member</summary>
         <ActionForm action={staffAction} submit="Create staff account">
           <input type="hidden" name="operation" value="create" />
+          <p className="muted">
+            If this mobile number already has a customer account, the role is added to
+            it and the other fields are optional. Otherwise all fields create a new
+            account.
+          </p>
           <div className="staff-form-grid">
-            <label>
-              Name
-              <input name="name" minLength={2} maxLength={80} required />
-            </label>
-            <label>
-              Work email
-              <input name="email" type="email" maxLength={180} required />
-            </label>
             <label>
               Phone
               <input
@@ -63,8 +59,20 @@ export default async function StaffManagement() {
               </select>
             </label>
             <label>
+              Name
+              <input name="name" minLength={2} maxLength={80} />
+            </label>
+            <label>
+              Work email
+              <input name="email" type="email" maxLength={180} />
+            </label>
+            <label>
               Temporary password
-              <PasswordInput name="password" autoComplete="new-password" />
+              <PasswordInput
+                name="password"
+                autoComplete="new-password"
+                required={false}
+              />
             </label>
           </div>
         </ActionForm>
@@ -124,12 +132,16 @@ export default async function StaffManagement() {
                     </label>
                     <label>
                       Role
-                      <select name="role" defaultValue={member.role}>
+                      <select
+                        name="role"
+                        defaultValue={staffRoleOf(member.roles as Role[]) ?? "customer"}
+                      >
                         {staffRoles.map((role) => (
                           <option key={role} value={role}>
                             {labels[role]}
                           </option>
                         ))}
+                        <option value="customer">Remove staff access</option>
                       </select>
                     </label>
                     <label>

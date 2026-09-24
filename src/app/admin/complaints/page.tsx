@@ -52,7 +52,7 @@ export default async function Complaints() {
             <Link href={`/admin/orders/${c.orderId}`}>
               View order details →
             </Link>
-            {user.role === "super-admin" && (
+            {user.roles.includes("super-admin") && (
               <Link
                 className="secondary-button"
                 href={`/super-admin/refunds?order=${c.orderId}`}

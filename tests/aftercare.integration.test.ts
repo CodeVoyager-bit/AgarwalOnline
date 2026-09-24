@@ -25,9 +25,9 @@ describe.skipIf(!uri)("Complaints and returns", () => {
   beforeEach(async () => {
     for (const m of Object.values(mongoose.models)) await m.deleteMany({});
     const users = await User.create([
-      { name: "Test user", phone: "9000000071", role: "customer" },
-      { name: "Test user", phone: "9000000072", role: "customer" },
-      { name: "Test user", phone: "9000000073", role: "admin" },
+      { name: "Test user", phone: "9000000071", roles: ["customer"] },
+      { name: "Test user", phone: "9000000072", roles: ["customer"] },
+      { name: "Test user", phone: "9000000073", roles: ["customer", "admin"] },
     ]);
     [customer, other, admin] = users.map((u: { _id: unknown }) =>
       String(u._id),

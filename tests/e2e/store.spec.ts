@@ -61,21 +61,21 @@ test.beforeAll(async () => {
       phone: "9000000081",
       name: "Fictional Admin",
       email: "admin@e2e.test",
-      role: "admin",
+      roles: ["customer", "admin"],
       passwordHash: await bcrypt.hash("Local-test-password-123", 12),
     },
     {
       phone: "9000000082",
       name: "Fictional Delivery",
       email: "delivery@e2e.test",
-      role: "delivery",
+      roles: ["customer", "delivery"],
       passwordHash: await bcrypt.hash("Local-test-password-123", 12),
     },
     {
       phone: "9000000083",
       name: "Fictional Owner",
       email: "owner@e2e.test",
-      role: "super-admin",
+      roles: ["customer", "super-admin"],
       passwordHash: await bcrypt.hash("Local-test-password-123", 12),
     },
   ]);
@@ -109,6 +109,13 @@ test("customer OTP, basket, address, COD, tracking and cancellation", async ({
   page,
 }) => {
   await login(page);
+  // top-right account menu: customer links, no staff workspace
+  if (await page.locator(".account-menu").isVisible()) {
+    await page.locator(".account-menu > summary").click();
+    await expect(page.getByRole("link", { name: "Orders", exact: true })).toBeVisible();
+    await expect(page.getByText("Store workspace", { exact: true })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+  }
   const sessionCookie = (await page.context().cookies()).find(
     (c) => c.name === "ags_session",
   );
@@ -177,12 +184,21 @@ test("multilingual search and empty results", async ({ page }) => {
   ).toBeVisible();
 });
 test("staff login and delivery role restrictions", async ({ page }) => {
-  await page.goto("/staff/login");
-  await page.getByLabel("Work email").fill("delivery@e2e.test");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Email", exact: true }).click();
+  await page.getByLabel("Email address").fill("delivery@e2e.test");
   await page
     .getByLabel("Password", { exact: true })
     .fill("Local-test-password-123");
-  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await page.getByRole("button", { name: "Sign in with email" }).click();
+  await page.waitForURL(/\/delivery/);
+  // staff reach their workspace from the same account menu as customers
+  await page.goto("/");
+  if (await page.locator(".account-menu").isVisible()) {
+    await page.locator(".account-menu > summary").click();
+    await page.getByRole("link", { name: "My deliveries" }).click();
+    await expect(page).toHaveURL(/\/delivery/);
+  }
   await expect(page).toHaveURL("/delivery");
   await page.goto("/admin");
   await expect(
@@ -197,12 +213,13 @@ test("staff login and delivery role restrictions", async ({ page }) => {
 test("Super Admin manages staff and reviews the audit trail", async ({
   page,
 }) => {
-  await page.goto("/staff/login");
-  await page.getByLabel("Work email").fill("owner@e2e.test");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Email", exact: true }).click();
+  await page.getByLabel("Email address").fill("owner@e2e.test");
   await page
     .getByLabel("Password", { exact: true })
     .fill("Local-test-password-123");
-  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await page.getByRole("button", { name: "Sign in with email" }).click();
   await expect(page).toHaveURL("/super-admin");
   await expect(
     page.getByRole("heading", { name: "Good morning, Fictional Owner" }),
@@ -336,12 +353,13 @@ test("admin packing through partner delivery and cash reconciliation", async ({
       [adminPage, "admin@e2e.test"],
       [partnerPage, "delivery@e2e.test"],
     ] as const) {
-      await p.goto("/staff/login");
-      await p.getByLabel("Work email").fill(email);
+      await p.goto("/login");
+      await p.getByRole("button", { name: "Email", exact: true }).click();
+      await p.getByLabel("Email address").fill(email);
       await p
         .getByLabel("Password", { exact: true })
         .fill("Local-test-password-123");
-      await p.getByRole("button", { name: "Sign in securely" }).click();
+      await p.getByRole("button", { name: "Sign in with email" }).click();
       await expect(p).not.toHaveURL(/staff\/login/);
     }
     await adminPage.goto(`/admin/orders/${order._id}`);
@@ -417,12 +435,13 @@ test("customer and support exchange messages in real time", async ({
   });
   const support = await context.newPage();
   try {
-    await support.goto("/staff/login");
-    await support.getByLabel("Work email").fill("admin@e2e.test");
+    await support.goto("/login");
+    await support.getByRole("button", { name: "Email", exact: true }).click();
+    await support.getByLabel("Email address").fill("admin@e2e.test");
     await support
       .getByLabel("Password", { exact: true })
       .fill("Local-test-password-123");
-    await support.getByRole("button", { name: "Sign in securely" }).click();
+    await support.getByRole("button", { name: "Sign in with email" }).click();
     await expect(support).toHaveURL("/admin");
     await support.goto(`/admin/support/${conversationId}`);
     await expect(

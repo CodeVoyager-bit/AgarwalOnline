@@ -16,6 +16,7 @@ import { rateLimit } from "./rate-limit";
 import { digest } from "./crypto";
 import { log } from "../logger";
 import { isAllowedOrigin } from "./origin";
+import { staffHome, type Role } from "./permissions";
 export type AuthState = {
   error?: string;
   challengeId?: string;
@@ -32,13 +33,17 @@ function safeError(error: unknown) {
   if (error instanceof z.ZodError) return error.issues[0].message;
   const message = error instanceof Error ? error.message : "";
   if (
-    /^(Too many|Invalid email|Invalid.*(?:code|OTP)|This code|Use the staff|SMS service|Unable to send)/i.test(
+    /^(Too many|Invalid email|Invalid.*(?:code|OTP)|This code|This account|SMS service|Unable to send)/i.test(
       message,
     )
   )
     return message;
   log("error", "auth.unexpected-error", { error });
   return "Unable to sign in. Please try again later.";
+}
+/** Staff go straight to their workspace; everyone else to the account, or the basket when a guest basket was merged. */
+function landing(roles: readonly Role[], mergedBasket: boolean) {
+  return mergedBasket ? "/cart" : (staffHome(roles) ?? "/account");
 }
 export async function customerPasswordLoginAction(
   _previous: AuthState,
@@ -55,11 +60,7 @@ export async function customerPasswordLoginAction(
       })
       .parse(Object.fromEntries(form));
     await rateLimit(`customer-password:${digest(input.phone)}`, 5);
-    const user = await User.findOne({
-      phone: input.phone,
-      role: "customer",
-      active: true,
-    });
+    const user = await User.findOne({ phone: input.phone, active: true });
     if (!user) return { error: "Invalid mobile number or password." };
     try {
       await getAuth().api.signInPhoneNumber({
@@ -71,7 +72,7 @@ export async function customerPasswordLoginAction(
     }
     const { mergeGuestCart } = await import("../commerce/guest-cart");
     const merged = await mergeGuestCart(String(user._id));
-    if (merged.added > 0) target = "/cart";
+    target = landing(user.roles as Role[], merged.added > 0);
     await AuditLog.create({ actorId: user._id, action: "auth.customer.password_login" });
   } catch (error) {
     return { error: safeError(error) };
@@ -93,13 +94,10 @@ export async function customerEmailLoginAction(
       })
       .parse(Object.fromEntries(form));
     await rateLimit(`customer-email:${digest(input.email)}`, 5);
-    const user = await User.findOne({
-      email: input.email,
-      role: "customer",
-      active: true,
-    });
+    const user = await User.findOne({ email: input.email, active: true });
     if (!user) return { error: "Invalid email or password." };
     try {
+      await ensureStaffCredential(String(user._id));
       await getAuth().api.signInEmail({
         body: { email: input.email, password: input.password },
         headers: await headers(),
@@ -109,7 +107,7 @@ export async function customerEmailLoginAction(
     }
     const { mergeGuestCart } = await import("../commerce/guest-cart");
     const merged = await mergeGuestCart(String(user._id));
-    if (merged.added > 0) target = "/cart";
+    target = landing(user.roles as Role[], merged.added > 0);
     await AuditLog.create({ actorId: user._id, action: "auth.customer.email_login" });
   } catch (error) {
     return { error: safeError(error) };
@@ -131,8 +129,8 @@ export async function sendOTPAction(
         : undefined;
     await rateLimit(`otp:${digest(phone)}`, 3);
     const existing = await User.findOne({ phone });
-    if (existing && (existing.role !== "customer" || !existing.active))
-      throw new Error("Use the staff sign-in page for staff accounts.");
+    if (existing && !existing.active)
+      throw new Error("This account is not active. Please contact the store.");
     if (intent === "signup" && existing)
       return { error: "An account already exists for this number. Sign in instead." };
     if (intent === "signin" && !existing)
@@ -196,7 +194,7 @@ export async function verifyOTPAction(
     if (!result.user) throw new Error("Invalid or expired code.");
     if (name || email) {
       await User.updateOne(
-        { _id: result.user.id, role: "customer" },
+        { _id: result.user.id },
         { $set: { ...(name ? { name } : {}), ...(email ? { email } : {}) } },
       );
     }
@@ -204,52 +202,12 @@ export async function verifyOTPAction(
       await upsertCredential(result.user.id, await hashStaffPassword(password));
     const { mergeGuestCart } = await import("../commerce/guest-cart");
     const merged = await mergeGuestCart(result.user.id);
-    if (merged.added > 0) target = "/cart";
+    const signedIn = await User.findById(result.user.id).select("roles");
+    target = landing((signedIn?.roles ?? []) as Role[], merged.added > 0);
     await AuditLog.create({
       actorId: result.user.id,
       action: "auth.customer.login",
     });
-  } catch (error) {
-    return { error: safeError(error) };
-  }
-  redirect(target);
-}
-export async function staffLoginAction(
-  _previous: AuthState,
-  form: FormData,
-): Promise<AuthState> {
-  let target = "/admin";
-  try {
-    await checkOrigin();
-    await connectDB();
-    const input = z
-      .object({
-        email: z
-          .string()
-          .email()
-          .transform((s) => s.toLowerCase()),
-        password: z.string().min(1).max(72),
-      })
-      .parse(Object.fromEntries(form));
-    await rateLimit(`staff:${digest(input.email)}`, 5);
-    const user = await User.findOne({
-      email: input.email,
-      role: { $in: ["delivery", "admin", "super-admin"] },
-      active: true,
-    });
-    if (!user) return { error: "Invalid email or password." };
-    await ensureStaffCredential(String(user._id));
-    await getAuth().api.signInEmail({
-      body: { email: input.email, password: input.password },
-      headers: await headers(),
-    });
-    await AuditLog.create({ actorId: user._id, action: "auth.staff.login" });
-    target =
-      user.role === "delivery"
-        ? "/delivery"
-        : user.role === "super-admin"
-          ? "/super-admin"
-          : "/admin";
   } catch (error) {
     return { error: safeError(error) };
   }

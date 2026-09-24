@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { hasPermission, type Role } from "../auth/permissions";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
@@ -60,23 +61,23 @@ export async function storeEvidence(
 
   if (data.purpose === "complaint") {
     if (
-      actor.role !== "customer" ||
+      !actor.roles.includes("customer") ||
       !data.complaintId ||
       !(await Complaint.exists({ _id: data.complaintId, customerId: actorId }))
     )
       throw Error("FORBIDDEN");
   } else if (["delivery", "failed-delivery"].includes(data.purpose)) {
     if (
-      actor.role !== "delivery" ||
+      !actor.roles.includes("delivery") ||
       !data.orderId ||
       !(await Order.exists({ _id: data.orderId, assignedTo: actorId }))
     )
       throw Error("FORBIDDEN");
   } else if (data.purpose === "packing") {
-    if (!["admin", "super-admin"].includes(actor.role) || !data.orderId)
+    if (!hasPermission(actor.roles as Role[], "packing:write") || !data.orderId)
       throw Error("FORBIDDEN");
   } else if (data.purpose === "product") {
-    if (!["admin", "super-admin"].includes(actor.role) || !data.productId)
+    if (!hasPermission(actor.roles as Role[], "catalog:write") || !data.productId)
       throw Error("FORBIDDEN");
     if (!(await Product.exists({ _id: data.productId })))
       throw Error("Product not found.");

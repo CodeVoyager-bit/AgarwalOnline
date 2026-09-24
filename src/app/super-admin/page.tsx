@@ -41,7 +41,7 @@ export default async function SuperAdmin() {
     DeliverySlot.find({}).sort({ date: 1 }).limit(50),
     SearchSynonym.find({}).limit(100),
     User.countDocuments({
-      role: { $in: ["delivery", "admin", "super-admin"] },
+      roles: { $in: ["delivery", "admin", "super-admin"] },
       active: true,
     }),
     ApprovalRequest.countDocuments({ state: "pending" }),

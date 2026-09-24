@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { z } from "zod";
-import { assertPermission } from "../auth/permissions";
+import { assertPermission, type Role } from "../auth/permissions";
 import { connectDB } from "../db/connect";
 import {
   AuditLog,
@@ -20,7 +20,7 @@ async function authorize(actorId: string) {
     active: true,
   });
   if (!actor) throw Error("UNAUTHENTICATED");
-  assertPermission(actor.role, "catalog:write");
+  assertPermission(actor.roles as Role[], "catalog:write");
 }
 
 const categoryInput = z.object({

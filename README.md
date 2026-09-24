@@ -46,7 +46,7 @@ All seeded brands, products, people, addresses, orders and analytics are fiction
 
 **Super admins**
 
-- Create staff with fixed roles and revoke their sessions.
+- Give a customer a staff role, create new staff accounts, and revoke access.
 - Approve requests, publish or pause promotions, and issue full or partial refunds.
 - Configure service areas and delivery rules.
 - Review the masked audit trail and check which providers are configured.
@@ -179,7 +179,7 @@ Every variable is described in [Environment variables](#environment-variables).
 npm run owner:create
 ```
 
-It asks for a name, email, mobile number and password. The password is typed hidden and never printed. The account becomes a super admin who signs in at `/staff/login` and creates the rest of the staff from the Super Admin page. Running it again for the same email resets that password and signs out its old sessions.
+It asks for a name, email, mobile number and password. The password is typed hidden and never printed. The account becomes a super admin who signs in at `/login` like everyone else, opens Governance from the account menu, and gives other people staff roles from the Super Admin page. Running it again for the same email resets that password and signs out its old sessions.
 
 ### 6. Load demo data (optional)
 
@@ -193,7 +193,7 @@ The seed loads a fictional catalog, demo orders and a demo customer. It only run
 |---|---|---|
 | Customer | `/login` | Phone `9000000001`, with the code in `MOCK_OTP_CODE` |
 
-The seed also creates fictional staff records so demo orders have a delivery partner, but they have no password and nobody can sign in as them. Every staff login is a real account: the owner from `npm run owner:create`, or staff the owner adds on the Super Admin page.
+The seed also creates fictional staff records so demo orders have a delivery partner, but they have no password and nobody can sign in as them. Every staff login is a real account: the owner from `npm run owner:create`, or people the owner gives a staff role on the Super Admin page.
 
 ### 7. Run the app
 
@@ -241,6 +241,7 @@ Tests use `TEST_MONGODB_URI`, passed on the command line. Vitest does not read `
 | `npm run test:e2e` | Runs Playwright on desktop Chromium and a Pixel 7 profile. |
 | `npm run owner:create` | Creates or resets the owner account, prompting for the password. |
 | `npm run seed` | Loads fictional demo data. |
+| `npm run migrate:roles` | One-time upgrade for databases created before 24 September 2026, which stored a single `role` per user. |
 | `npm run reservations:expire` | Releases stock held by abandoned checkouts. |
 | `npm run approvals:publish` | Publishes approved changes whose scheduled time has passed. |
 | `npm run retention:run` | Deletes expired notifications, evidence photos and old audit entries. |
@@ -365,7 +366,7 @@ On other hosts, run the npm scripts from cron instead.
 
 - **Never commit secrets.** Git ignores `.env` and every other `.env.*` file except `.env.example`. Keep production values in your host's secret settings.
 - **Sessions.** better-auth stores sessions in the database and sets signed, HTTP-only, SameSite=Lax cookies. Customer sessions last 7 days, and staff sessions last 12 hours. Deactivating a user or revoking their sessions takes effect on the next request.
-- **Customer OTP can't sign in staff.** Staff must use email and password at `/staff/login`.
+- **One sign-in for everyone.** Every account holds the customer role. Staff hold one extra role, sign in on `/login` like any customer, and open their workspace from the top-right account menu. Sessions for anyone with a staff role expire after 12 hours instead of 7 days. Mock OTP therefore also opens staff workspaces, which is one more reason to remove it before launch.
 - **Every protected page, action, API route and chat poll checks the session and permissions on the server.** Form posts and chat posts from other sites are rejected.
 - **Rate limits.** Sign-in, OTP, chat and search endpoints are rate limited.
 - **Minimum password length.** Customer and staff passwords need at least 8 characters.
@@ -388,6 +389,7 @@ These still need work before a full launch:
 | Sign-in fails with `APP_ORIGIN` errors | The browser address must match `APP_ORIGIN` exactly, including port and protocol. |
 | Tests pass suspiciously fast | `TEST_MONGODB_URI` isn't set, so integration tests were skipped. |
 | Changes to `.env` aren't picked up | Restart the dev server. The database connection is opened once and cached. |
+| Sign-in works but every page says forbidden, or staff see no workspace | The database still has the old single `role` field. Run `npm run migrate:roles` once. |
 
 ## More documentation
 

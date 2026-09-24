@@ -33,7 +33,7 @@ describe.skipIf(!uri)("Staff access management", () => {
           name: "Store owner",
           email: "owner@example.test",
           phone: "9000000071",
-          role: "super-admin",
+          roles: ["customer", "super-admin"],
         })
       )._id,
     );
@@ -72,7 +72,7 @@ describe.skipIf(!uri)("Staff access management", () => {
       },
       headers: new Headers({ origin: "http://127.0.0.1:3000" }),
     });
-    expect(signedIn.user.role).toBe("admin");
+    expect(signedIn.user.roles).toEqual(["customer", "admin"]);
     const audit = await AuditLog.findOne({ action: "staff.create" }).lean();
     expect(audit?.details).not.toHaveProperty("password");
   });
@@ -82,7 +82,7 @@ describe.skipIf(!uri)("Staff access management", () => {
       name: "Ops Admin",
       email: "ops@example.test",
       phone: "9000000072",
-      role: "admin",
+      roles: ["customer", "admin"],
     });
     await mongoose.connection.collection("authSessions").insertOne({
       userId: staff._id,
@@ -109,10 +109,45 @@ describe.skipIf(!uri)("Staff access management", () => {
         .collection("authSessions")
         .countDocuments({ userId: staff._id }),
     ).toBe(0);
-    expect((await User.findById(staff._id))?.role).toBe("delivery");
+    expect((await User.findById(staff._id))?.roles).toEqual(["customer", "delivery"]);
     expect(
       (await AuditLog.findOne({ action: "staff.update" }).lean())?.details,
     ).toMatchObject({ sessionsRevoked: true });
+  });
+
+  it("adds a staff role to an existing customer and can remove it again", async () => {
+    const customer = await User.create({
+      name: "Regular Customer",
+      phone: "9000000075",
+      email: "9000000075@phone.ags.invalid",
+      roles: ["customer"],
+    });
+    const granted = await createStaff(superAdminId, {
+      phone: "9000000075",
+      role: "admin",
+      name: "",
+      email: "",
+      password: "",
+    });
+    expect(granted.created).toBe(false);
+    expect((await User.findById(customer._id))?.roles).toEqual(["customer", "admin"]);
+    expect(await AuditLog.exists({ action: "staff.grant", target: String(customer._id) })).toBeTruthy();
+    await updateStaff(superAdminId, {
+      staffId: String(customer._id),
+      name: "Regular Customer",
+      email: "9000000075@phone.ags.invalid",
+      phone: "9000000075",
+      role: "customer",
+      active: true,
+      password: "",
+    });
+    expect((await User.findById(customer._id))?.roles).toEqual(["customer"]);
+  });
+
+  it("needs name, email and a password to create a brand-new staff account", async () => {
+    await expect(
+      createStaff(superAdminId, { phone: "9000000076", role: "delivery", name: "", email: "", password: "" }),
+    ).rejects.toThrow("Name, work email");
   });
 
   it("allows only Super Admins to manage staff", async () => {
@@ -120,7 +155,7 @@ describe.skipIf(!uri)("Staff access management", () => {
       name: "Regular Admin",
       email: "admin@example.test",
       phone: "9000000073",
-      role: "admin",
+      roles: ["customer", "admin"],
     });
     await expect(
       createStaff(String(admin._id), {

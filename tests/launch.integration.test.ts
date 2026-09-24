@@ -47,12 +47,12 @@ describe.skipIf(!uri)("Launch customer and refund workflows", () => {
     for (const model of Object.values(mongoose.models))
       await model.deleteMany({});
     const [customer, owner] = await User.create([
-      { name: "Customer", phone: "9000000061", role: "customer" },
+      { name: "Customer", phone: "9000000061", roles: ["customer"] },
       {
         name: "Owner",
         phone: "9000000062",
         email: "owner@launch.test",
-        role: "super-admin",
+        roles: ["customer", "super-admin"],
       },
     ]);
     customerId = String(customer._id);
@@ -130,7 +130,7 @@ describe.skipIf(!uri)("Launch customer and refund workflows", () => {
     const stranger = await User.create({
       name: "Stranger",
       phone: "9000000063",
-      role: "customer",
+      roles: ["customer"],
     });
     await expect(
       reorder(String(stranger._id), String(order._id)),

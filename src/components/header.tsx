@@ -3,6 +3,8 @@ import { ArrowUpRight, ChevronDown, MapPin, ShoppingBag, UserRound } from "lucid
 import { SmartSearch } from "./smart-search";
 import { MobileNav } from "./mobile-nav";
 import { LocaleToggle } from "./locale-toggle";
+import { AccountMenu, type MenuLink } from "./account-menu";
+import { staffRoleOf, type Role } from "@/lib/auth/permissions";
 import { currentUser } from "@/lib/auth/session";
 import { Promotion } from "@/lib/promotions/models";
 import { cartFor, deliveryRules } from "@/lib/commerce/service";
@@ -11,6 +13,22 @@ import { formatPrice } from "@/lib/display";
 import { copy, type Locale } from "@/lib/locale-types";
 
 export type CategoryLink = { slug: string; en: string; mr: string };
+
+/** Staff see their workspace in the account menu instead of using a separate sign-in. */
+function workspaceLinks(
+  roles: readonly Role[],
+  text: { operations: string; governance: string; deliveries: string },
+): MenuLink[] {
+  const role = staffRoleOf(roles);
+  if (role === "super-admin")
+    return [
+      { href: "/super-admin", label: text.governance },
+      { href: "/admin", label: text.operations },
+    ];
+  if (role === "admin") return [{ href: "/admin", label: text.operations }];
+  if (role === "delivery") return [{ href: "/delivery", label: text.deliveries }];
+  return [];
+}
 
 /** Primary navigation is a fixed set of aisle groups; labels come from the catalog. */
 const NAV_SLUGS = ["stationery", "office", "household", "staples"];
@@ -36,12 +54,10 @@ export async function Header({
       .select("code minimumSubtotalPaise"),
   ]);
   const text = copy[locale];
-  const lines =
-    user?.role === "customer"
-      ? await cartFor(user.id)
-      : user
-        ? []
-        : await (await import("@/lib/commerce/guest-cart")).guestCartLines();
+  const lines = user
+    ? await cartFor(user.id)
+    : await (await import("@/lib/commerce/guest-cart")).guestCartLines();
+  const workspace = workspaceLinks(user?.roles ?? [], text);
   const count = lines.reduce((sum, line) => sum + line.quantity, 0);
   const total = lines.reduce((sum, line) => sum + line.pricePaise * line.quantity, 0);
   const nav = NAV_SLUGS.map((slug) => categories.find((c) => c.slug === slug)).filter(
@@ -97,14 +113,27 @@ export async function Header({
                 <span>{text.area}</span> <ChevronDown size={14} aria-hidden="true" />
               </strong>
             </Link>
-            <Link
-              href={user ? "/account" : "/login"}
-              className="header-action"
-              aria-label={user ? text.account : text.signIn}
-            >
-              <UserRound size={20} aria-hidden="true" />
-              <span>{user ? text.account : text.signIn}</span>
-            </Link>
+            {user ? (
+              <AccountMenu
+                name={user.name}
+                phone={user.phone}
+                links={[
+                  { href: "/account", label: text.account },
+                  { href: "/account/orders", label: text.orders },
+                  { href: "/account/wishlist", label: text.wishlist },
+                  { href: "/account/notifications", label: text.notifications },
+                  { href: "/account/support", label: text.support },
+                ]}
+                workspace={workspace}
+                workspaceLabel={text.workspace}
+                signOutLabel={text.signOut}
+              />
+            ) : (
+              <Link href="/login" className="header-action" aria-label={text.signIn}>
+                <UserRound size={20} aria-hidden="true" />
+                <span>{text.signIn}</span>
+              </Link>
+            )}
             <Link
               href="/cart"
               className="cart-button"

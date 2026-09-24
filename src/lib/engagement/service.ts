@@ -14,7 +14,7 @@ async function customer(customerId: string) {
   if (
     !(await User.exists({
       _id: recordId.parse(customerId),
-      role: "customer",
+      roles: "customer",
       active: true,
     }))
   )

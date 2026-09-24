@@ -28,9 +28,9 @@ describe.skipIf(!uri)("Support chat polling security and recovery", () => {
     for (const m of Object.values(mongoose.models)) await m.deleteMany({});
     await mongoose.connection.collection("authSessions").deleteMany({});
     const users = await User.create([
-      { phone: "9000000091", name: "Customer", role: "customer" },
-      { phone: "9000000092", name: "Other customer", role: "customer" },
-      { phone: "9000000093", name: "Admin", role: "admin" },
+      { phone: "9000000091", name: "Customer", roles: ["customer"] },
+      { phone: "9000000092", name: "Other customer", roles: ["customer"] },
+      { phone: "9000000093", name: "Admin", roles: ["customer", "admin"] },
     ]);
     customerId = String(users[0]._id);
     // same signing as better-auth's test-utils plugin, without adding it to the app config

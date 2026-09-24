@@ -52,10 +52,10 @@ describe.skipIf(!uri)("Packing, delivery and COD controls", () => {
     for (const model of Object.values(mongoose.models))
       await model.deleteMany({});
     const users = await User.create([
-      { phone: "9000000091", name: "Customer", role: "customer" },
-      { phone: "9000000092", name: "Admin", role: "admin" },
-      { phone: "9000000093", name: "Partner", role: "delivery" },
-      { phone: "9000000094", name: "Other partner", role: "delivery" },
+      { phone: "9000000091", name: "Customer", roles: ["customer"] },
+      { phone: "9000000092", name: "Admin", roles: ["customer", "admin"] },
+      { phone: "9000000093", name: "Partner", roles: ["customer", "delivery"] },
+      { phone: "9000000094", name: "Other partner", roles: ["customer", "delivery"] },
     ]);
     [customer, admin, partner, other] = users.map((u: { _id: unknown }) =>
       String(u._id),

@@ -45,7 +45,7 @@ describe.skipIf(!uri)("Catalog governance", () => {
         await User.create({
           name: "Test user",
           phone: "9000000081",
-          role: "admin",
+          roles: ["customer", "admin"],
         })
       )._id,
     );
@@ -54,7 +54,7 @@ describe.skipIf(!uri)("Catalog governance", () => {
         await User.create({
           name: "Test user",
           phone: "9000000082",
-          role: "super-admin",
+          roles: ["customer", "super-admin"],
         })
       )._id,
     );
@@ -116,7 +116,7 @@ describe.skipIf(!uri)("Catalog governance", () => {
         comment: "",
       }),
     ).rejects.toThrow("own request");
-    await User.updateOne({ _id: admin }, { role: "super-admin" });
+    await User.updateOne({ _id: admin }, { roles: ["customer", "super-admin"] });
     await reviewApproval(admin, {
       requestId: String(r._id),
       decision: "approved",

@@ -32,7 +32,7 @@ export default async function ManageOrder({
   if (!o) notFound();
   const packing = await PackingChecklist.findOne({ orderId: id });
   const cash = await CODCollection.findOne({ orderId: id });
-  const partners = await User.find({ role: "delivery", active: true }).select(
+  const partners = await User.find({ roles: "delivery", active: true }).select(
     "name",
   );
   const events = await OrderTimelineEvent.find({ orderId: id }).sort({ at: 1 });

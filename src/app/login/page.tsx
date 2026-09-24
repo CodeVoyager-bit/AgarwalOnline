@@ -9,7 +9,7 @@ export default async function Login() {
     <section className="auth-card">
       <span className="eyebrow">{mr ? "तुमचे अग्रवाल खाते" : "YOUR AGARWAL ACCOUNT"}</span>
       <h1>{mr ? "पुन्हा स्वागत आहे." : "Good to see you."}</h1>
-      <p>{mr ? "मोबाईल, ईमेल किंवा सुरक्षित OTP वापरून साइन इन करा." : "Sign in with your mobile number, email, or a secure OTP."}</p>
+      <p>{mr ? "मोबाईल, ईमेल किंवा सुरक्षित OTP वापरून साइन इन करा. दुकानाचे कर्मचारीही येथूनच साइन इन करतात." : "Sign in with your mobile number, email, or a secure OTP. Store staff sign in here too."}</p>
       <AuthForm
         locale={locale}
         mock={

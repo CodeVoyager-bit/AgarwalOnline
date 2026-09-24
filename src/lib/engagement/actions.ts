@@ -13,7 +13,6 @@ export async function wishlistAction(
   const user = await currentUser();
   if (!user) redirect("/login");
   try {
-    if (user.role !== "customer") return { error: "Use a customer account." };
     const saved = await toggleWishlist(user.id, form.get("productId"));
     revalidatePath("/", "layout");
     revalidatePath("/account/wishlist");
@@ -29,8 +28,6 @@ export async function notificationAction(
 ): Promise<MutationState> {
   try {
     const user = await requirePermission("profile:own");
-    if (user.role !== "customer")
-      return { error: "Customer notifications only." };
     await markNotification(user.id, {
       notificationId: form.get("notificationId") || undefined,
     });

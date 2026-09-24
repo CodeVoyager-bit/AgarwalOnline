@@ -74,7 +74,7 @@ export function SiteFooter({
               <Link href="/login">{mr ? "साइन इन" : "Sign in"}</Link>
             </li>
             <li>
-              <Link href="/staff/login">{mr ? "कर्मचारी साइन इन" : "Staff sign in"}</Link>
+              <Link href="/login">{mr ? "कर्मचारी साइन इन" : "Staff sign in"}</Link>
             </li>
           </ul>
           <LocaleToggle locale={locale} />

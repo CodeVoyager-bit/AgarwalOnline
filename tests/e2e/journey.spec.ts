@@ -83,9 +83,9 @@ test.beforeAll(async () => {
   });
   const passwordHash = await bcrypt.hash(PASSWORD, 12);
   const staff = await User.create([
-    { phone: "9000000081", name: "Fictional Admin", email: "admin@e2e.test", role: "admin", passwordHash },
-    { phone: "9000000082", name: "Fictional Delivery", email: "delivery@e2e.test", role: "delivery", passwordHash },
-    { phone: "9000000083", name: "Fictional Owner", email: "owner@e2e.test", role: "super-admin", passwordHash },
+    { phone: "9000000081", name: "Fictional Admin", email: "admin@e2e.test", roles: ["customer", "admin"], passwordHash },
+    { phone: "9000000082", name: "Fictional Delivery", email: "delivery@e2e.test", roles: ["customer", "delivery"], passwordHash },
+    { phone: "9000000083", name: "Fictional Owner", email: "owner@e2e.test", roles: ["customer", "super-admin"], passwordHash },
   ]);
   await Promotion.create({
     name: "Neighbourhood welcome",
@@ -114,10 +114,11 @@ async function shot(page: Page, name: string) {
 }
 
 async function staffSignIn(page: Page, email: string) {
-  await page.goto("/staff/login");
-  await page.getByLabel("Work email").fill(email);
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Email", exact: true }).click();
+  await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in securely" }).click();
+  await page.getByRole("button", { name: "Sign in with email" }).click();
   await page.waitForURL(/\/(admin|super-admin|delivery)/);
 }
 

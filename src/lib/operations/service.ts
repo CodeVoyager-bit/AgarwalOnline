@@ -24,7 +24,7 @@ async function actor(id: string, permission: Permission) {
   await connectDB();
   const user = await User.findOne({ _id: objectId.parse(id), active: true });
   if (!user) throw Error("UNAUTHENTICATED");
-  assertPermission(user.role as Role, permission);
+  assertPermission(user.roles as Role[], permission);
   return user;
 }
 async function timeline(
@@ -184,7 +184,7 @@ export async function assignDelivery(actorId: string, input: unknown) {
   await mongoose.connection.transaction(async (session) => {
     const partner = await User.exists({
       _id: data.partnerId,
-      role: "delivery",
+      roles: "delivery",
       active: true,
     }).session(session);
     if (!partner) throw Error("Select an active delivery partner.");
