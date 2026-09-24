@@ -86,6 +86,11 @@ export default async function RefundsPage({
               {!["processed", "processing"].includes(refund.status) && (
                 <ActionForm
                   action={refundAction}
+                  confirmMessage={
+                    refund.mode === "manual"
+                      ? "This marks the refund as paid to the customer. It cannot be undone."
+                      : "This sends the refund to Razorpay, which pays the customer. It cannot be undone."
+                  }
                   submit={
                     refund.mode === "manual"
                       ? "Mark refund paid"

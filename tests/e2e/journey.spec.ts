@@ -241,6 +241,7 @@ test("whole journey: sign up, shop, pay, pack, deliver, reconcile", async ({ bro
   await admin.goto(orderUrl.replace("/account/orders/", "/admin/orders/"));
   await admin.getByRole("button", { name: "Complete order", exact: true }).click();
   await admin.getByRole("button", { name: "Record cash handover" }).click();
+  await admin.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(admin.getByText("Cash reconciled", { exact: true })).toBeVisible();
 
   // --- cash comes back to the desk ---------------------------------------

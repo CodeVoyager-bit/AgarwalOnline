@@ -1,5 +1,6 @@
 import { ActionForm } from "@/components/action-form";
 import { PasswordInput } from "@/components/password-input";
+import { RecordHistory } from "@/components/record-history";
 import { requirePage } from "@/lib/auth/session";
 import { grants, staffRoleOf, staffRoles, type Role } from "@/lib/auth/permissions";
 import { User } from "@/lib/db/models";
@@ -163,6 +164,7 @@ export default async function StaffManagement() {
                   </div>
                 </ActionForm>
               )}
+              <RecordHistory target={String(member._id)} />
             </article>
           ))}
         </div>

@@ -50,7 +50,11 @@ export default async function Approvals() {
               </div>
             </div>
             {r.state === "pending" && String(r.requesterId) !== user.id ? (
-              <ActionForm action={governanceAction} submit="Save review">
+              <ActionForm
+                action={governanceAction}
+                submit="Save review"
+                confirmMessage="Approving publishes the change on the schedule shown; rejecting sends it back to the requester."
+              >
                 <input type="hidden" name="operation" value="review" />
                 <input type="hidden" name="requestId" value={String(r._id)} />
                 <label>

@@ -1624,3 +1624,21 @@ details.account-menu[open] > summary svg:last-child { transform: rotate(180deg);
 .account-menu-panel ul a, .account-menu-signout { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); font: inherit; font-size: 0.92rem; text-align: left; text-decoration: none; cursor: pointer; }
 .account-menu-panel ul a:hover, .account-menu-signout:hover { background: color-mix(in oklab, var(--ink) 6%, var(--canvas)); }
 .account-menu-signout { margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line); border-radius: 0; color: var(--muted); }
+
+/* Admin work queue: count, what it is, and how long the oldest item has waited. */
+.work-queue { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.work-queue a { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "count label" "count wait"; column-gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); color: var(--ink); text-decoration: none; transition: border-color var(--fast), background var(--fast); }
+.work-queue a:hover { border-color: var(--line-strong); background: color-mix(in oklab, var(--ink) 3%, var(--canvas)); }
+.work-queue strong { grid-area: count; min-width: 44px; font-family: var(--font-display); font-size: 1.6rem; line-height: 1; }
+.work-queue span { grid-area: label; font-weight: 600; font-size: 0.92rem; }
+.work-queue small { grid-area: wait; color: var(--muted); font-size: 0.8rem; }
+.work-queue li:not(.clear) strong { color: var(--accent); }
+.work-queue li.clear a { opacity: 0.6; }
+
+/* Per-record audit history, folded under the record it describes. */
+.record-history { margin-top: 16px; }
+.record-history > summary { padding: 8px 0; color: var(--accent); font-size: 0.9rem; }
+.record-history > summary small { margin-left: 6px; color: var(--muted); font-weight: 400; }
+.record-history ol { list-style: none; margin: 4px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.record-history li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+.record-history li small { color: var(--muted); }

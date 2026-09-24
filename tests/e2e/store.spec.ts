@@ -410,6 +410,7 @@ test("admin packing through partner delivery and cash reconciliation", async ({
     await adminPage
       .getByRole("button", { name: "Record cash handover" })
       .click();
+  await adminPage.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect(
       adminPage.getByText("Cash reconciled", { exact: true }),
     ).toBeVisible();

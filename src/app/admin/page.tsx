@@ -1,8 +1,12 @@
 import Link from "next/link";
+import type { Model } from "mongoose";
 import { requirePage } from "@/lib/auth/session";
 import { Order } from "@/lib/commerce/models";
 import { InventoryItem } from "@/lib/db/models";
 import { CODCollection } from "@/lib/operations/models";
+import { ChatConversation } from "@/lib/chat/models";
+import { Complaint } from "@/lib/aftercare/models";
+import { RefreshOnFocus } from "@/components/refresh-on-focus";
 import {
   Boxes,
   ChartNoAxesCombined,
@@ -59,17 +63,50 @@ const WORKSPACES = [
   },
 ];
 
+/** Each queue: how many items wait, and how long the oldest has waited. */
+type Queue = { label: string; href: string; count: number; oldest: Date | null };
+async function queue(
+  label: string,
+  href: string,
+  model: Model<unknown>,
+  filter: object,
+  sortField: string,
+): Promise<Queue> {
+  const [count, oldest] = await Promise.all([
+    model.countDocuments(filter),
+    model.findOne(filter).sort({ [sortField]: 1 }).select(sortField).lean() as Promise<
+      Record<string, Date> | null
+    >,
+  ]);
+  return { label, href, count, oldest: oldest?.[sortField] ?? null };
+}
+function waitingFor(since: Date | null) {
+  if (!since) return "clear";
+  const minutes = Math.max(1, Math.round((Date.now() - since.getTime()) / 60000));
+  if (minutes < 60) return `oldest waiting ${minutes} min`;
+  if (minutes < 60 * 24) return `oldest waiting ${Math.round(minutes / 60)} h`;
+  return `oldest waiting ${Math.round(minutes / 1440)} d`;
+}
+
 export default async function Admin() {
   const user = await requirePage("order:manage");
-  const orders = await Order.find({}).sort({ createdAt: -1 }).limit(100);
-  const [lowStock, cashOpen] = await Promise.all([
+  const [orders, lowStock, cashOpen, queues] = await Promise.all([
+    Order.find({}).sort({ createdAt: -1 }).limit(100),
     InventoryItem.countDocuments({
       $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 10] },
     }),
     CODCollection.find({ reconciledAt: null }).select("collectedPaise"),
+    Promise.all([
+      queue("Orders awaiting confirmation", "/admin", Order, { orderStatus: "placed" }, "createdAt"),
+      queue("Orders being packed", "/admin", Order, { fulfilmentStatus: "picking" }, "updatedAt"),
+      queue("Packed, no rider assigned", "/admin", Order, { fulfilmentStatus: "ready", deliveryStatus: "unassigned" }, "updatedAt"),
+      queue("Cash collections to reconcile", "/admin/cod", CODCollection, { reconciledAt: null }, "createdAt"),
+      queue("Support chats waiting for a reply", "/admin/support", ChatConversation, { status: "waiting-support" }, "updatedAt"),
+      queue("Open complaints", "/admin/complaints", Complaint, { status: "open" }, "createdAt"),
+    ]),
   ]);
-  const awaiting = orders.filter((order) => order.orderStatus === "placed").length;
-  const packing = orders.filter((order) => order.fulfilmentStatus === "picking").length;
+  const awaiting = queues[0].count;
+  const packing = queues[1].count;
   const cash = cashOpen.reduce((sum, item) => sum + item.collectedPaise, 0);
   return (
     <section className="page-container">
@@ -91,6 +128,27 @@ export default async function Admin() {
           { label: "Cash to reconcile", value: formatPrice(cash), href: "/admin/cod" },
         ]}
       />
+      <div className="panel">
+        <div className="panel-heading">
+          <div>
+            <span className="eyebrow">Work queue</span>
+            <h2>Waiting on the team</h2>
+          </div>
+          <span className="muted">Refreshes when you return to this tab</span>
+        </div>
+        <ul className="work-queue">
+          {queues.map((item) => (
+            <li key={item.label} className={item.count ? "" : "clear"}>
+              <Link href={item.href}>
+                <strong>{item.count}</strong>
+                <span>{item.label}</span>
+                <small>{waitingFor(item.oldest)}</small>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <RefreshOnFocus />
       <NavTiles items={WORKSPACES} label="Admin workspaces" />
       <div className="panel">
         <div className="panel-heading">

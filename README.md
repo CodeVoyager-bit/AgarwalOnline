@@ -304,7 +304,7 @@ git switch -c feature/short-description
 1. Import the GitHub repository in Vercel.
 2. In **Settings**, then **General**, set Node.js to 22.x.
 3. Add every production variable under **Settings**, then **Environment Variables**. Use fresh secrets that aren't used anywhere else, `APP_ORIGIN` set to your HTTPS domain, and `MOCK_OTP=false`. Leave out `SEED_DEMO`.
-4. Add `CRON_SECRET` to the Production environment, so the scheduled jobs can run.
+4. Add `CRON_SECRET` to the Production environment, so the scheduled jobs can run. A production build runs `scripts/check-env.ts` first and fails with a list of missing or invalid variables, so a bad environment never reaches the live site.
 5. In Atlas, allow `0.0.0.0/0` in the IP Access List.
 6. Deploy, then add your domain.
 

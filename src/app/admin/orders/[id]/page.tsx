@@ -9,6 +9,7 @@ import { User } from "@/lib/db/models";
 import { PackingChecklist, CODCollection } from "@/lib/operations/models";
 import { objectId } from "@/lib/commerce/service";
 import { ActionForm } from "@/components/action-form";
+import { RecordHistory } from "@/components/record-history";
 import { operationAction } from "@/lib/operations/actions";
 import { evidenceAction } from "@/lib/evidence/actions";
 import { UploadedEvidence } from "@/lib/evidence/models";
@@ -252,6 +253,7 @@ export default async function ManageOrder({
                 <ActionForm
                   action={operationAction}
                   submit="Record cash handover"
+                  confirmMessage="This records the cash as handed over and closes the collection. Check the amount against the notes in hand first."
                 >
                   <Hidden id={id} operation="reconcile" />
                   <label>
@@ -288,6 +290,7 @@ export default async function ManageOrder({
                     <ActionForm
                       action={operationAction}
                       submit="Resolve discrepancy"
+                      confirmMessage="This closes the cash discrepancy with your notes as the final record."
                     >
                       <Hidden id={id} operation="resolve-discrepancy" />
                       <label>
@@ -311,6 +314,7 @@ export default async function ManageOrder({
           )}
         </div>
       </div>
+      <RecordHistory target={id} title="Order history" />
     </section>
   );
 }

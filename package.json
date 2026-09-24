@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
+    "prebuild": "tsx scripts/check-env.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
