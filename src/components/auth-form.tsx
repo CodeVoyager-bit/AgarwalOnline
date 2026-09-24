@@ -1,6 +1,6 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { PasswordInput } from "@/components/password-input";
 import {
   customerEmailLoginAction,
   customerPasswordLoginAction,
@@ -8,61 +8,6 @@ import {
   verifyOTPAction,
   staffLoginAction,
 } from "@/lib/auth/actions";
-/** A password box with a reveal toggle, so people can check what they typed. */
-function PasswordInput({
-  name,
-  autoComplete,
-  minLength,
-  mr,
-  inputRef,
-  onChange,
-  describedBy,
-  invalid,
-}: {
-  name: string;
-  autoComplete: "current-password" | "new-password";
-  minLength: number;
-  mr: boolean;
-  inputRef?: React.Ref<HTMLInputElement>;
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  describedBy?: string;
-  invalid?: boolean;
-}) {
-  const [shown, setShown] = useState(false);
-  return (
-    <span className="password-input">
-      <input
-        ref={inputRef}
-        name={name}
-        type={shown ? "text" : "password"}
-        minLength={minLength}
-        maxLength={128}
-        autoComplete={autoComplete}
-        aria-describedby={describedBy}
-        aria-invalid={invalid || undefined}
-        onChange={onChange}
-        required
-      />
-      <button
-        type="button"
-        onClick={() => setShown((value) => !value)}
-        aria-pressed={shown}
-        aria-label={
-          shown
-            ? mr
-              ? "पासवर्ड लपवा"
-              : "Hide password"
-            : mr
-              ? "पासवर्ड दाखवा"
-              : "Show password"
-        }
-      >
-        {shown ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-      </button>
-    </span>
-  );
-}
-
 export function AuthForm({
   staff = false,
   mock = false,
@@ -119,12 +64,11 @@ export function AuthForm({
         </label>
         <label>
           Password
-          <input
-            type="password"
+          <PasswordInput
             name="password"
             autoComplete="current-password"
+            minLength={1}
             maxLength={72}
-            required
           />
         </label>
         {signed.error && (

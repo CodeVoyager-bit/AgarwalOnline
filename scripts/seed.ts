@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db/connect";
 import {
@@ -14,17 +13,11 @@ import { categories, seedProducts } from "../src/lib/catalog/seed-data";
 import { Address, DeliverySlot, Order } from "../src/lib/commerce/models";
 import { Notification } from "../src/lib/engagement/models";
 import { log } from "../src/lib/logger";
-import { setStaffCredential } from "../src/lib/auth/staff-credentials";
 import { Promotion, PromotionRedemption } from "../src/lib/promotions/models";
 import { GuestCart } from "../src/lib/commerce/models";
 import { ProductReview, ReviewReport } from "../src/lib/reviews/models";
 if (process.env.NODE_ENV === "production" || process.env.SEED_DEMO !== "true")
   throw new Error("Fictional seed requires non-production SEED_DEMO=true.");
-if (
-  !process.env.DEMO_STAFF_PASSWORD ||
-  process.env.DEMO_STAFF_PASSWORD.length < 8
-)
-  throw new Error("Set DEMO_STAFF_PASSWORD to at least 8 characters.");
 await connectDB();
 for (const model of [
   User,
@@ -107,14 +100,15 @@ for (const [index, p] of seedProducts.entries()) {
     { upsert: true },
   );
 }
-const passwordHash = await bcrypt.hash(process.env.DEMO_STAFF_PASSWORD, 12);
+// Fictional staff exist only so demo orders and promotions have someone to reference.
+// They get no credential, so nobody can sign in as them. Create real staff from the Super Admin page.
 for (const [index, role] of [
   "customer",
   "delivery",
   "admin",
   "super-admin",
 ].entries()) {
-  const seededUser = await User.findOneAndUpdate(
+  await User.findOneAndUpdate(
     { phone: `900000000${index + 1}` },
     {
       $setOnInsert: {
@@ -130,24 +124,6 @@ for (const [index, role] of [
     },
     { upsert: true, returnDocument: "after" },
   );
-  if (role !== "customer") {
-    const existingCredential = await mongoose.connection
-      .collection("authAccounts")
-      .findOne({
-        userId: seededUser._id,
-        providerId: "credential",
-        accountId: String(seededUser._id),
-      });
-    if (!existingCredential) {
-      const legacy = await User.findById(seededUser._id).select(
-        "+passwordHash",
-      );
-      await setStaffCredential(
-        String(seededUser._id),
-        legacy?.passwordHash ?? passwordHash,
-      );
-    }
-  }
 }
 for (const name of ["Nagothane", "Roha", "Pali", "RIL Township", "NMD"])
   await ServiceArea.updateOne(

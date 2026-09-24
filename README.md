@@ -171,26 +171,31 @@ Run this for `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`:
 openssl rand -base64 32
 ```
 
-Set `DEMO_STAFF_PASSWORD` to at least 8 characters if you plan to load demo data. Every variable is described in [Environment variables](#environment-variables).
+Every variable is described in [Environment variables](#environment-variables).
 
-### 5. Load demo data (optional)
+### 5. Create the owner account
+
+```bash
+npm run owner:create
+```
+
+It asks for a name, email, mobile number and password. The password is typed hidden and never printed. The account becomes a super admin who signs in at `/staff/login` and creates the rest of the staff from the Super Admin page. Running it again for the same email resets that password and signs out its old sessions.
+
+### 6. Load demo data (optional)
 
 ```bash
 npm run seed
 ```
 
-The seed loads a fictional catalog, demo orders and one account per role. It only runs when `SEED_DEMO=true`, and never in production. It is safe to run again, because it keeps existing stock and passwords.
+The seed loads a fictional catalog, demo orders and a demo customer. It only runs when `SEED_DEMO=true`, and never in production. It is safe to run again, because it keeps existing stock.
 
 | Role | Sign in at | Demo account |
 |---|---|---|
 | Customer | `/login` | Phone `9000000001`, with the code in `MOCK_OTP_CODE` |
-| Delivery partner | `/staff/login` | `delivery@demo.ags.test` |
-| Admin | `/staff/login` | `admin@demo.ags.test` |
-| Super admin | `/staff/login` | `super-admin@demo.ags.test` |
 
-Staff accounts use `DEMO_STAFF_PASSWORD` as their password.
+The seed also creates fictional staff records so demo orders have a delivery partner, but they have no password and nobody can sign in as them. Every staff login is a real account: the owner from `npm run owner:create`, or staff the owner adds on the Super Admin page.
 
-### 6. Run the app
+### 7. Run the app
 
 ```bash
 npm run dev
@@ -219,7 +224,7 @@ The app validates these on startup and refuses to run with an invalid combinatio
 | `CRON_SECRET` | On Vercel | 16 or more characters. Vercel Cron sends it to the job routes, which refuse every call without it. |
 | `EVIDENCE_RETENTION_DAYS` | No | Days to keep evidence photos. Defaults to 90. |
 | `AUDIT_RETENTION_DAYS` | No | Days to keep audit entries. Defaults to 730. |
-| `SEED_DEMO`, `DEMO_STAFF_PASSWORD` | Seeding only | Needed by `npm run seed`. The seed refuses to run in production. |
+| `SEED_DEMO` | Seeding only | Needed by `npm run seed`. The seed refuses to run in production. |
 
 Tests use `TEST_MONGODB_URI`, passed on the command line. Vitest does not read `.env`.
 
@@ -234,6 +239,7 @@ Tests use `TEST_MONGODB_URI`, passed on the command line. Vitest does not read `
 | `npm run typecheck` | Runs the TypeScript compiler without emitting files. |
 | `npm test` | Runs Vitest. Integration tests need `TEST_MONGODB_URI`. |
 | `npm run test:e2e` | Runs Playwright on desktop Chromium and a Pixel 7 profile. |
+| `npm run owner:create` | Creates or resets the owner account, prompting for the password. |
 | `npm run seed` | Loads fictional demo data. |
 | `npm run reservations:expire` | Releases stock held by abandoned checkouts. |
 | `npm run approvals:publish` | Publishes approved changes whose scheduled time has passed. |
@@ -296,7 +302,7 @@ git switch -c feature/short-description
 
 1. Import the GitHub repository in Vercel.
 2. In **Settings**, then **General**, set Node.js to 22.x.
-3. Add every production variable under **Settings**, then **Environment Variables**. Use fresh secrets that aren't used anywhere else, `APP_ORIGIN` set to your HTTPS domain, and `MOCK_OTP=false`. Leave out `SEED_DEMO` and `DEMO_STAFF_PASSWORD`.
+3. Add every production variable under **Settings**, then **Environment Variables**. Use fresh secrets that aren't used anywhere else, `APP_ORIGIN` set to your HTTPS domain, and `MOCK_OTP=false`. Leave out `SEED_DEMO`.
 4. Add `CRON_SECRET` to the Production environment, so the scheduled jobs can run.
 5. In Atlas, allow `0.0.0.0/0` in the IP Access List.
 6. Deploy, then add your domain.
@@ -344,6 +350,7 @@ On other hosts, run the npm scripts from cron instead.
 
 - [ ] Fresh production secrets, with `MOCK_OTP=false` and `ALLOW_MOCK_OTP_IN_PRODUCTION` removed
 - [ ] `APP_ORIGIN` set to the HTTPS domain
+- [ ] Owner account created on the production database with `npm run owner:create`
 - [ ] better-auth indexes created on the production database
 - [ ] SMS gateway configured, with DLT registration complete
 - [ ] Razorpay live keys and webhook set up
@@ -367,7 +374,6 @@ On other hosts, run the npm scripts from cron instead.
 
 These still need work before a full launch:
 
-- **No way to create the first owner account in production.** The seed script is demo-only. A small one-time script to create a super-admin is still needed.
 - **Evidence photos are public.** Cloudinary stores them as public images, and the app only guards the link. Complaint and delivery photos should use private assets with short-lived signed links.
 - **Deferred features.** GPS tracking, route optimisation, push notifications, advanced reporting, loyalty, subscriptions, custom roles and two-factor sign-in for super admins aren't built.
 
@@ -378,7 +384,7 @@ These still need work before a full launch:
 | `MongoServerError: bad auth` | The database user's password doesn't match. Atlas can't show existing passwords, so reset it in **Database Users** and update `.env`. |
 | Transaction errors on checkout | MongoDB isn't running as a replica set. Add `--replSet` and run `rs.initiate()`. |
 | Data appears in a `test` database | The connection string has no database name. Add `/agarwal` before the `?`. |
-| `node: .env: not found` from a script | The seed and job scripts need a `.env` file in the project folder. |
+| `node: .env: not found` from a script | The seed, owner and job scripts need a `.env` file in the project folder. |
 | Sign-in fails with `APP_ORIGIN` errors | The browser address must match `APP_ORIGIN` exactly, including port and protocol. |
 | Tests pass suspiciously fast | `TEST_MONGODB_URI` isn't set, so integration tests were skipped. |
 | Changes to `.env` aren't picked up | Restart the dev server. The database connection is opened once and cached. |

@@ -126,7 +126,7 @@ ATLAS_SEARCH_ENABLED=true
 SEED_DEMO=false
 ```
 
-Do not set `MOCK_OTP_CODE` or `DEMO_STAFF_PASSWORD` in production. Demo seeds and mock OTP are development-only.
+Do not set `MOCK_OTP_CODE` in production. Demo seeds and mock OTP are development-only.
 
 ## Accounts and business documents needed
 

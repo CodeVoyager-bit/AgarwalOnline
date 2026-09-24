@@ -1,4 +1,5 @@
 import { ActionForm } from "@/components/action-form";
+import { PasswordInput } from "@/components/password-input";
 import { requirePage } from "@/lib/auth/session";
 import { grants, type Role } from "@/lib/auth/permissions";
 import { User } from "@/lib/db/models";
@@ -63,14 +64,7 @@ export default async function StaffManagement() {
             </label>
             <label>
               Temporary password
-              <input
-                name="password"
-                type="password"
-                minLength={8}
-                maxLength={128}
-                autoComplete="new-password"
-                required
-              />
+              <PasswordInput name="password" autoComplete="new-password" />
             </label>
           </div>
         </ActionForm>
@@ -140,12 +134,10 @@ export default async function StaffManagement() {
                     </label>
                     <label>
                       New password <small>Leave blank to keep it</small>
-                      <input
+                      <PasswordInput
                         name="password"
-                        type="password"
-                        minLength={8}
-                        maxLength={128}
                         autoComplete="new-password"
+                        required={false}
                       />
                     </label>
                     <label className="checkbox-label">

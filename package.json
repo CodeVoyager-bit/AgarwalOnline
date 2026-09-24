@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "seed": "tsx --env-file=.env scripts/seed.ts",
+    "owner:create": "tsx --env-file=.env scripts/create-owner.ts",
     "test:e2e": "playwright test",
     "reservations:expire": "tsx --env-file=.env scripts/expire-reservations.ts",
     "approvals:publish": "tsx --env-file=.env scripts/publish-scheduled.ts",
