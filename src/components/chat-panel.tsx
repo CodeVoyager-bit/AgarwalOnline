@@ -248,9 +248,7 @@ export function ChatPanel({
           })}
         {!messages.length &&
           (staff ? (
-            <p className="muted">
-              Tell us how we can help. Your messages are saved securely.
-            </p>
+            <p className="muted">No messages yet. The customer’s first message shows here, and your reply goes below.</p>
           ) : (
             <>
               <p className="muted">Tell us how we can help.</p>

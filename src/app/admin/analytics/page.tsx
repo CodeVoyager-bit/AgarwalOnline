@@ -5,7 +5,9 @@ import { PackageCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { analytics } from "@/lib/analytics/service";
 import { PageHeading } from "@/components/page-heading";
+import Link from "next/link";
 import { MetricList } from "@/components/metric-list";
+import { methodLabel } from "@/lib/display";
 export const metadata = { title: "Analytics", robots: { index: false } };
 
 const money = (paise: number) =>
@@ -67,7 +69,7 @@ export default async function AnalyticsPage({
       </div>
       <div className="analytics-grid">
         <MetricList title="Order status" rows={data.orderStatuses} />
-        <MetricList title="Payment methods" rows={data.paymentMethods} />
+        <MetricList title="Payment methods" rows={data.paymentMethods.map(([method, count]) => [methodLabel(String(method)), count])} />
         <MetricList title="Delivery status" rows={data.deliveryStatuses} />
         <MetricList
           title="Top products"
@@ -90,10 +92,11 @@ export default async function AnalyticsPage({
           </div>
           <span className="order-count">10 or fewer</span>
         </div>
+        {/* the lowest ten here; the Stock page has the whole list and can change it */}
         <DataTable
           bare
           caption="Products at or below the low-stock threshold"
-          rows={data.lowStock}
+          rows={[...data.lowStock].sort((a, b) => a.available - b.available).slice(0, 10)}
           rowKey={(item) => item.id}
           columns={[
             { header: "Product", cell: (item) => item.name },
@@ -109,6 +112,11 @@ export default async function AnalyticsPage({
             />
           }
         />
+        {data.lowStock.length > 10 && (
+          <p className="panel-more">
+            <Link href="/admin/inventory?stock=low">See all {data.lowStock.length} in Stock</Link>
+          </p>
+        )}
       </div>
     </section>
   );

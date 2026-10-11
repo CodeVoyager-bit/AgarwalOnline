@@ -8,7 +8,7 @@ import { istDate } from "@/lib/commerce/delivery";
 import { PageHeading } from "@/components/page-heading";
 import { StatTiles } from "@/components/stat-tiles";
 import { StatusPill } from "@/components/status-pill";
-import { formatPrice } from "@/lib/display";
+import { formatPrice, noBreakTimes } from "@/lib/display";
 export const metadata = { title: "My deliveries", robots: { index: false } };
 export default async function Delivery() {
   const user = await requirePage("delivery:assigned");
@@ -77,7 +77,7 @@ export default async function Delivery() {
                   {o.address.line && <small className="stop-address">{o.address.line}</small>}
                   <small>
                     {o.address.areaName ? `${o.address.areaName} · ` : ""}
-                    {o.deliveryWindow} · {o.number}
+                    {noBreakTimes(o.deliveryWindow)} · <span className="nowrap">{o.number}</span>
                   </small>
                 </span>
                 <StatusPill value={o.deliveryStatus} />

@@ -312,7 +312,10 @@ test("Super Admin manages staff and reviews the audit trail", async ({
   const more = page.getByRole("navigation", { name: "Workspace tabs" }).getByRole("button", { name: "More" });
   if (await more.isVisible()) {
     await more.click();
-    await page.getByRole("dialog", { name: "Workspace menu" }).getByRole("link", { name: "Staff & roles" }).click();
+    // the sheet opens on the group of the page you're on; Staff & roles is under Setup
+    const sheet = page.getByRole("dialog", { name: "Workspace menu" });
+    await sheet.getByText("Setup", { exact: true }).click();
+    await sheet.getByRole("link", { name: "Staff & roles" }).click();
   } else {
     const menu = page.getByRole("navigation", { name: "Staff workspace" });
     const setup = menu.getByRole("button", { name: /^Setup/ });
@@ -796,13 +799,17 @@ test("a family tab: asked for, opened by the owner, an order on it, paid at the 
     // the family puts an order on it: nothing to pay at checkout
     await page.goto("/products/everyday-basmati-rice");
     await page.getByRole("button", { name: "Add to basket" }).click();
-    await expect(page.getByRole("status")).toContainText("Basket updated");
+    await expect(page.locator("main").getByText("1 in basket")).toBeVisible();
+    // shown at once, saved just after: wait for the save before leaving the page
+    await expect(page.locator("main .product-quantity").first()).toHaveAttribute("aria-busy", "false");
     await page.goto("/checkout");
-    await page.getByLabel("Delivery slot").selectOption({ label: "Thu, 1 Jan · 4:00 PM – 7:00 PM" });
+    await page.getByRole("radio", { name: "Thu, 1 Jan · 4:00 PM – 7:00 PM" }).check();
     await page.getByRole("radio", { name: /Add to family tab/ }).check();
     await expect(page.getByRole("heading", { name: "Total on the tab: ₹139" })).toBeVisible();
-    // only Cash on Delivery asks for the extra tick
-    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    // every way to pay asks for the one Terms tick, worded for the tab
+    await expect(page.getByRole("checkbox")).toHaveCount(1);
+    await expect(page.getByText("I confirm this order on the family tab and agree to the")).toBeVisible();
+    await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: "Put this order on the family tab" }).click();
     await expect(page).toHaveURL(/\/account\/orders\/[a-f0-9]+/);
     await expect(page.getByText("On your family tab, settled with the store monthly")).toBeVisible();

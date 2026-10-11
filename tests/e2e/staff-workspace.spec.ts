@@ -51,7 +51,8 @@ test.describe("desktop", () => {
     await expect(page.locator(".top-strip")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Basket" })).toHaveCount(0);
     await expect(page.getByRole("combobox", { name: "Search products" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "View shop" })).toBeVisible();
+    // the header's; the one-line staff footer links back to the shop too
+    await expect(page.getByRole("banner").getByRole("link", { name: "View shop" })).toBeVisible();
 
     await page.keyboard.press("Control+k");
     await expect(finder(page)).toBeFocused();
@@ -134,6 +135,11 @@ test.describe("phone", () => {
 
     await tabs.getByRole("button", { name: "More" }).click();
     const more = page.getByRole("dialog", { name: "Workspace menu" });
+    // the shop and the everyday jobs come first, before the folded groups
+    await expect(more.getByRole("link").first()).toHaveAccessibleName("View shop");
+    await expect(more.getByRole("link", { name: "Add product" })).toBeVisible();
+    // the group of the page you're on (Store settings, under Setup) is the one open
+    await expect(more.getByRole("link", { name: "Support chats" })).toBeHidden();
     await more.getByRole("link", { name: "Staff & roles" }).click();
     await expect(page).toHaveURL("/super-admin/staff");
     await expect(more).toHaveCount(0);

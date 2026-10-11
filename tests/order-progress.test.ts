@@ -5,15 +5,15 @@ const at = (minute: number) => new Date(Date.UTC(2026, 8, 30, 10, minute));
 const placed = { dimension: "order", previous: "draft", next: "placed", at: at(0) };
 
 describe("The customer's order tracker", () => {
-  it("marks the steps behind the order with their times, and the next one as current", () => {
+  it("marks the steps behind the order with their times, the latest of them as current", () => {
     const steps = orderTracker(
       { orderStatus: "confirmed", fulfilmentStatus: "packed", deliveryStatus: "unassigned" },
       [placed, { dimension: "fulfilment", next: "picking", at: at(5) }, { dimension: "fulfilment", next: "packed", at: at(9) }],
     );
     expect(steps?.map((step) => [step.label, step.state])).toEqual([
       ["Order placed", "done"],
-      ["Packed", "done"],
-      ["On the way", "current"],
+      ["Packed", "current"],
+      ["On the way", "todo"],
       ["Delivered", "todo"],
     ]);
     expect(steps?.[1].at).toEqual(at(9));
@@ -36,11 +36,11 @@ describe("The customer's order tracker", () => {
 
   it("counts an order given to a rider as packed, as the order's status line does", () => {
     const steps = orderTracker({ orderStatus: "confirmed", fulfilmentStatus: "unassigned", deliveryStatus: "assigned" }, [placed]);
-    expect(steps?.map((step) => step.state)).toEqual(["done", "done", "current", "todo"]);
+    expect(steps?.map((step) => step.state)).toEqual(["done", "current", "todo", "todo"]);
   });
 
   it("falls back to the order's own time for an order with no history, and has no road for a cancelled one", () => {
-    expect(orderTracker({ orderStatus: "placed" }, [], at(1))?.[0]).toMatchObject({ state: "done", at: at(1) });
+    expect(orderTracker({ orderStatus: "placed" }, [], at(1))?.[0]).toMatchObject({ state: "current", at: at(1) });
     expect(orderTracker({ orderStatus: "cancelled" }, [placed])).toBeNull();
     expect(orderTracker({ orderStatus: "cancelled", deliveryStatus: "returned" }, [placed])).toBeNull();
   });

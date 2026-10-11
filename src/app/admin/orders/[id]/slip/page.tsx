@@ -5,7 +5,7 @@ import { requirePage } from "@/lib/auth/session";
 import { Order } from "@/lib/commerce/models";
 import { User } from "@/lib/db/models";
 import { objectId } from "@/lib/commerce/service";
-import { formatIst, formatPrice } from "@/lib/display";
+import { formatIst, formatPrice, noBreakTimes } from "@/lib/display";
 import { dayLabel } from "@/lib/commerce/slots";
 import { lineNotes, type PackedLine } from "@/lib/operations/packing";
 import { PrintButton } from "@/components/print-button";
@@ -60,7 +60,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
           </div>
           <div className="slip-when">
             <strong>{day || "Delivery"}</strong>
-            <span>{o.deliveryWindow}</span>
+            <span>{noBreakTimes(o.deliveryWindow)}</span>
           </div>
         </header>
 
@@ -98,7 +98,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
                 </td>
                 <td className="slip-qty">{line.quantity}</td>
                 <td>
-                  <strong>{line.name}</strong> <span className="muted">{line.label}</span>
+                  <strong>{line.name}</strong> <span className="muted">· {line.label}</span>
                   {lineNotes(line, cash).map((note) => (
                     <small key={note}>{note}</small>
                   ))}

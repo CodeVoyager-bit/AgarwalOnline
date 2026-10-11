@@ -59,10 +59,13 @@ export function orderTracker(
     // the latest time: a delivery tried again is "on the way" from its second start
     const event = events.filter(step.reached).at(-1);
     const at = event ? new Date(event.at) : index === 0 ? placedAt : undefined;
+    // the step the order is at is the highlighted one, so "Packed" at the top of the page and the
+    // tracker agree; it used to highlight the next step, which read as "On the way" already
+    const latest = index === done - 1 && done < STEPS.length;
     return {
       key: step.key,
       label: step.label,
-      state: index < done ? "done" : index === done ? "current" : "todo",
+      state: index < done ? (latest ? "current" : "done") : "todo",
       at: index < done ? at : undefined,
     };
   });
