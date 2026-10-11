@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { BellOff, BellRing, X } from "lucide-react";
+import { BellRing, Volume2, VolumeX, X } from "lucide-react";
 import type { Locale } from "@/lib/locale-types";
 import type { NewOrdersResponse } from "@/app/api/staff/new-orders/route";
 import { formatPrice } from "@/lib/display";
@@ -235,7 +235,8 @@ export function OrderAlerts({ locale }: { locale: Locale }) {
         title={on ? words.turnOff : words.turnOn}
         onClick={toggle}
       >
-        {on ? <BellRing size={20} aria-hidden="true" /> : <BellOff size={20} aria-hidden="true" />}
+        {/* a speaker, so it doesn't read as a second alerts bell beside the real one */}
+        {on ? <Volume2 size={20} aria-hidden="true" /> : <VolumeX size={20} aria-hidden="true" />}
         <span className="sr-only">{words.label}</span>
       </button>
       {/* read out politely, without claiming the page's role="status" (each page has its own) */}

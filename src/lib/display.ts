@@ -183,6 +183,11 @@ export function formatIst(
   });
 }
 
+/** "4:00 PM – 7:00 PM" with no line break before "PM", so a time never ends a line on a lone "PM". */
+export function noBreakTimes(text: string) {
+  return text.replace(/(\d) (AM|PM|am|pm)\b/g, "$1\u00a0$2");
+}
+
 /** How an order is paid, in words. Before the family tab, "not cash" could safely mean "paid online". */
 export function methodLabel(method: string) {
   return method === "cod" ? "Cash on delivery" : method === "tab" ? "Family tab" : "Paid online";

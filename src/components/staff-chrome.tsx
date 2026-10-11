@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Store, UserRound } from "lucide-react";
-import { hasPermission, rolesFor, staffHome, type StaffRole } from "@/lib/auth/permissions";
+import { Boxes, LayoutDashboard, LogOut, PackagePlus, Settings, Store, UserRound, type LucideIcon } from "lucide-react";
+import { hasPermission, rolesFor, staffHome, type Permission, type StaffRole } from "@/lib/auth/permissions";
 import { logoutAction } from "@/lib/auth/actions";
 import { copy, type Locale } from "@/lib/locale-types";
 import { staffCopy } from "@/lib/staff/copy";
@@ -18,6 +18,14 @@ import { StaffNav } from "./staff-nav";
 import { StaffTabs } from "./staff-tabs";
 
 type Sheet = "more" | "search";
+
+/** The jobs done most, one tap from the phone's More sheet; each only for staff allowed to do it. */
+const QUICK: { href: string; permission: Permission; Icon: LucideIcon; label: (text: (typeof staffCopy)[Locale], mr: boolean) => string }[] = [
+  { href: "/admin", permission: "order:manage", Icon: LayoutDashboard, label: (text) => text.tabs.overview },
+  { href: "/admin/products/new", permission: "catalog:write", Icon: PackagePlus, label: (_, mr) => (mr ? "उत्पादन जोडा" : "Add product") },
+  { href: "/admin/inventory", permission: "inventory:adjust", Icon: Boxes, label: (_, mr) => (mr ? "स्टॉक" : "Stock") },
+  { href: "/super-admin", permission: "settings:write", Icon: Settings, label: (text) => text.nav.settings },
+];
 
 /** True while the person is typing somewhere, so "/" types a slash instead of opening search. */
 function typing(target: EventTarget | null) {
@@ -47,6 +55,13 @@ export default function StaffChrome({
   const shop = copy[locale];
   const pathname = usePathname();
   const delivery = role === "delivery";
+  const quick = delivery
+    ? []
+    : QUICK.filter((item) => hasPermission(roles, item.permission)).map(({ href, Icon, label }) => ({
+        href,
+        Icon,
+        label: label(text, locale === "mr"),
+      }));
   const finderInput = useRef<HTMLInputElement>(null);
   const sheetInput = useRef<HTMLInputElement>(null);
   // a sheet belongs to the page it was opened on, so it's gone after moving to another page
@@ -104,18 +119,29 @@ export default function StaffChrome({
       {open === "more" && (
         <Modal title={delivery ? text.tabs.account : text.sheet.more} onClose={close} closeLabel={text.sheet.close}>
           <div className="more-sheet">
+            {/* the shop first: it used to sit under every page of the menu, two screens down */}
+            <Link href="/" className="primary-button more-sheet-shop" onClick={close}>
+              <Store size={18} aria-hidden="true" />
+              {text.viewShop}
+            </Link>
+            {quick.length > 0 && (
+              <ul className="more-sheet-quick">
+                {quick.map(({ href, label, Icon }) => (
+                  <li key={href}>
+                    <Link href={href} onClick={close}>
+                      <Icon size={18} aria-hidden="true" />
+                      <span>{label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
             {!delivery && <StaffNav groups={groups} locale={locale} variant="sheet" onNavigate={close} />}
             <ul className="more-sheet-links">
               <li>
                 <Link href="/account" onClick={close}>
                   <UserRound size={18} aria-hidden="true" />
                   {shop.account}
-                </Link>
-              </li>
-              <li>
-                <Link href="/" onClick={close}>
-                  <Store size={18} aria-hidden="true" />
-                  {text.viewShop}
                 </Link>
               </li>
             </ul>

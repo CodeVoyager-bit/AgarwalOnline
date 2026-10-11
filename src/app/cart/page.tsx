@@ -88,12 +88,12 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
   return (
     <section className="page-container">
       <PageHeading
-        eyebrow="Your basket"
-        title="Basket"
+        eyebrow={mr ? "तुमची बास्केट" : "Your basket"}
+        title={mr ? "बास्केट" : "Basket"}
         aside={
           lines.length > 0 ? (
             <Link href="/catalog" className="secondary-button">
-              Continue shopping <ArrowRight size={16} aria-hidden="true" />
+              {mr ? "खरेदी सुरू ठेवा" : "Continue shopping"} <ArrowRight size={16} aria-hidden="true" />
             </Link>
           ) : undefined
         }
@@ -291,10 +291,10 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
       ) : (
         <div className="panel empty-state">
           <ShoppingBag size={40} strokeWidth={1.5} className="empty-icon" aria-hidden="true" />
-          <h2>Your basket is empty.</h2>
-          <p>Add your everyday essentials and they’ll be waiting here.</p>
+          <h2>{mr ? "तुमची बास्केट रिकामी आहे." : "Your basket is empty."}</h2>
+          <p>{mr ? "रोजच्या गरजेच्या वस्तू टाका, त्या इथे तुमची वाट पाहतील." : "Add your everyday essentials and they’ll be waiting here."}</p>
           <Link href="/catalog" className="primary-button">
-            Explore the store
+            {mr ? "दुकान पाहा" : "Explore the store"}
           </Link>
         </div>
       )}

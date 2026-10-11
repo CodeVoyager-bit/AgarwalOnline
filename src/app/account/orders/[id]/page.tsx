@@ -24,7 +24,7 @@ import { objectId } from "@/lib/commerce/service";
 import { dayLabel } from "@/lib/commerce/slots";
 import { cancelAction, reorderAction } from "@/lib/commerce/actions";
 import { ActionForm } from "@/components/action-form";
-import { customerStage, formatIst, formatPrice, methodLabel, paymentLabel } from "@/lib/display";
+import { customerStage, formatIst, formatPrice, methodLabel, noBreakTimes, paymentLabel } from "@/lib/display";
 import { ProductReview } from "@/lib/reviews/models";
 import { RateStars } from "@/components/rate-stars";
 import { productImages } from "@/lib/catalog/images";
@@ -107,8 +107,8 @@ export default async function OrderDetail({
   const cashDue =
     o.paymentMethod === "cod" && o.orderStatus !== "cancelled" && (o.codStatus ?? "uncollected") === "uncollected";
   const day = o.deliveryDate ? dayLabel(o.deliveryDate) : "";
-  const slot = day ? `${day} · ${o.deliveryWindow}` : o.deliveryWindow;
-  const arriving = `Arriving ${day === "Today" || day === "Tomorrow" ? day.toLowerCase() : `on ${day}`}, ${o.deliveryWindow}`;
+  const slot = noBreakTimes(day ? `${day} · ${o.deliveryWindow}` : o.deliveryWindow);
+  const arriving = noBreakTimes(`Arriving ${day === "Today" || day === "Tomorrow" ? day.toLowerCase() : `on ${day}`}, ${o.deliveryWindow}`);
   const deliveredAt = tracker?.[3].at;
   // a delivered order can be rated here for a month; once rated, the rating and the shop's reply show instead
   const delivered = o.deliveryStatus === "delivered" && o.orderStatus !== "cancelled";
@@ -125,7 +125,7 @@ export default async function OrderDetail({
     returned: "The delivery didn’t go through, so your order went back to the shop.",
     failed: "The delivery partner couldn’t hand this over. The shop will arrange another try.",
     attempted: "The delivery partner couldn’t hand this over. The shop will arrange another try.",
-    "out-for-delivery": `On its way to you now · ${o.deliveryWindow}`,
+    "out-for-delivery": noBreakTimes(`On its way to you now · ${o.deliveryWindow}`),
     "awaiting-payment": "Complete your online payment to confirm this order.",
   };
   // a delivered order asks for a one-tap rating of each product still in the catalogue

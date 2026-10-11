@@ -82,7 +82,8 @@ function subscribe(listener: () => void) {
 
 /**
  * The staff menu: groups by job, with how many things wait beside each page. On a wide screen it's
- * the sidebar and its groups fold; in the phone's More sheet every page is listed.
+ * the sidebar and its groups fold; in the phone's More sheet each group folds too, opening on the
+ * group of the page you're on, so the sheet starts one screen tall instead of three.
  */
 export function StaffNav({
   groups,
@@ -116,6 +117,52 @@ export function StaffNav({
         const folded = foldable && !here && (folds[group.key] ?? group.folded ?? false);
         const waiting = group.items.reduce((sum, item) => sum + (item.count ? (counts[item.count] ?? 0) : 0), 0);
         const listId = `${id}-${group.key}`;
+        const list = (
+          <ul className="workspace-group-items" id={listId}>
+            {group.items.map((item) => {
+              const Icon = NAV_ICONS[item.key];
+              const count = item.count ? (counts[item.count] ?? 0) : 0;
+              const active = isActiveHref(item, pathname);
+              return (
+                <li key={item.key}>
+                  <Link href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{text.nav[item.key]}</span>
+                    {count > 0 && (
+                      <>
+                        <b className={`nav-badge${item.count === "lowStock" ? " is-quiet" : ""}`} aria-hidden="true">
+                          {count > 99 ? "99+" : count}
+                        </b>
+                        <span className="sr-only">
+                          {" "}
+                          ({item.count === "lowStock" ? text.runningLow(count) : text.waiting(count)})
+                        </span>
+                      </>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        );
+        if (variant === "sheet")
+          return (
+            <details className="workspace-group" key={group.key} open={here || groups.length === 1}>
+              <summary className="workspace-group-label">
+                <span>{label}</span>
+                {waiting > 0 && (
+                  <>
+                    <b className="nav-badge" aria-hidden="true">
+                      {waiting}
+                    </b>
+                    <span className="sr-only"> ({text.waiting(waiting)})</span>
+                  </>
+                )}
+                <ChevronDown size={16} aria-hidden="true" />
+              </summary>
+              {list}
+            </details>
+          );
         return (
           <div className={`workspace-group${folded ? " is-collapsed" : ""}`} key={group.key}>
             {foldable ? (
@@ -142,32 +189,7 @@ export function StaffNav({
             ) : (
               <span className="workspace-group-label">{label}</span>
             )}
-            <ul className="workspace-group-items" id={listId}>
-              {group.items.map((item) => {
-                const Icon = NAV_ICONS[item.key];
-                const count = item.count ? (counts[item.count] ?? 0) : 0;
-                const active = isActiveHref(item, pathname);
-                return (
-                  <li key={item.key}>
-                    <Link href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>
-                      <Icon size={18} aria-hidden="true" />
-                      <span>{text.nav[item.key]}</span>
-                      {count > 0 && (
-                        <>
-                          <b className={`nav-badge${item.count === "lowStock" ? " is-quiet" : ""}`} aria-hidden="true">
-                            {count > 99 ? "99+" : count}
-                          </b>
-                          <span className="sr-only">
-                            {" "}
-                            ({item.count === "lowStock" ? text.runningLow(count) : text.waiting(count)})
-                          </span>
-                        </>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            {list}
           </div>
         );
       })}
