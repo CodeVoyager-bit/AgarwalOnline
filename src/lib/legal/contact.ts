@@ -74,7 +74,7 @@ export const contactDoc: LegalBuilder = {
           {
             list: [
               "National Consumer Helpline: call 1915, or visit [consumerhelpline.gov.in](https://consumerhelpline.gov.in).",
-              "File a consumer complaint online on [e-Daakhil](https://edaakhil.nic.in).",
+              "File a consumer complaint online on [e‑Daakhil](https://edaakhil.nic.in).",
               "For complaints about your personal data, after contacting us: the Data Protection Board of India.",
             ],
           },
@@ -144,7 +144,7 @@ export const contactDoc: LegalBuilder = {
           {
             list: [
               "राष्ट्रीय ग्राहक हेल्पलाइन: 1915 वर फोन करा, किंवा [consumerhelpline.gov.in](https://consumerhelpline.gov.in) ला भेट द्या.",
-              "[e-Daakhil](https://edaakhil.nic.in) वर ऑनलाइन ग्राहक तक्रार दाखल करा.",
+              "[e‑Daakhil](https://edaakhil.nic.in) वर ऑनलाइन ग्राहक तक्रार दाखल करा.",
               "तुमच्या वैयक्तिक माहितीबद्दलच्या तक्रारींसाठी, आमच्याशी संपर्क साधल्यानंतर: भारतीय डेटा संरक्षण मंडळ.",
             ],
           },

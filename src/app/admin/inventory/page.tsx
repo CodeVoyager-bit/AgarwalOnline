@@ -3,6 +3,7 @@ import { History, PackageSearch } from "lucide-react";
 import mongoose from "mongoose";
 import { ActionForm } from "@/components/action-form";
 import { DataTable } from "@/components/data-table";
+import { ShowMore, rowsShown } from "@/components/show-more";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { MoneyInput } from "@/components/money-input";
@@ -50,6 +51,7 @@ export default async function InventoryPage({
       (params.stock !== "low" || (row.available > 0 && row.available <= LOW)) &&
       (params.stock !== "out" || row.available === 0),
   );
+  const page = shown.slice(0, rowsShown(params.show));
   // the pack being adjusted opens above the table, one at a time
   const adjusting =
     params.adjust && mongoose.isValidObjectId(params.adjust)
@@ -188,12 +190,20 @@ export default async function InventoryPage({
       </FilterBar>
       <p className="results-line" role="status">
         <span>
-          <strong>{shown.length}</strong> of {rows.length} packs
+          {shown.length > page.length ? (
+            <>
+              Showing <strong>{page.length}</strong> of {shown.length} packs
+            </>
+          ) : (
+            <>
+              <strong>{shown.length}</strong> of {rows.length} packs
+            </>
+          )}
         </span>
       </p>
       <DataTable
         caption="Stock for every pack: on the shelf, held for orders and available to sell"
-        rows={shown}
+        rows={page}
         rowKey={(row) => String(row.variant._id)}
         columns={[
           {
@@ -242,6 +252,7 @@ export default async function InventoryPage({
           />
         }
       />
+      <ShowMore path="/admin/inventory" params={params} shown={page.length} total={shown.length} />
       <div className="section-heading">
         <div>
           <h2>Recent changes</h2>

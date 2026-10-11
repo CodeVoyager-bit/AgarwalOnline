@@ -7,7 +7,7 @@ import { CODCollection } from "@/lib/operations/models";
 import { RefreshOnFocus } from "@/components/refresh-on-focus";
 import { ensureSlots, slotGaps } from "@/lib/commerce/slots";
 import { CalendarClock, ChevronDown, CircleCheck, Inbox, Plus } from "lucide-react";
-import { formatIst, formatPrice, methodLabel } from "@/lib/display";
+import { formatIst, formatPrice, methodLabel, noBreakTimes } from "@/lib/display";
 import { PageHeading } from "@/components/page-heading";
 import { Popover } from "@/components/popover";
 import { StatTiles } from "@/components/stat-tiles";
@@ -215,7 +215,7 @@ export default async function Admin({
         items={[
           { label: "Orders today", value: today.orders, note: `Yesterday ${yesterday.orders}` },
           { label: "Sales today", value: formatPrice(today.sales), note: `Yesterday ${formatPrice(yesterday.sales)}` },
-          { label: "Packs running low", value: lowCount, href: "/admin/inventory" },
+          { label: "Packs low or sold out", value: lowCount, href: "/admin/inventory?stock=low" },
           { label: "Cash to reconcile", value: formatPrice(cash), href: "/admin/cod" },
         ]}
       />
@@ -257,18 +257,26 @@ export default async function Admin({
           </nav>
           <DataTable
             bare
+            rowsOnPhone
             caption="Orders with customer, delivery window, status and total"
             rows={orders}
             rowKey={(order) => String(order._id)}
             columns={[
               {
                 header: "Order",
-                cell: (order) => <Link href={`/admin/orders/${order._id}`}>{order.number}</Link>,
+                cell: (order) => (
+                  <>
+                    <Link href={`/admin/orders/${order._id}`}>{order.number}</Link>
+                    {/* on a phone the customer's name rides under the number; the column is left out */}
+                    <small className="phone-only">{order.address.name}</small>
+                  </>
+                ),
               },
-              { header: "Customer", cell: (order) => order.address.name },
+              { header: "Customer", phone: "hide", cell: (order) => order.address.name },
               {
                 header: "Delivery",
-                cell: (order) => `${order.deliveryDate} · ${order.deliveryWindow}`,
+                phone: "hide",
+                cell: (order) => noBreakTimes(`${order.deliveryDate} · ${order.deliveryWindow}`),
               },
               {
                 header: "Order status",
@@ -276,6 +284,7 @@ export default async function Admin({
               },
               {
                 header: "Payment",
+                phone: "hide",
                 cell: (order) => (
                   <>
                     {methodLabel(order.paymentMethod)} <StatusPill value={order.paymentStatus} />
@@ -311,7 +320,7 @@ export default async function Admin({
           <div className="panel-heading">
             <div>
               <span className="eyebrow">Shelves</span>
-              <h2 id="low-stock-title">Running low</h2>
+              <h2 id="low-stock-title">Low or sold out</h2>
             </div>
           </div>
           {lowStock.length ? (

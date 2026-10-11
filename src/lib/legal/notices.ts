@@ -14,7 +14,10 @@ export type NoticeKind =
   | "school-quote"
   | "school-accept"
   | "rider"
-  | "staff";
+  | "staff"
+  | "child"
+  | "family"
+  | "push";
 
 type Vars = { days?: number; google?: boolean };
 
@@ -50,6 +53,11 @@ const NOTICES: Record<Locale, Record<NoticeKind, (vars: Vars) => string>> = {
     "school-accept": () => "Accepting places an order under our [Terms & Conditions](/p/terms-and-conditions#schools).",
     rider: () => `Use this customer’s phone number and address only for this delivery. See our ${PRIVACY.en}.`,
     staff: () => `Staff may use customers’ details only for store work. See our ${PRIVACY.en}.`,
+    child: () =>
+      `We use a child’s name, school and class only to find their school kit and tell you when it’s ready. Adults in your family can see them. See our ${PRIVACY.en}.`,
+    family: () =>
+      `Adults you invite will see the family’s orders and invoices (except ones marked private), the children and the tab. See our [Terms & Conditions](/p/terms-and-conditions#family) and ${PRIVACY.en}.`,
+    push: () => `Notifications reach you through your browser’s push service, encrypted. Turn them off any time. See our ${PRIVACY.en}.`,
   },
   mr: {
     signin: ({ google }) =>
@@ -75,6 +83,11 @@ const NOTICES: Record<Locale, Record<NoticeKind, (vars: Vars) => string>> = {
     "school-accept": () => "स्वीकारल्याने आमच्या [अटी व शर्ती](/p/terms-and-conditions#schools) नुसार ऑर्डर दिली जाते.",
     rider: () => `या ग्राहकाचा फोन नंबर आणि पत्ता फक्त या डिलिव्हरीसाठी वापरा. आमचे ${PRIVACY.mr} पाहा.`,
     staff: () => `कर्मचारी ग्राहकांचे तपशील फक्त दुकानाच्या कामासाठी वापरू शकतात. आमचे ${PRIVACY.mr} पाहा.`,
+    child: () =>
+      `मुलाचे नाव, शाळा आणि इयत्ता आम्ही फक्त त्याचे शालेय किट शोधण्यासाठी आणि ते तयार झाल्यावर तुम्हाला कळवण्यासाठी वापरतो. तुमच्या कुटुंबातील प्रौढांना हा तपशील दिसतो. आमचे ${PRIVACY.mr} पाहा.`,
+    family: () =>
+      `तुम्ही बोलावलेल्या प्रौढांना कुटुंबाच्या ऑर्डर व बिले (खाजगी ठेवलेल्या सोडून), मुले आणि टॅब दिसतील. आमच्या [अटी व शर्ती](/p/terms-and-conditions#family) आणि ${PRIVACY.mr} पाहा.`,
+    push: () => `सूचना तुमच्या ब्राउझरच्या पुश सेवेतून एन्क्रिप्ट करून येतात. त्या कधीही बंद करा. आमचे ${PRIVACY.mr} पाहा.`,
   },
 };
 

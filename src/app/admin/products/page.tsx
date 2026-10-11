@@ -9,6 +9,7 @@ import { CatalogAdminNav } from "@/components/catalog-admin-nav";
 import { PageHeading } from "@/components/page-heading";
 import { FilterBar } from "@/components/filter-bar";
 import { DataTable } from "@/components/data-table";
+import { ShowMore, rowsShown } from "@/components/show-more";
 import { EmptyState } from "@/components/empty-state";
 import { StatusPill } from "@/components/status-pill";
 import { AisleIcon } from "@/components/aisle-icon";
@@ -66,6 +67,7 @@ export default async function Products({
         (params.audience === "customers-only" && row.product.showToSchools !== true)),
   );
   const filtered = Boolean(q || params.category || params.status || params.stock || params.audience);
+  const page = shown.slice(0, rowsShown(params.show));
   return (
     <section className="page-container">
       <PageHeading
@@ -126,12 +128,20 @@ export default async function Products({
       </FilterBar>
       <p className="results-line" role="status">
         <span>
-          <strong>{shown.length}</strong> of {rows.length} products
+          {shown.length > page.length ? (
+            <>
+              Showing <strong>{page.length}</strong> of {shown.length} products
+            </>
+          ) : (
+            <>
+              <strong>{shown.length}</strong> of {rows.length} products
+            </>
+          )}
         </span>
       </p>
       <DataTable
         caption="Products with price, stock and status"
-        rows={shown}
+        rows={page}
         rowKey={(row) => String(row.product._id)}
         columns={[
           {
@@ -219,6 +229,7 @@ export default async function Products({
           />
         }
       />
+      <ShowMore path="/admin/products" params={params} shown={page.length} total={shown.length} />
     </section>
   );
 }

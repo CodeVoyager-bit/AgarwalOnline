@@ -207,3 +207,45 @@ Everything that lands in someone's bell (`notify()` in `src/lib/engagement/servi
 - **Devices** (`PushDevice`, `src/lib/push/models.ts`): one row per browser (its push address and keys, a label like "Chrome on Android"), at most 8 per person. A browser belongs to whoever turned it on; when someone else signs in on it, `ServiceWorker` turns its notifications off there, so a shared phone never shows one person's updates to the next.
 - **Service worker** (`public/sw.js`) shows the message with the shop's icon and a monochrome status-bar badge (`public/icons/badge-96.png`); a tap brings the shop forward on that page.
 - **Checks.** `tests/web-push.test.ts` matches RFC 8291's worked example byte for byte, decrypts a message as a browser would, verifies the VAPID signature and the push-service allow-list. `tests/push.integration.test.ts`: saving and refusing devices, encrypted sends to each device, forgetting gone ones, sending only after commit, and new-order notices to order staff only. `tests/e2e/push.spec.ts`: the card at both widths. A real Chrome also received a real push through Google's service and decrypted it to the exact message.
+
+## Phone and layout audit fixes (October 2026)
+
+Every page was checked at four sizes: Pixel 7, a 360×640 phone, a Pixel 7 turned sideways and desktop. The fixes:
+
+- **Staff tables on phones** (`DataTable`, 760px and below; it was 900px):
+  - the first column is the card's title;
+  - the other cells sit two to a row, with the label above the value, so a long value can't run over its label ("PRODUCT", "ITEM", "DELIVERY");
+  - pills keep their natural width;
+  - a cell with a form or a note spans the card;
+  - a phone turned sideways or a small tablet keeps the real table.
+- **Long owner lists:**
+  - Products and Stock list 30 at a time, with "Show 30 more" (`ShowMore` and `rowsShown` in `src/components/show-more.tsx`), and the filters are kept;
+  - Analytics "Low stock" shows the lowest ten and links to the Stock page.
+- **The phone's More sheet:**
+  - it opens with "View shop" and quick tiles (Overview, Add product, Stock, Store settings), each shown only to those allowed;
+  - the menu's groups fold (`<details>` in `StaffNav` variant "sheet"), with the current page's group open;
+  - the staff header on phones has the shop icon too.
+- **Store settings on phones:** each section shows its intro and an Open button (`SettingsFold`). Its forms appear when opened, or when an address points inside the section, as the summary cards and the workspace search do. Wider screens show everything open.
+- **Staff pages at 761–900px** no longer scroll sideways: the menu strip no longer uses negative margins.
+- **Sideways phones** (`orientation: landscape` and `max-height: 500px`):
+  - the shop header scrolls away;
+  - a product's photo sits beside its name and price;
+  - the support chat fills the screen.
+- **Overlaps:**
+  - the price no longer runs under ADD on narrow product cards;
+  - the product page's pinned box wraps at large text sizes and with a school quantity box;
+  - the assistant button sits above a pinned "Buy this board";
+  - the school pill stays inside its column;
+  - the packing checklist's title wraps inside its box;
+  - the quotation's GST box scrolls inside itself on phones.
+- **Wrong or confusing words:**
+  - the order tracker highlights the step the order is at, not the next one;
+  - the family tab shows money paid ahead;
+  - the staff chat no longer shows the customer's prompt;
+  - shoppers no longer see a setup message on the address page;
+  - analytics shows payment methods in words;
+  - the staff order's empty timeline says so;
+  - the packing slip separates the item and its pack;
+  - delivery times don't break before "PM" (`noBreakTimes`);
+  - the new-order sound switch is a speaker, not a second bell;
+  - the empty basket and "Access restricted" page are in Marathi.
