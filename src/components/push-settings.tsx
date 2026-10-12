@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BellRing, BellOff } from "lucide-react";
+import { PolicyNotice } from "./policy-notice";
 import { sendTestPushAction, pushDeviceIsMineAction, turnOffPushAction, turnOnPushAction } from "@/lib/push/actions";
 
 type State = "checking" | "unsupported" | "iphone" | "blocked" | "off" | "on";
@@ -187,6 +188,7 @@ export function PushSettings({
                     ? text.offStaff
                     : text.off}
         </p>
+        {state === "off" && <PolicyNotice kind="push" locale={mr ? "mr" : "en"} />}
         {message && (
           <p role={message.ok ? "status" : "alert"} className={message.ok ? "success-message" : "error-message"}>
             {message.text}

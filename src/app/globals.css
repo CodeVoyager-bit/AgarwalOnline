@@ -1526,7 +1526,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 
 /* ---------- Footer ---------- */
 .site-footer { margin-top: auto; border-top: 1px solid var(--line); background: var(--canvas); color: var(--ink-2); font-size: 0.9rem; }
-.footer-inner { display: grid; grid-template-columns: 2fr repeat(4, 1fr); gap: 32px; padding: 56px var(--gutter) 40px; }
+/* minmax(0, …): with text at 200% a long link ("Refunds & Cancellations") wraps instead of pushing the page sideways */
+.footer-inner { display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 32px; padding: 56px var(--gutter) 40px; }
+.footer-inner > * { min-width: 0; overflow-wrap: break-word; }
 .footer-brand .brand { margin-bottom: 12px; }
 .footer-brand p { max-width: 36ch; }
 .footer-areas { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 400; }
@@ -1542,13 +1544,16 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 
 /* ---------- Store policies (/privacy, /terms, /refunds, /shipping, /contact) ---------- */
 .legal-meta { margin: -16px 0 20px; color: var(--muted); font-size: 0.85rem; }
+.legal-meta span { white-space: nowrap; }
+.legal-toc-phone { display: none; }
 .legal-prevails { margin-bottom: 24px; }
 .legal-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; align-items: start; }
 .legal-toc { position: sticky; top: calc(var(--header-h) + 16px); }
 .legal-toc h2 { margin: 0 0 10px; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .legal-toc ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.legal-toc li a { display: block; padding: 5px 0; color: var(--ink-2); font-size: 0.9rem; font-weight: 400; text-decoration: none; }
-.legal-toc li a:hover { color: var(--accent); }
+/* links, so they look like links: the shop's link colour, underlined on hover */
+.legal-toc li a { display: block; padding: 5px 0; color: var(--accent); font-size: 0.9rem; font-weight: 500; text-decoration: none; }
+.legal-toc li a:hover, .legal-toc-phone li a:hover { text-decoration: underline; }
 /* long emails and Devanagari words wrap instead of pushing the page sideways */
 .legal-prose { max-width: 72ch; line-height: 1.7; overflow-wrap: break-word; }
 .legal-prose section + section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
@@ -1598,6 +1603,8 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .footer-inner { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .footer-brand { grid-column: 1 / -1; }
   .legal-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 32px; }
+  /* tablets, landscape phones and phones: the tab rail scrolls inside itself: fade both edges so a cut-off tab reads as "more this way" */
+  .policy-switcher { -webkit-mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 28px), transparent); }
 }
 @media (max-width: 1100px) {
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 28px 20px; }
@@ -1608,8 +1615,11 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .aisles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .workspace-layout { grid-template-columns: 1fr; gap: 20px; padding-top: 16px; }
-  .workspace-nav { position: static; flex-direction: row; gap: 8px; max-height: none; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) 4px; overflow-x: auto; mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
+  .workspace-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-top: 16px; }
+  /* a strip that scrolls inside the page. It is the containing block for the screen-reader text in
+     its links ("2 waiting"): without one, that text sat at its place in the strip, past the
+     screen's edge, and made every staff page scroll sideways */
+  .workspace-nav { position: relative; flex-direction: row; gap: 8px; min-width: 0; max-height: none; margin: 0; padding: 0 0 4px; overflow-x: auto; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent); }
   .workspace-nav::-webkit-scrollbar { display: none; }
   .workspace-group { flex-direction: row; gap: 8px; }
   .workspace-group-label { display: none; }
@@ -1622,7 +1632,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   /* after the base .list-layout rule, so it wins */
   .list-layout { grid-template-columns: 1fr; gap: 24px; }
   .checkout-form > .primary-button { grid-column: 1; }
-  .product-detail { grid-template-columns: 1fr; gap: 24px; }
+  /* minmax(0, …): at 200% text the column stays the screen's width instead of growing to its widest line */
+  .product-detail { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .product-info { min-width: 0; }
   .product-gallery { position: static; }
   .aisles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .benefits { gap: 24px; }
@@ -1634,7 +1646,11 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .header { top: calc(-1 * var(--header-collapse)); }
   /* the offer line on the left, the language switch on the right: phones have no other way to reach it up top */
   .top-strip-inner { min-height: 40px; gap: 10px; font-size: 0.76rem; }
-  .top-strip p { flex: 1; }
+  /* when the line and the links don't fit side by side ("For my school", big text), the links move
+     under the line instead of squeezing it to 3–5 lines or pushing the language switch off the edge */
+  .top-strip-inner { flex-wrap: wrap; row-gap: 2px; }
+  .top-strip p { flex: 1 1 14rem; }
+  .top-strip-links { flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; margin-left: auto; min-width: 0; }
   .top-strip p:has(.offer-code) > span:not(:last-child) { display: none; }
   .top-strip .locale-toggle button { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
   .header-inner {
@@ -1861,8 +1877,13 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .footer-store .locale-toggle { margin-top: 4px; }
   .footer-base-inner { flex-direction: column; gap: 2px; padding-block: 12px; }
   .legal-layout { grid-template-columns: 1fr; gap: 20px; }
-  .legal-toc { position: static; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
-  .legal-toc li a { display: flex; align-items: center; min-height: 36px; padding: 0; }
+  /* the sticky contents column gives way to a folded list above the text */
+  .legal-toc { display: none; }
+  .legal-toc-phone { display: block; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+  .legal-toc-phone > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 16px; font-weight: 600; cursor: pointer; }
+  .legal-toc-phone > summary small { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
+  .legal-toc-phone ol { margin: 0; padding: 0 16px 10px 36px; }
+  .legal-toc-phone li a { display: flex; align-items: center; min-height: 36px; color: var(--accent); }
   .legal-rows > div { grid-template-columns: 1fr; gap: 2px; }
   .policy-list { grid-template-columns: 1fr; gap: 10px; }
   .legal-pager { grid-template-columns: 1fr; }
@@ -1878,8 +1899,11 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 }
 /* Rows become cards on phones: the table renders once and each cell grows its
    column name, replacing the old "render everything twice and hide one" trick.
+   The record's name is the card's title and the other cells sit two to a row, label above
+   value, so a long value can never run over its label. Wider screens (a phone turned
+   sideways, a small tablet) keep the real table.
    Declared after the 760px block so these win where both match. */
-@media (max-width: 900px) {
+@media (max-width: 760px) {
   .data-table { overflow-x: visible; border: 0; background: transparent; padding: 0; }
   .data-table table { display: block; min-width: 0; }
   .data-table thead {
@@ -1894,8 +1918,10 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   }
   .data-table tbody { display: grid; gap: 10px; }
   .data-table tr {
-    display: block;
-    padding: 4px 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 14px;
+    padding: 12px 14px 8px;
     border: 1px solid var(--line);
     border-radius: var(--r-lg);
     background: var(--paper);
@@ -1903,23 +1929,37 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .data-table tbody tr:hover { background: var(--paper); }
   .data-table td {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: 16px;
-    padding: 11px 0;
-    border-top: 1px solid var(--line);
-    text-align: right;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    justify-items: start;
+    gap: 2px;
+    min-width: 0;
+    padding: 6px 0;
+    border-top: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
   }
-  .data-table tr > td:first-child { border-top: 0; }
   .data-table td::before {
     content: attr(data-label);
     color: var(--muted);
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    text-align: left;
   }
+  /* the first column names the record: it heads the card, full width, without a label */
+  .data-table tr > td:first-child {
+    grid-column: 1 / -1;
+    justify-items: stretch;
+    margin-bottom: 4px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.98rem;
+    font-weight: 600;
+  }
+  .data-table tr > td:first-child::before { display: none; }
+  /* a cell with a form, several buttons or a long note gets the whole width */
+  .data-table td:has(form, textarea, select, .split-actions, .row-actions, p) { grid-column: 1 / -1; justify-items: stretch; }
   .data-table td:first-child, .data-table th:first-child { position: static; box-shadow: none; }
 }
 @media (pointer: coarse) {
@@ -1936,7 +1976,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 @media print {
   .top-strip, .header, .category-nav, .mobile-nav, .site-footer, .workspace-nav, .skip-link { display: none !important; }
   body { background: #fff; }
-  .legal-toc, .legal-pager, .policy-switcher { display: none; }
+  .legal-toc, .legal-toc-phone, .legal-pager, .policy-switcher { display: none; }
   .legal-layout { display: block; }
 }
 
@@ -3054,7 +3094,9 @@ a.school-pill:hover, .school-switch > summary:hover .school-pill { background: #
 .school-switch-list a:hover { background: var(--brand-soft); }
 .school-main-area { flex: 1 0 auto; }
 
-/* the shop header's way in, for representatives: a pill in the aisle row, a chip in the phone's top strip */
+/* the door between shop and school: in the shop it leads in, in the school header it leads back out.
+   A pill in the aisle row, a chip in the phone's top strip */
+.school-header .primary-nav a.school-door-pill { margin-left: auto; }
 .primary-nav a.school-door-pill { gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--brand); border-radius: var(--r-pill); background: var(--brand-tint); color: var(--brand); font-weight: 600; }
 .primary-nav a.school-door-pill:hover { background: #dde1ed; background: color-mix(in oklab, var(--brand) 15%, var(--canvas)); border-color: var(--brand); }
 .top-strip-links > a.school-door { display: none; }
@@ -3370,6 +3412,201 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
   .push-card-actions .primary-button, .push-card-actions .secondary-button { flex: 1 1 auto; justify-content: center; }
 }
 
+/* ---------- Audit fixes (October 2026): overlaps, sideways phones and long owner pages ---------- */
+
+/* The phone's More sheet: the shop and the everyday jobs first, then the menu's groups folded */
+.more-sheet-shop { display: flex; justify-content: center; gap: 8px; width: 100%; min-height: 48px; margin: 4px 0 12px; }
+.more-sheet-quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.more-sheet-quick a { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); color: var(--ink); font-weight: 600; text-decoration: none; }
+.more-sheet-quick a:hover { border-color: var(--ink); color: var(--ink); }
+.more-sheet-quick svg { flex: none; color: var(--brand); }
+.more-sheet-quick span { min-width: 0; }
+.workspace-nav.is-sheet { gap: 0; margin: 0; border-top: 1px solid var(--line); }
+.workspace-nav.is-sheet > details.workspace-group { border-bottom: 1px solid var(--line); }
+.workspace-nav.is-sheet > details > summary.workspace-group-label { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 12px; color: var(--ink); font-size: 0.82rem; cursor: pointer; list-style: none; }
+.workspace-nav.is-sheet > details > summary::-webkit-details-marker { display: none; }
+.workspace-nav.is-sheet > details > summary > svg { margin-left: auto; color: var(--muted); transition: transform var(--fast); }
+.workspace-nav.is-sheet > details[open] > summary > svg { transform: rotate(180deg); }
+.workspace-nav.is-sheet > details > .workspace-group-items { padding: 0 0 8px; }
+
+/* Staff header on phones: the shop is one tap away, as an icon beside the bell */
+@media (max-width: 760px) {
+  .staff-header .view-shop { display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); }
+  .staff-header .view-shop span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .staff-header-actions { gap: 2px; }
+}
+
+/* Store settings on phones: each section shows its title and summary; its forms open on a tap */
+.settings-fold { display: none; }
+@media (max-width: 760px) {
+  .settings-intro { display: flex; flex-direction: column; }
+  .settings-fold { order: 10; display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start; min-height: 44px; margin-top: 10px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--paper); color: var(--ink); font: inherit; font-size: 0.9rem; font-weight: 600; }
+  .settings-fold svg { transition: transform var(--fast); }
+  .settings-fold[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .settings-section:not([data-open]) > :not(.settings-intro) { display: none; }
+  .settings-section { padding: 18px 0; }
+}
+
+/* Product cards: on narrow cards the price no longer runs under ADD; ADD drops below when there's no room */
+.price-row { flex-wrap: wrap; row-gap: 8px; }
+.price-row .quick-add { margin-left: auto; }
+@media (max-width: 420px) {
+  .price-row strong { font-size: 1.2rem; }
+  .add-button { min-width: 64px; padding-inline: 12px; }
+}
+
+/* School product cards: "Add to basket" on one line */
+.school-product-card .add-button, .quote-add .add-button { white-space: nowrap; }
+@media (max-width: 420px) {
+  .quote-add .add-button { padding-inline: 10px; font-size: 0.74rem; letter-spacing: 0.04em; }
+}
+
+/* The product page's pinned buy box: at large text sizes or with a quantity box (school pages)
+   it wraps onto two lines instead of pushing past the screen or over the price */
+@media (max-width: 760px) {
+  .variant-list > .variant-card:only-child { flex-wrap: wrap; row-gap: 8px; }
+  .variant-card:only-child .variant-info { min-width: 0; }
+  .variant-card:only-child .product-quantity { min-width: 0; margin-left: auto; }
+  .variant-card:only-child:has(.quote-add) .quote-add { flex: 1 1 100%; }
+}
+
+/* Staff tables: no empty band between the page heading's line and the filters' line */
+.workspace-heading + .audit-filters, .workspace-heading + * + .audit-filters { border-top: 0; padding-top: 0; }
+.panel-more { margin: 12px 0 0; font-weight: 600; }
+
+/* A phone turned sideways (wide but short): the shop header scrolls away instead of covering 40%
+   of the screen, and a product's photo sits beside its name and price instead of above them */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) {
+  .header { position: relative; top: auto; }
+  .header-inner { padding-block: 6px; }
+  .product-detail { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
+  .product-gallery { position: sticky; top: 12px; margin-bottom: 0; }
+  .product-art.large { max-height: calc(100vh - 40px); aspect-ratio: 1; }
+  .product-info { display: block; }
+  /* doubled class: the all-screens chat height further down would otherwise win */
+  .chat-panel.chat-panel { height: max(320px, calc(100vh - 40px)); height: max(320px, calc(100dvh - 40px)); }
+  .auth-card { margin-block: 16px; }
+}
+
+/* The shop's category row scrolls when it doesn't fit: say so with a fade at the edge */
+@media (max-width: 1023px) {
+  .primary-nav { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+}
+
+/* Support chat: a real message area on every screen, and the connection pill on one line */
+.chat-panel { height: max(440px, min(70vh, 640px)); height: max(440px, min(70dvh, 640px)); }
+.chat-toolbar .success-message, .chat-toolbar .muted { white-space: nowrap; }
+
+/* Floating buttons step out of each other's way: the assistant sits above a pinned "Buy this board" */
+body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
+@media (max-width: 760px) {
+  body:has(.buy-bar) .assistant-launcher { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 84px); }
+  .board-items { padding-bottom: 8px; }
+}
+
+/* Packing checklist: a long item name in the box's title no longer breaks the box's border */
+.packing-item > legend { float: left; width: 100%; margin-bottom: 8px; padding: 0; overflow-wrap: anywhere; }
+.packing-item > legend + * { clear: both; }
+
+/* The quotation's GST summary scrolls inside its box on a phone instead of cutting a column off */
+@media (max-width: 760px) {
+  .quotation-tax { overflow-x: auto; }
+  .quotation-tax table { min-width: 420px; }
+  .quotation-tax th, .quotation-tax td { white-space: nowrap; font-size: 0.82rem; }
+}
+
+/* School header on phones: the school's name shrinks inside its own space, never over the logo */
+@media (max-width: 760px) {
+  .school-switch { justify-self: end; max-width: 100%; }
+  .school-header .school-pill { max-width: 100%; }
+}
+
+/* The floating tab bar: the open tab's name fits on small phones ("Categories", "Quotations") */
+@media (max-width: 400px) {
+  .mobile-nav a[aria-current="page"] { max-width: 56%; }
+  .mobile-nav a[aria-current="page"] .nav-label { font-size: 0.78rem; }
+}
+
+/* Cards that used to touch both edges of a small phone (sign in, sign up, not found, no access) */
+@media (max-width: 420px) {
+  .auth-card { width: auto; margin-inline: 12px; }
+}
+
+/* The customer's order tracker: the line up to the step the order is at is green too */
+.order-tracker li.is-done + li.is-current::before { background: var(--success); }
+.tab-credit { color: var(--success); font-weight: 600; }
+
+@media print {
+  .settings-fold, .more-sheet-shop, .more-sheet-quick { display: none !important; }
+}
+
+/* Small polish from the audit */
+/* the search box's rotating hint ends in "…" instead of being cut mid-word */
+.search input { text-overflow: ellipsis; }
+/* an empty spot in a board's photo collage reads as a space for a photo, not a broken one */
+.collage-tile:empty { background: transparent; border: 1px dashed var(--line-strong); }
+.board-new .secondary-button { white-space: nowrap; }
+@media (max-width: 760px) {
+  /* the account page's active order: the arrow sits beside the order, not alone on a third line */
+  .active-order-card > :last-child { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  /* the rider's Call and Map buttons get room before the note under them */
+  .delivery-links { margin-bottom: 12px; }
+}
+
+/* The quotation's lines on a phone: the item's name, then its figures three to a row (label above
+   value), instead of one figure per row; a 40-line quotation is half as long */
+@media screen and (max-width: 760px) {
+  .quotation-table tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; padding: 10px 0; }
+  .quotation-table td { display: grid; justify-content: start; align-content: start; gap: 0; padding: 0; font-size: 0.86rem; text-align: left; overflow-wrap: anywhere; }
+  .quotation-table td::before { font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .quotation-table td[data-label="Item"] { grid-column: 1 / -1; margin-bottom: 2px; font-size: 0.95rem; }
+}
+
+/* Staff tables that read as one line per record on a phone (the overview's latest orders), and
+   columns a phone leaves to the record's own page */
+.phone-only { display: none; }
+@media (max-width: 760px) {
+  .data-table .phone-hide { display: none; }
+  .data-table .phone-only { display: block; color: var(--muted); font-size: 0.82rem; font-weight: 400; }
+  .data-table.rows-on-phone tbody { gap: 6px; }
+  .data-table.rows-on-phone tr { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 10px 14px; }
+  .data-table.rows-on-phone td { padding: 0; }
+  .data-table.rows-on-phone td::before { display: none; }
+  .data-table.rows-on-phone tr > td:first-child { grid-column: auto; margin: 0; padding: 0; border-bottom: 0; font-size: 0.95rem; }
+  .data-table.rows-on-phone td.tnum { font-weight: 600; }
+}
+
+/* Staff pages end with one line, not the shop's footer */
+.site-footer.is-compact { margin-top: 24px; }
+.site-footer.is-compact .footer-base-inner p a { color: inherit; text-decoration: underline; }
+
+/* Edit product's "Packs and prices": one look for every action on a pack ("Adjust stock",
+   "Change the price", "School price", "Name, order limit…" and "Add another pack size") */
+.pack-list .pack-stock a,
+.pack-list details > summary,
+.pack-list + .text-button,
+.pack-list ~ .text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--link);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+@media (pointer: coarse) {
+  .pack-list .pack-stock a, .pack-list details > summary, .pack-list ~ .text-button { min-height: 44px; }
+}
+/* a filter row's button stands as tall as the boxes beside it */
+.audit-filters > :is(button, .primary-button, .secondary-button) { min-height: 48px; }
+/* the account page's three counts sit side by side on a phone, not two and then one */
+@media (max-width: 760px) {
+  .account-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .account-stats > :last-child:nth-child(odd) { grid-column: auto; }
+}
+
 /* ---------- Phone fixes from the 2026-10-11 bug bash (every page at 320, 360, 375 and 412px) ---------- */
 /* iOS Safari zooms the whole page into any field whose text is under 16px the moment it gets focus */
 @media (pointer: coarse) {
@@ -3381,6 +3618,7 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
   .price-row { flex-direction: column; align-items: stretch; gap: 8px; }
   .price-row .add-button, .price-row .qty-stepper.compact { width: 100%; }
   .price-row .qty-stepper.compact { justify-content: space-between; }
+  .price-row .quick-add { margin-left: 0; } /* the audit's right-push (above) would stop ADD stretching */
   /* the welcome offer in a few words, so the strip stays on one or two lines beside the school door and language */
   .welcome-long { display: none; }
   .welcome-short { display: inline; }
@@ -3398,8 +3636,7 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
   .variant-card:only-child:has(.quote-add) .variant-price { flex-wrap: wrap; row-gap: 0; }
   .variant-card:only-child:has(.quote-add) .variant-price b { font-size: 1.25rem; }
   .variant-card:only-child .quote-add { grid-template-columns: 64px auto; }
-  /* the dashboard's New menu opens as a sheet above the tab bar, wherever its button sits; other menus stay on screen */
-  .new-menu .popover-panel { position: fixed; left: var(--gutter); right: var(--gutter); top: auto; bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px); box-shadow: var(--shadow-lg); }
+  /* every menu stays on screen (the dashboard's New menu has its own rule above, from the audit) */
   .popover-panel { max-width: calc(100vw - 2 * var(--gutter)); }
 }
 /* small phones: the tab labels get a little more room ("Categories", "Quotations" were cut to "Catego…") */

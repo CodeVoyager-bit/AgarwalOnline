@@ -40,6 +40,7 @@ import { MoneyInput } from "@/components/money-input";
 import { taxProfile } from "@/lib/tax/profile";
 import { settingsHub } from "@/lib/admin/settings-summary";
 import { SettingsHub } from "./_settings/settings-hub";
+import { SettingsFold } from "@/components/settings-fold";
 import { GST_STATES } from "@/lib/tax/gst";
 import { PhoneInput } from "@/components/phone-input";
 export const metadata = { title: "Store settings", robots: { index: false } };
@@ -171,6 +172,7 @@ export default async function StoreSettings({
       <section className="settings-section" aria-labelledby="delivery-heading" id="delivery">
         <div className="settings-intro">
           <h2 id="delivery-heading">Delivery</h2>
+          <SettingsFold section="delivery" label="delivery settings" />
           <p>
             When orders still go out the same day, when delivery is free, the days the store is closed and
             the delivery times shoppers can pick.
@@ -361,6 +363,7 @@ export default async function StoreSettings({
       <section className="settings-section" aria-labelledby="slots-heading" id="slots" tabIndex={-1}>
         <div className="settings-intro">
           <h2 id="slots-heading">Upcoming delivery slots</h2>
+          <SettingsFold section="slots" label="delivery slots" />
           <p>
             Every slot shoppers can pick over the next {DAYS_AHEAD} days. Close one to stop new
             orders in it; orders already booked stay.
@@ -460,6 +463,7 @@ export default async function StoreSettings({
       <section className="settings-section" aria-labelledby="areas-heading" id="areas" tabIndex={-1}>
         <div className="settings-intro">
           <h2 id="areas-heading">Service areas</h2>
+          <SettingsFold section="areas" label="service areas" />
           <p>
             The PIN codes you deliver to, what delivery costs there, and whether cash on delivery is
             allowed.
@@ -594,6 +598,7 @@ export default async function StoreSettings({
       <section className="settings-section" aria-labelledby="tax-heading" id="tax" tabIndex={-1}>
         <div className="settings-intro">
           <h2 id="tax-heading">Business and tax details</h2>
+          <SettingsFold section="tax" label="business details" />
           <p>
             Printed at the top of every school quotation, with the GST worked out from your state. The name, address,
             phone, email and grievance officer are also shown to everyone on the{" "}
@@ -685,6 +690,7 @@ export default async function StoreSettings({
       <section className="settings-section" aria-labelledby="checks-heading" id="checks">
         <div className="settings-intro">
           <h2 id="checks-heading">Checks and search</h2>
+          <SettingsFold section="checks" label="checks and search" />
           <p>
             Which stock changes wait for a second owner, which words shoppers can search with, and
             which outside services are connected.

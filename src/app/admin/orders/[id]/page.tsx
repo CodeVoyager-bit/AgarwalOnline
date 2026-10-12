@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
-import { formatPrice, methodLabel } from "@/lib/display";
+import { formatPrice, methodLabel, noBreakTimes } from "@/lib/display";
 import { StatusStrip } from "@/components/status-pill";
 import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
@@ -283,7 +283,7 @@ export default async function ManageOrder({
       <PageHeading
         eyebrow="Order"
         title={o.number}
-        lead={`${o.address.name} · ${o.deliveryDate} · ${o.deliveryWindow}`}
+        lead={noBreakTimes(`${o.address.name} · ${o.deliveryDate} · ${o.deliveryWindow}`)}
         aside={
           <div className="split-actions order-print">
             <Link href={`/admin/orders/${id}/slip`} className="secondary-button compact-button">
@@ -647,6 +647,7 @@ export default async function ManageOrder({
           </div>
           <div className="panel">
             <h2>Timeline</h2>
+            {!events.length && <p className="muted">Nothing recorded for this order yet.</p>}
             <ol>
               {events.map((e) => (
                 <li key={String(e._id)}>
@@ -862,7 +863,7 @@ export default async function ManageOrder({
             </p>
             {o.address.instructions && <p className="muted">“{o.address.instructions}”</p>}
             <p>
-              Delivery {o.deliveryDate} · {o.deliveryWindow}
+              Delivery {o.deliveryDate} · {noBreakTimes(o.deliveryWindow)}
             </p>
           </div>
           {cash && (

@@ -10,7 +10,7 @@ import { evidenceAction } from "@/lib/evidence/actions";
 import { UploadedEvidence } from "@/lib/evidence/models";
 import { MoneyInput } from "@/components/money-input";
 import { PhotoInput } from "@/components/photo-input";
-import { formatPrice } from "@/lib/display";
+import { formatPrice, noBreakTimes } from "@/lib/display";
 import { inBagOf, lineNotes, type PackedLine } from "@/lib/operations/packing";
 export const metadata = { title: "Delivery", robots: { index: false } };
 export default async function DeliveryOrder({
@@ -58,7 +58,7 @@ export default async function DeliveryOrder({
           </div>
           <PolicyNotice kind="rider" />
           <p style={{ marginTop: 20 }}>
-            {o.deliveryDate} · {o.deliveryWindow}
+            {o.deliveryDate} · {noBreakTimes(o.deliveryWindow)}
           </p>
           {/* so the rider can answer "is everything there?" before asking for the code */}
           <h3>In the parcel</h3>

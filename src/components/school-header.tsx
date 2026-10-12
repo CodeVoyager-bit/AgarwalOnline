@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown, School, ShoppingBag, UserRound } from "lucide-react";
+import { ChevronDown, School, ShoppingBag, Store, UserRound } from "lucide-react";
 import { copy, type Locale } from "@/lib/locale-types";
 import { schoolCopy } from "@/lib/schools/copy";
 import { switchHref } from "@/lib/schools/access";
@@ -36,6 +36,22 @@ export function SchoolHeader({
   const text = schoolCopy[locale];
   const shop = copy[locale];
   return (
+    <>
+      {/* the shop's own strip, with the way back where the shop puts the way in */}
+      <div className="top-strip">
+        <div className="top-strip-inner">
+          <p>
+            <span>{text.stripNote}</span>
+          </p>
+          <div className="top-strip-links">
+            {/* phones only: the menu row with the desktop button is hidden there */}
+            <Link href="/" className="school-door">
+              <Store size={14} aria-hidden="true" /> {text.backToShop}
+            </Link>
+            <LocaleToggle locale={locale} />
+          </div>
+        </div>
+      </div>
     <header className="header school-header">
       <div className="header-inner">
         <Link href="/school" className="brand" aria-label={text.home}>
@@ -54,8 +70,8 @@ export function SchoolHeader({
               <Link href="/school/quotations">{text.quotations}</Link>
             </>
           )}
-          <Link href="/" className="offers">
-            {text.shopForHome}
+          <Link href="/" className="school-door-pill">
+            <Store size={16} aria-hidden="true" /> {text.backToShop}
           </Link>
         </nav>
         <div className="header-actions">
@@ -139,5 +155,6 @@ export function SchoolHeader({
         </div>
       </div>
     </header>
+    </>
   );
 }

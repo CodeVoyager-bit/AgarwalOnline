@@ -20,6 +20,7 @@ const StaffChrome = dynamic(() => import("./staff-chrome"));
 export function AdaptiveShell({
   header,
   footer,
+  staffFooter,
   staffRole,
   staffUser,
   locale,
@@ -27,6 +28,8 @@ export function AdaptiveShell({
 }: {
   header: React.ReactNode;
   footer: React.ReactNode;
+  /** The staff pages' one-line footer. */
+  staffFooter: React.ReactNode;
   staffRole: StaffRole | null;
   staffUser: StaffUser | null;
   locale: Locale;
@@ -35,7 +38,7 @@ export function AdaptiveShell({
   const pathname = usePathname();
   if (staffRole && staffUser && isStaffPath(pathname))
     return (
-      <StaffChrome role={staffRole} user={staffUser} locale={locale} footer={footer}>
+      <StaffChrome role={staffRole} user={staffUser} locale={locale} footer={staffFooter}>
         {children}
       </StaffChrome>
     );

@@ -21,6 +21,7 @@ import { ActionForm } from "@/components/action-form";
 import { Avatars } from "@/components/avatars";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeading } from "@/components/page-heading";
+import { PolicyNotice } from "@/components/policy-notice";
 import { Popover } from "@/components/popover";
 import { ShareLink } from "@/components/share-link";
 import { ShareSheet } from "@/components/share-sheet";
@@ -511,6 +512,13 @@ function TabCard({
       </h2>
       <p className="tab-owed">
         <strong>{formatPrice(owed)}</strong> {t(`owed of ${formatPrice(standing.limitPaise)}`, `बाकी, मर्यादा ${formatPrice(standing.limitPaise)}`)}
+        {/* paid before anything was owed: it's why "left" can be more than the limit */}
+        {standing.owedPaise < 0 && (
+          <small className="tab-credit">
+            {" · "}
+            {t(`${formatPrice(-standing.owedPaise)} paid ahead`, `${formatPrice(-standing.owedPaise)} आगाऊ भरले`)}
+          </small>
+        )}
       </p>
       <div className="tab-meter" role="img" aria-label={t(`${used}% of the limit used`, `मर्यादेपैकी ${used}% वापरले`)}>
         <span style={{ width: `${used}%` }} />
@@ -567,6 +575,7 @@ function ChildForm({ child, mr }: { child?: Child; mr: boolean }) {
           ))}
         </select>
       </label>
+      <PolicyNotice kind="child" locale={mr ? "mr" : "en"} />
     </ActionForm>
   );
 }
@@ -595,6 +604,7 @@ function StartFamily({ mr }: { mr: boolean }) {
               {t("Family name", "कुटुंबाचे नाव")}
               <input name="name" required minLength={2} maxLength={40} placeholder={t("Sharma family", "शर्मा कुटुंब")} />
             </label>
+            <PolicyNotice kind="family" locale={mr ? "mr" : "en"} />
           </ActionForm>
         </div>
         <ul className="family-perks">

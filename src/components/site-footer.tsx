@@ -9,13 +9,37 @@ export function SiteFooter({
   locale,
   categories,
   areas,
+  signedIn = false,
+  workspace = null,
+  compact = false,
 }: {
   locale: Locale;
   categories: CategoryLink[];
   /** The areas switched on in Store settings. */
   areas: string[];
+  /** Someone is signed in: the footer offers their account, not "Sign in". */
+  signedIn?: boolean;
+  /** A staff member's workspace home, linked from the footer. */
+  workspace?: string | null;
+  /** The staff pages' one line: the shop's columns are for shoppers. */
+  compact?: boolean;
 }) {
   const mr = locale === "mr";
+  if (compact)
+    return (
+      <footer className="site-footer is-compact">
+        <div className="footer-base">
+          <div className="footer-base-inner">
+            <p>© {new Date().getFullYear()} Agarwal General Stores</p>
+            <p>
+              <Link href="/">{mr ? "दुकान पाहा" : "View shop"}</Link>
+              {" · "}
+              <Link href={POLICIES_HOME.href}>{mr ? "धोरणे" : "Policies"}</Link>
+            </p>
+          </div>
+        </div>
+      </footer>
+    );
   return (
     <footer className="site-footer">
       <div className="footer-inner">
@@ -93,12 +117,27 @@ export function SiteFooter({
         <div className="footer-store">
           <h2>{mr ? "दुकान" : "Store"}</h2>
           <ul>
-            <li>
-              <Link href="/login">{mr ? "साइन इन" : "Sign in"}</Link>
-            </li>
-            <li>
-              <Link href="/login">{mr ? "कर्मचारी साइन इन" : "Staff sign in"}</Link>
-            </li>
+            {signedIn ? (
+              <>
+                <li>
+                  <Link href="/account">{mr ? "माझे खाते" : "Your account"}</Link>
+                </li>
+                {workspace && (
+                  <li>
+                    <Link href={workspace}>{mr ? "कामाचे पान" : "Staff workspace"}</Link>
+                  </li>
+                )}
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link href="/login">{mr ? "साइन इन" : "Sign in"}</Link>
+                </li>
+                <li>
+                  <Link href="/login">{mr ? "कर्मचारी साइन इन" : "Staff sign in"}</Link>
+                </li>
+              </>
+            )}
           </ul>
           <LocaleToggle locale={locale} />
         </div>

@@ -8,6 +8,7 @@ import { DEFAULT_FACTS } from "../src/lib/legal/format";
 import { notice, type NoticeKind } from "../src/lib/legal/notices";
 import { LEGAL_PAGES, POLICIES_HOME } from "../src/lib/legal/pages";
 import { privacyDoc } from "../src/lib/legal/privacy";
+import { refundsDoc } from "../src/lib/legal/refunds";
 import { shippingDoc } from "../src/lib/legal/shipping";
 import { termsDoc } from "../src/lib/legal/terms";
 import type { Block, LegalDoc, LegalFacts } from "../src/lib/legal/types";
@@ -101,6 +102,23 @@ describe("store policies", () => {
     expect(live).toContain("27AAPFU0939F1ZV");
   });
 
+  it("describes the family features, children's details, push and the email service the code uses", () => {
+    const privacy = words(privacyDoc.en(LIVE));
+    expect(privacy).toContain("Hostinger");
+    expect(privacy).not.toContain("Resend");
+    expect(privacy).not.toContain("any data about students");
+    expect(privacy).toContain("first name, school and class");
+    expect(privacy).toContain("Browser push services");
+    expect(privacy).toContain("An order you mark private at checkout stays yours.");
+    const family = termsDoc.en(LIVE).sections.find((s) => s.id === "family")!;
+    const text = family.blocks.flatMap(texts).join("\n");
+    expect(text).toContain("₹1,00,000");
+    expect(text).toContain("due by the 10th");
+    expect(text).toContain("no interest and no late fee");
+    expect(words(refundsDoc.en(LIVE))).toContain("credit on the tab");
+    expect(words(termsDoc.mr(LIVE))).toContain("कुटुंब टॅब");
+  });
+
   it("says how long photos are kept, from the cleanup job's setting", () => {
     expect(words(privacyDoc.en({ ...LIVE, evidenceDays: 45 }))).toContain("45 days.");
     expect(notice("evidence", "en", { days: 45 })).toContain("deleted after 45 days");
@@ -110,6 +128,7 @@ describe("store policies", () => {
     const kinds: NoticeKind[] = [
       "signin", "signup", "address", "complaint", "evidence", "review", "feedback",
       "chat", "handoff", "school-join", "school-quote", "school-accept", "rider", "staff",
+      "child", "family", "push",
     ];
     const notices = (["en", "mr"] as const).flatMap((locale) => kinds.map((kind) => notice(kind, locale, { google: true })));
     const docs = Object.values(DOCS).flatMap((builder) => [builder.en(LIVE), builder.mr(LIVE)]);

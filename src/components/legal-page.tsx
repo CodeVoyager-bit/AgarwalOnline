@@ -50,10 +50,11 @@ function BlockView({ block }: { block: Block }) {
 /** "Last updated 10 October 2026 · Version 2026-10-10", on the policy home and every policy. */
 export function LegalMeta({ locale }: { locale: Locale }) {
   return (
+    // each half stays whole: a narrow phone broke "2026-10-10" at its hyphens
     <p className="legal-meta">
-      {locale === "mr"
-        ? `शेवटचा बदल: ${LAST_UPDATED.mr} · आवृत्ती ${POLICY_VERSION}`
-        : `Last updated ${LAST_UPDATED.en} · Version ${POLICY_VERSION}`}
+      <span>{locale === "mr" ? `शेवटचा बदल: ${LAST_UPDATED.mr}` : `Last updated ${LAST_UPDATED.en}`}</span>
+      {" · "}
+      <span>{locale === "mr" ? `आवृत्ती ${POLICY_VERSION}` : `Version ${POLICY_VERSION}`}</span>
     </p>
   );
 }
@@ -112,6 +113,19 @@ export function LegalPage({ doc, locale, current }: { doc: LegalDoc; locale: Loc
           हे इंग्रजी मजकुराचे मराठी भाषांतर आहे. दोन्हींमध्ये फरक असल्यास इंग्रजी आवृत्ती ग्राह्य धरली जाईल.
         </p>
       )}
+      {/* phones: the contents fold away, so the policy itself starts on the first screen */}
+      <details className="legal-toc-phone">
+        <summary>
+          {mr ? "या पानावर" : "On this page"} <small>{mr ? `${doc.sections.length} भाग` : `${doc.sections.length} sections`}</small>
+        </summary>
+        <ol>
+          {doc.sections.map((section) => (
+            <li key={section.id}>
+              <a href={`#${section.id}`}>{section.title}</a>
+            </li>
+          ))}
+        </ol>
+      </details>
       <div className="legal-layout">
         <nav className="legal-toc" aria-label={mr ? "या पानावर" : "On this page"}>
           <h2>{mr ? "या पानावर" : "On this page"}</h2>

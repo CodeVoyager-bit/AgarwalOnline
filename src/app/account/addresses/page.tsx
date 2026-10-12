@@ -161,8 +161,8 @@ export default async function Addresses({
             </ActionForm>
           ) : (
             <p>
-              Delivery areas are awaiting store configuration. Address creation
-              will be available when service is enabled.
+              We aren’t taking new delivery addresses just now. Please check back soon, or{" "}
+              <Link href="/account/support">ask the store</Link>.
             </p>
           )}
         </div>

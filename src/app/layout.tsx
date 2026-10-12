@@ -12,7 +12,7 @@ import { AdaptiveShell } from "@/components/adaptive-shell";
 import { currentLocale } from "@/lib/i18n";
 import { catalogCategories } from "@/lib/catalog/queries";
 import { currentUser } from "@/lib/auth/session";
-import { staffRoleOf } from "@/lib/auth/permissions";
+import { staffHome, staffRoleOf } from "@/lib/auth/permissions";
 import { cartFor } from "@/lib/commerce/service";
 import { BasketProvider } from "@/components/basket";
 import { KeyboardAware } from "@/components/keyboard-aware";
@@ -130,7 +130,16 @@ export default async function RootLayout({
             staffUser={user && staffRole ? { name: user.name, phone: user.phone, email: user.email } : null}
             locale={locale}
             header={<Header locale={locale} categories={categories} />}
-            footer={<SiteFooter locale={locale} categories={categories} areas={areas} />}
+            footer={
+              <SiteFooter
+                locale={locale}
+                categories={categories}
+                areas={areas}
+                signedIn={Boolean(user)}
+                workspace={user ? staffHome(user.roles) : null}
+              />
+            }
+            staffFooter={<SiteFooter locale={locale} categories={categories} areas={areas} compact />}
           >
             {children}
           </AdaptiveShell>
