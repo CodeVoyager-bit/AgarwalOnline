@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { getEnv } from "../env";
+import { log } from "../logger";
 type MongoClient = InstanceType<typeof mongoose.mongo.MongoClient>;
 const globalDB = globalThis as typeof globalThis & {
   mongoPromise?: Promise<typeof mongoose>;
@@ -32,6 +33,22 @@ export function mongoClient(uri = getEnv().MONGODB_URI): MongoClient {
   return client;
 }
 
+/**
+ * better-auth keeps its sessions, accounts, codes and rate limits in collections of its own, not
+ * Mongoose models, so nothing built their indexes: every signed-in page scanned all sessions to
+ * find its own. Built once per server start, like Mongoose's; an index that exists costs nothing.
+ */
+function authIndexes(db: ReturnType<MongoClient["db"]>) {
+  return Promise.all([
+    db.collection("authSessions").createIndex({ token: 1 }),
+    db.collection("authSessions").createIndex({ userId: 1 }),
+    db.collection("authAccounts").createIndex({ userId: 1 }),
+    db.collection("authAccounts").createIndex({ providerId: 1, accountId: 1 }),
+    db.collection("authVerifications").createIndex({ identifier: 1 }),
+    db.collection("authRateLimits").createIndex({ key: 1 }),
+  ]);
+}
+
 export async function connectDB() {
   if (!globalDB.mongoPromise)
     globalDB.mongoPromise = (async () => {
@@ -40,6 +57,7 @@ export async function connectDB() {
       const client = mongoClient();
       await client.connect();
       mongoose.connection.setClient(client);
+      void authIndexes(client.db()).catch((error) => log("warn", "db.auth-indexes-failed", { error }));
       return mongoose;
     })().catch((error) => {
       globalDB.mongoPromise = undefined;

@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./playful.css";
+import { PlayfulFx } from "@/components/playful";
+import { NavProgress } from "@/components/nav-progress";
+import { Suspense } from "react";
 import { Header } from "@/components/header";
 import { SiteFooter } from "@/components/site-footer";
 import { liveAreaNames } from "@/lib/commerce/areas";
@@ -14,6 +18,7 @@ import { BasketProvider } from "@/components/basket";
 import { KeyboardAware } from "@/components/keyboard-aware";
 import { ServiceWorker } from "@/components/service-worker";
 import { pushPublicKey } from "@/lib/push/service";
+import { getEnv } from "@/lib/env";
 
 const display = localFont({
   src: "../../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
@@ -44,16 +49,28 @@ const devanagari = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Agarwal General Stores | Stationery & gifts delivered same day in Nagothane",
-    template: "%s | Agarwal General Stores",
-  },
-  description:
-    "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in and around Nagothane.",
-  // the app's name and look once it is added to an iPhone's home screen (Chrome reads app/manifest.ts)
-  appleWebApp: { capable: true, title: "Agarwal", statusBarStyle: "default" },
-};
+// a function, not a constant: the site's address comes from the environment at request time
+export function generateMetadata(): Metadata {
+  return {
+    // resolves the relative canonical and share-image links pages set
+    metadataBase: new URL(getEnv().APP_ORIGIN),
+    title: {
+      default: "Agarwal General Stores | Stationery & gifts delivered same day in Nagothane",
+      template: "%s | Agarwal General Stores",
+    },
+    description:
+      "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in and around Nagothane.",
+    // the app's name and look once it is added to an iPhone's home screen (Chrome reads app/manifest.ts)
+    appleWebApp: { capable: true, title: "Agarwal", statusBarStyle: "default" },
+    // the WhatsApp/Facebook link preview; product pages swap in their own photo
+    openGraph: {
+      type: "website",
+      siteName: "Agarwal General Stores",
+      locale: "en_IN",
+      images: ["/icons/icon-512.png"],
+    },
+  };
+}
 export const viewport: Viewport = {
   themeColor: "#0f172a",
   colorScheme: "light",
@@ -79,8 +96,22 @@ export default async function RootLayout({
       lang={locale}
       className={`${display.variable} ${devanagari.variable}`}
       data-scroll-behavior="smooth"
+      // the playful skin (src/app/playful.css); delete this line for the classic look
+      data-look="playful"
     >
       <body>
+        <PlayfulFx />
+        {/* reads the search params, so it waits for them rather than holding up the page */}
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
+        {/* keeps Chrome's install offer for the Get the app page, whichever page it fires on */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'addEventListener("beforeinstallprompt",function(e){window.__installPrompt=e});addEventListener("appinstalled",function(){window.__installPrompt=undefined;window.__appInstalled=true})',
+          }}
+        />
         <a href="#main" className="skip-link">
           Skip to content
         </a>

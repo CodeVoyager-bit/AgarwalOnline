@@ -2,6 +2,36 @@ import mongoose, { type ClientSession } from "mongoose";
 import { connectDB } from "../db/connect";
 import { formatPrice } from "../display";
 import { Promotion, PromotionRedemption } from "./models";
+import { shared } from "../db/shop-cache";
+
+export type LiveOffer = {
+  _id: unknown;
+  name: string;
+  code?: string;
+  kind: "automatic" | "code";
+  discountType: "fixed" | "percentage";
+  discountValue: number;
+  minimumSubtotalPaise: number;
+  startsAt: Date;
+  endsAt: Date;
+  welcome?: boolean;
+};
+
+/**
+ * The offers switched on and not over yet, easiest to reach first, from the shop cache: the top
+ * bar and the homepage show them on every visit. Filter with `runningAt` before showing one, so an
+ * offer still starts and stops on the minute.
+ */
+export const liveOffers = () =>
+  shared("live-offers", async () => {
+    await connectDB();
+    return Promotion.find({ active: true, endsAt: { $gte: new Date() } })
+      .sort({ minimumSubtotalPaise: 1 })
+      .limit(200)
+      .select("name code kind discountType discountValue minimumSubtotalPaise startsAt endsAt welcome")
+      .lean<LiveOffer[]>();
+  });
+export const runningAt = (now: Date) => (offer: LiveOffer) => offer.startsAt <= now && offer.endsAt >= now;
 
 export type PriceQuote = {
   merchandiseSubtotalPaise: number;

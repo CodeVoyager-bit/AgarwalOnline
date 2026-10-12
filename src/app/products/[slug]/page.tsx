@@ -21,6 +21,7 @@ import { ProductQuantity } from "@/components/quick-add";
 import { orderedPhotos } from "@/lib/catalog/photos";
 import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display";
 import { getEnv } from "@/lib/env";
+import { jsonLd, productJsonLd } from "@/lib/seo";
 import { listsFor } from "@/lib/lists/service";
 import { AddToList } from "@/components/add-to-list";
 import { SaveToBoard } from "@/components/save-to-board";
@@ -30,9 +31,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const p = await productBySlug((await params).slug);
   if (!p) return { title: "Product not found" };
   const v = p.variants[0];
+  const photo = orderedPhotos(p)[0] ?? productImages[p.slug];
   return {
     title: `${p.name.en} – ${formatPrice(v.pricePaise)}`,
     description: `${p.name.en} (${v.label}) from Agarwal General Stores, delivered across Nagothane and nearby areas. ${p.description.en}`.slice(0, 300),
+    // ?lang= and the cookie only change the language; search engines should list one address
+    alternates: { canonical: `/products/${p.slug}` },
+    ...(photo ? { openGraph: { images: [photo] } } : {}),
   };
 }
 export default async function ProductPage({
@@ -88,7 +93,8 @@ export default async function ProductPage({
   // the shop is the only seller; saying so is a row of noise
   const specs = p.specifications.filter((spec) => spec.label.en !== "Seller");
   const [reviewUsers, delivered] = await Promise.all([
-    User.find({ _id: { $in: reviews.map((review) => review.customerId) } }).select("name"),
+    // most products have no reviews yet: no names to look up
+    reviews.length ? User.find({ _id: { $in: reviews.map((review) => review.customerId) } }).select("name") : [],
     user
       ? Order.exists({ customerId: user.id, deliveryStatus: "delivered", "items.variantId": { $in: variantIds } })
       : null,
@@ -98,28 +104,18 @@ export default async function ProductPage({
   const averageRating = p.reviewCount ? p.rating : 0;
   // the cutoff is an IST hour; the server clock is UTC on Vercel
   const deliveryDay = minutesUntilCutoff(rules.cutoffHour) > 0 ? "today" : "tomorrow";
-  const v = p.variants[0];
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: p.name.en,
-    description: p.description.en,
-    brand: { "@type": "Brand", name: p.brand },
-    ...(image ? { image: [image] } : {}),
-    offers: {
-      "@type": "Offer",
-      url: `${getEnv().APP_ORIGIN}/products/${p.slug}`,
-      priceCurrency: "INR",
-      price: (v.pricePaise / 100).toFixed(2),
-      availability: `https://schema.org/${v.available > 0 ? "InStock" : "OutOfStock"}`,
-    },
-  };
+  const photos = orderedPhotos(p).length ? orderedPhotos(p) : image ? [image] : [];
+  const structuredData = productJsonLd(
+    p,
+    getEnv().APP_ORIGIN,
+    categories.find((category) => category.slug === p.categorySlug)?.en ?? p.categorySlug,
+    photos,
+  );
   return (
     <section className="page-container">
       <script
         type="application/ld+json"
-        // escaped so a product name can never close the script tag
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link href="/catalog">{mr ? "सर्व उत्पादने" : "All products"}</Link>
@@ -132,7 +128,7 @@ export default async function ProductPage({
       </nav>
       <div className="product-detail">
         <ProductGallery
-          images={orderedPhotos(p).length ? orderedPhotos(p) : image ? [image] : []}
+          images={photos}
           name={p.name.en}
           category={p.categorySlug}
         />

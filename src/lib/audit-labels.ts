@@ -2,6 +2,7 @@
 const LABELS: Record<string, string> = {
   "auth.customer.email_login": "Signed in with email",
   "auth.customer.login": "Signed in with a one-time code",
+  "auth.customer.password_reset": "Set a new password with a one-time code",
   "auth.customer.password_login": "Signed in with mobile number and password",
   "auth.google.login": "Signed in with Google",
   "auth.google.merge": "Linked a Google account",

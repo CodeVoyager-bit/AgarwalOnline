@@ -8,6 +8,8 @@ const appEnv = {
   MOCK_OTP_CODE: "246810",
   // the shop assistant is hidden on the real site for now; the tests keep it working
   SHOP_ASSISTANT: "on",
+  // the tests write to the database behind the app's back, so the shop cache keeps nothing
+  SHOP_CACHE_SECONDS: "0",
   // fake credentials: the tests stop at Google's door, they never talk to Google
   GOOGLE_CLIENT_ID: "e2e-google-client.apps.googleusercontent.com",
   GOOGLE_CLIENT_SECRET: "e2e-google-secret",

@@ -6,7 +6,8 @@ import { LocaleToggle } from "./locale-toggle";
 import { AccountMenu, type MenuLink } from "./account-menu";
 import { staffRoleOf, type Role } from "@/lib/auth/permissions";
 import { currentUser } from "@/lib/auth/session";
-import { Promotion, PromotionRedemption } from "@/lib/promotions/models";
+import { PromotionRedemption } from "@/lib/promotions/models";
+import { liveOffers, runningAt } from "@/lib/promotions/service";
 import { Notification } from "@/lib/engagement/models";
 import { deliveryRules } from "@/lib/commerce/service";
 import { CartBar } from "./cart-bar";
@@ -54,13 +55,7 @@ export async function Header({
     currentUser(),
     deliveryRules(),
     // only the coupon the owner picked as the welcome offer; any live code used to be advertised
-    Promotion.findOne({
-      active: true,
-      welcome: true,
-      code: { $type: "string", $ne: "" },
-      startsAt: { $lte: now },
-      endsAt: { $gte: now },
-    }).select("code minimumSubtotalPaise"),
+    liveOffers().then((offers) => offers.find((o) => o.welcome && o.code && runningAt(now)(o)) ?? null),
   ]);
   // staff accounts aren't asked to rate: their test orders would skew the shop's scores
   const shopper = user && !staffRoleOf(user.roles) ? user : null;
@@ -69,7 +64,7 @@ export async function Header({
     ? await Promise.all([
         offer ? PromotionRedemption.exists({ promotionId: offer._id, customerId: user.id }) : null,
         // a paused school has nothing to open, so it doesn't count
-        representsActiveSchool(user.id),
+        representsActiveSchool(user.id, user.roles),
         // a delivered order waiting for "How did we do?"; never worth failing the page over
         shopper ? pendingFeedbackOrder(shopper.id).catch(() => null) : null,
         Notification.countDocuments({ userId: user.id, readAt: null }),
@@ -98,7 +93,12 @@ export async function Header({
               <>
                 <span aria-hidden="true">·</span>
                 <span>
-                  {text.welcomeCode(welcome.minimumSubtotalPaise ? formatPrice(welcome.minimumSubtotalPaise) : "")}{" "}
+                  <span className="welcome-long">
+                    {text.welcomeCode(welcome.minimumSubtotalPaise ? formatPrice(welcome.minimumSubtotalPaise) : "")}
+                  </span>
+                  <span className="welcome-short">
+                    {text.welcomeShort(welcome.minimumSubtotalPaise ? formatPrice(welcome.minimumSubtotalPaise) : "")}
+                  </span>{" "}
                   <span className="offer-code">{welcome.code}</span>
                 </span>
               </>
@@ -108,7 +108,7 @@ export async function Header({
             {representsSchool && (
               // phones only: the category row with the desktop button is hidden there
               <Link href="/school" className="school-door">
-                <School size={14} aria-hidden="true" /> {schoolDoor}
+                <School size={14} aria-hidden="true" /> <span className="school-door-label">{schoolDoor}</span>
               </Link>
             )}
             <Link href="/serviceability">

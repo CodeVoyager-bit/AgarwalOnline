@@ -18,9 +18,10 @@ import {
 } from "./search";
 import { log } from "../logger";
 import { z } from "zod";
-import type { PipelineStage, SortOrder } from "mongoose";
+import type { PipelineStage } from "mongoose";
 import { ProductReview } from "../reviews/models";
 import { schoolVisible, shopperVisible } from "./visibility";
+import { shared } from "../db/shop-cache";
 export type CatalogItem = {
   id: string;
   slug: string;
@@ -95,25 +96,31 @@ type Shelf = {
 };
 
 /**
- * Everything a product list needs, in one round of parallel queries, shared by every list on
- * the page: the home page asks for three lists and the product page two. Before, each list made
- * four trips to the database one after another, which is what made pages slow on Atlas.
- * Memoised per request only, so stock and prices are always current.
+ * Everything a product list needs, shared by every list on the page: the home page asks for
+ * three lists and the product page two. Products, packs and review scores come from the shop
+ * cache (src/lib/db/shop-cache.ts), which any edit to them empties. Stock changes with every
+ * order, so it is kept for five seconds only: a page is about that old by the time it is read
+ * anyway, and checkout counts the stock itself before taking an order.
  */
 const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf> => {
   await connectDB();
-  const [products, variants, inventory, reviews] = await Promise.all([
-    Product.find(audience === "schools" ? schoolVisible : shopperVisible)
-      .sort({ bestseller: -1, createdAt: 1 })
-      .limit(SHELF_LIMIT)
-      .lean<Doc[]>(),
-    // a hidden pack isn't offered; older packs have no flag and stay on
-    ProductVariant.find({ active: { $ne: false } }).lean<Doc[]>(),
-    InventoryItem.find({}).select("variantId onHand reserved").lean<Doc[]>(),
-    ProductReview.aggregate([
-      { $match: { status: "published" } },
-      { $group: { _id: "$productId", rating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } },
-    ]),
+  const [{ products, variants, reviews }, inventory] = await Promise.all([
+    shared(`shelf:${audience}`, async () => {
+      const [products, variants, reviews] = await Promise.all([
+        Product.find(audience === "schools" ? schoolVisible : shopperVisible)
+          .sort({ bestseller: -1, createdAt: 1 })
+          .limit(SHELF_LIMIT)
+          .lean<Doc[]>(),
+        // a hidden pack isn't offered; older packs have no flag and stay on
+        ProductVariant.find({ active: { $ne: false } }).lean<Doc[]>(),
+        ProductReview.aggregate<{ _id: unknown; rating: number; reviewCount: number }>([
+          { $match: { status: "published" } },
+          { $group: { _id: "$productId", rating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } },
+        ]),
+      ]);
+      return { products, variants, reviews };
+    }),
+    shared("stock", () => InventoryItem.find({}).select("variantId onHand reserved").lean<Doc[]>(), 5),
   ]);
   const byProduct = new Map<string, Doc[]>();
   for (const variant of variants) {
@@ -140,8 +147,20 @@ const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf>
 /** What shoppers can buy now, with packs and stock: the basket reads its lines from here too. */
 export const shopShelf = () => shelfFor("customers");
 
-/** The products matching a search, best match first, or null when there's no search. */
-async function searchMatches(query: string, match: Record<string, unknown>, order: Record<string, SortOrder>) {
+/** The owner's synonym groups ("copy" = "notebook"), from the shop cache. */
+const searchSynonyms = () =>
+  shared("synonyms", async () =>
+    (await SearchSynonym.find({}).select("synonyms").limit(1000).lean<{ synonyms: string[] }[]>()).map(
+      (group) => group.synonyms,
+    ),
+  );
+
+/**
+ * The products matching a search, best match first, or null when there's no search. `listed` is
+ * what the shelf shows for the page's aisle, in the page's order: the built-in search looks
+ * through it in memory instead of asking the database again.
+ */
+async function searchMatches(query: string, match: Record<string, unknown>, listed: Doc[]) {
   if (!query) return null;
   let products: Doc[] | null = null;
   if (process.env.ATLAS_SEARCH_ENABLED === "true") {
@@ -169,40 +188,29 @@ async function searchMatches(query: string, match: Record<string, unknown>, orde
     });
   }
   if (products?.length) return products;
-  // built-in search (also the fallback when Atlas finds nothing): every word must match
-  const [groups, aisles] = await Promise.all([
-    SearchSynonym.find({}).select("synonyms").limit(1000),
-    Category.find({}).select("slug name").limit(200),
-  ]);
-  const words = searchWords(query, [...defaultSynonyms, ...groups.map((g) => g.synonyms as string[])]);
+  // built-in search (also the fallback when Atlas finds nothing): every word must match the name,
+  // brand, an alias or the aisle's name
+  const [groups, aisles] = await Promise.all([searchSynonyms(), catalogCategories()]);
+  const words = searchWords(query, [...defaultSynonyms, ...groups]);
   const clause = (pattern: string) => {
     const regex = new RegExp(pattern, "i");
-    const slugs = aisles
-      .filter((aisle) => regex.test(aisle.name.en) || regex.test(aisle.name.mr))
-      .map((aisle) => aisle.slug);
-    return {
-      $or: [
-        ...["name.en", "name.mr", "brand", "aliases"].map((path) => ({
-          [path]: { $regex: pattern, $options: "i" },
-        })),
-        ...(slugs.length ? [{ categorySlug: { $in: slugs } }] : []),
-      ],
-    };
+    const slugs = new Set(aisles.filter((aisle) => regex.test(aisle.en) || regex.test(aisle.mr)).map((aisle) => aisle.slug));
+    return (product: Doc) =>
+      slugs.has(product.categorySlug) ||
+      [product.name?.en, product.name?.mr, product.brand, ...(product.aliases ?? [])].some(
+        (text) => typeof text === "string" && regex.test(text),
+      );
   };
-  let found: Doc[] = await Product.find({
-    ...match,
-    $and: words.map((alternatives) => clause(wordPattern(alternatives))),
-  })
-    .sort(order)
-    .limit(SEARCH_LIMIT);
+  const find = (patterns: string[]) => {
+    const tests = patterns.map(clause);
+    return listed.filter((product) => tests.every((test) => test(product))).slice(0, SEARCH_LIMIT);
+  };
+  let found = find(words.map(wordPattern));
   // nothing at all: allow one wrong, missing or extra letter per word ("notbook", "pencel")
   const fuzzy = found.length
     ? null
     : words.map((alternatives) => [...new Set(alternatives.slice(0, 2))].map(fuzzyPattern).join("|"));
-  if (fuzzy)
-    found = await Product.find({ ...match, $and: fuzzy.map(clause) })
-      .sort(order)
-      .limit(SEARCH_LIMIT);
+  if (fuzzy) found = find(fuzzy);
   type Scored = Parameters<typeof relevance>[0];
   const scored = new Map(
     found.map((product) => [
@@ -225,20 +233,16 @@ async function catalogFor(
     ...(filters.category ? { categorySlug: filters.category } : {}),
   };
   const query = normalizeSearch(filters.q);
-  const order: Record<string, SortOrder> =
-    filters.sort === "new" ? { createdAt: -1 } : { bestseller: -1, createdAt: 1 };
-  await connectDB();
-  // the shelf and a search go to the database at the same time
-  const [shelf, matches] = await Promise.all([shelfFor(audience), searchMatches(query, match, order)]);
-  let products: Doc[];
-  if (matches) products = matches.map((found) => shelf.byId.get(String(found._id))).filter((p): p is Doc => Boolean(p));
-  else {
-    products = shelf.products.filter(
-      (p) => (!filters.slug || p.slug === filters.slug) && (!filters.category || p.categorySlug === filters.category),
-    );
-    if (filters.sort === "new")
-      products = [...products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
+  const shelf = await shelfFor(audience);
+  let listed = shelf.products.filter(
+    (p) => (!filters.slug || p.slug === filters.slug) && (!filters.category || p.categorySlug === filters.category),
+  );
+  if (filters.sort === "new")
+    listed = listed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const matches = await searchMatches(query, match, listed);
+  const products = matches
+    ? matches.map((found) => shelf.byId.get(String(found._id))).filter((p): p is Doc => Boolean(p))
+    : listed;
   let result: CatalogItem[] = products
     .map((p) => {
       const reviews = shelf.reviews.get(String(p._id));
@@ -308,7 +312,9 @@ export const schoolProductBySlug = cache(async (slug: string) => {
   return all[0] ?? null;
 });
 
-export async function catalogCategories() {
+/** The aisles, in the shop's order; from the shop cache, since every page's menu and footer list them. */
+export const catalogCategories = () => shared("categories", readCategories);
+async function readCategories() {
   await connectDB();
   const rows = await Category.find({})
     .sort({ parentId: 1, "name.en": 1 })

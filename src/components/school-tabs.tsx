@@ -47,8 +47,8 @@ export function SchoolTabs({ locale, basketLines }: { locale: Locale; basketLine
                 {basketLines}
               </b>
             )}
-            <span className="nav-label">{label}</span>
           </span>
+          <span className="nav-label">{label}</span>
           {basket && basketLines > 0 && <span className="sr-only">, {basketLines}</span>}
         </Link>
       ))}

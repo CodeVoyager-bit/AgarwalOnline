@@ -150,7 +150,7 @@ describe.skipIf(!uri)("Schools, their representatives and the join link", () => 
     const second = await school({ name: "Second School" });
     // the owner represents no school, yet may shop for every one of them
     expect((await memberships(owner)).map((entry) => entry.id).sort()).toEqual([first, second].sort());
-    expect(await representsActiveSchool(owner)).toBe(true);
+    expect(await representsActiveSchool(owner, ["customer", "super-admin"])).toBe(true);
     expect(String((await assertBuyer(owner, second))._id)).toBe(second);
     expect(await schoolContext(owner)).toMatchObject({ current: null, needsPick: true });
     expect((await schoolContext(owner, undefined, second)).current).toMatchObject({ id: second });
@@ -168,10 +168,10 @@ describe.skipIf(!uri)("Schools, their representatives and the join link", () => 
     const mine = await school();
     const second = await school({ name: "Second School" });
     const stranger = await school({ name: "Stranger School" });
-    expect(await representsActiveSchool(rep)).toBe(false);
+    expect(await representsActiveSchool(rep, ["customer"])).toBe(false);
     await addRepresentative(owner, { schoolId: mine, userId: rep });
     await addRepresentative(owner, { schoolId: second, userId: rep });
-    expect(await representsActiveSchool(rep)).toBe(true);
+    expect(await representsActiveSchool(rep, ["customer"])).toBe(true);
     // the remembered choice picks among their own schools
     expect(await schoolContext(rep, undefined, second)).toMatchObject({ current: { id: second }, foreign: false, needsPick: false });
     // a stale or foreign choice is ignored, not "not found": they pick again
@@ -182,6 +182,6 @@ describe.skipIf(!uri)("Schools, their representatives and the join link", () => 
     // with every school paused there is nothing to open from the shop
     await setSchoolActive(owner, { schoolId: mine, active: false });
     await setSchoolActive(owner, { schoolId: second, active: false });
-    expect(await representsActiveSchool(rep)).toBe(false);
+    expect(await representsActiveSchool(rep, ["customer"])).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import { roles } from "../auth/permissions";
 import { GST_RATES, HSN_RE } from "../tax/gst";
+import { clearsShopCache } from "./shop-cache";
 const opts = { timestamps: true, strict: "throw" as const };
 const ref = (name: string) => ({
   type: Schema.Types.ObjectId,
@@ -157,6 +158,8 @@ const variantSchema = new Schema(
   },
   opts,
 );
+// a product's packs: the product page, stock import and catalog editing look them up by product
+variantSchema.index({ productId: 1 });
 const inventorySchema = new Schema(
   {
     variantId: { ...ref("ProductVariant"), unique: true },
@@ -200,6 +203,8 @@ const auditSchema = new Schema(
 auditSchema.index({ actorId: 1, at: -1 });
 auditSchema.index({ action: 1, at: -1 });
 auditSchema.index({ at: -1 });
+// what shoppers browse is kept in memory for a minute (shop-cache.ts); a write to any of it empties that
+for (const schema of [categorySchema, productSchema, variantSchema, areaSchema]) clearsShopCache(schema);
 export const User = mongoose.models.User || mongoose.model("User", userSchema);
 export const OTPChallenge =
   mongoose.models.OTPChallenge || mongoose.model("OTPChallenge", otpSchema);
@@ -228,6 +233,7 @@ const synonymSchema = new Schema(
   },
   opts,
 );
+clearsShopCache(synonymSchema);
 export const SearchSynonym =
   mongoose.models.SearchSynonym ||
   mongoose.model("SearchSynonym", synonymSchema);

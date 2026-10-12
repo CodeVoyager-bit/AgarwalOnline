@@ -5,7 +5,7 @@ import { currentLocale } from "@/lib/i18n";
 import { GoogleButton, googleErrorMessage } from "@/components/google-button";
 import { googleEnabled } from "@/lib/auth/better-auth";
 import { PolicyNotice } from "@/components/policy-notice";
-export const metadata = { title: "Create an account", description: "Create an Agarwal General Stores account with your mobile number." };
+export const metadata = { title: "Create an account", description: "Create an Agarwal General Stores account with your mobile number.", robots: { index: false } };
 
 export default async function Signup({
   searchParams,

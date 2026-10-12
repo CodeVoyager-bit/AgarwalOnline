@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { clearsShopCache } from "../db/shop-cache";
 
 const reviewSchema = new Schema(
   {
@@ -32,6 +33,8 @@ const reportSchema = new Schema(
 );
 reportSchema.index({ reviewId: 1, reportedBy: 1 }, { unique: true });
 
+// review scores ride along with the shop shelf, kept in memory for a minute (shop-cache.ts)
+clearsShopCache(reviewSchema);
 export const ProductReview =
   mongoose.models.ProductReview || mongoose.model("ProductReview", reviewSchema);
 export const ReviewReport =

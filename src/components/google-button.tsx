@@ -32,8 +32,8 @@ export function googleErrorMessage(code: string | undefined, mr = false) {
   if (!code) return null;
   if (code === "account_not_linked")
     return mr
-      ? "या ईमेलचे खाते आधीच आहे आणि तुमच्या ऑर्डर तिथे सुरक्षित आहेत. त्या खात्याच्या मोबाईलवर आलेल्या कोडने एकदा साइन इन करा, मग एका टॅपमध्ये Google जोडा."
-      : "You already have an account with this email, and your orders are safe in it. Sign in to it once below with a code sent to its mobile number, then connect Google in one tap.";
+      ? "या ईमेलचे खाते आधीच आहे आणि तुमच्या ऑर्डर तिथे सुरक्षित आहेत. खाली त्या ईमेल व पासवर्डने एकदा साइन इन करा, मग एका टॅपमध्ये Google जोडा. पासवर्ड नाही? “पासवर्ड विसरलात?” वापरा."
+      : "You already have an account with this email, and your orders are safe in it. Sign in to it once below with its email and password, then connect Google in one tap. No password? Use “Forgot your password?”.";
   if (code === "access_denied")
     return mr ? "Google साइन इन रद्द झाले." : "Google sign-in was cancelled.";
   return mr

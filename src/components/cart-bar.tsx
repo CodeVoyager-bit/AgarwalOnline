@@ -16,8 +16,9 @@ export function CartBar({ locale }: { locale: Locale }) {
   return (
     <Link href="/cart" className="cart-bar" aria-label={`${text.items(count)}, ${formatPrice(totalPaise)}. ${text.viewBasket}`}>
       <span>
-        <b>{text.items(count)}</b>
-        <small>{formatPrice(totalPaise)}</small>
+        {/* keyed on their values so each change is a fresh element the look can animate */}
+        <b key={count}>{text.items(count)}</b>
+        <small key={totalPaise}>{formatPrice(totalPaise)}</small>
       </span>
       <span>
         {text.viewBasket} <ArrowRight size={16} aria-hidden="true" />

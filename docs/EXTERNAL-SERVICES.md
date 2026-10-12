@@ -10,7 +10,7 @@ Pricing checked on 15 September 2026. Vendor prices can change and taxes, exchan
 | Database | MongoDB Atlas M10 Dedicated | From $56.94/month | Production tier with the complete Atlas feature set. Use Flex ($8–$30/month) only for a controlled pilot. |
 | Product and delivery images | Cloudinary Free | $0 until usage exceeds 25 monthly credits | Enough for an initial stationery catalog if images are optimized. Plus is $99/month monthly or $89/month billed annually. |
 | Online payments | Razorpay standard | 2% + GST per successful transaction | No setup or annual maintenance fee; COD has no gateway fee. |
-| Customer OTP | MSG91 WhatsApp Titan | ₹500/month per number after the first two discounted months, plus message charges | Low fixed price, developer API, Indian support, and a registered WhatsApp sender. Current India authentication rate is $0.00142 per delivered template message. |
+| Customer OTP | MSG91 WhatsApp Titan (earlier plan; MiniMoth is in use, see Customer OTP below) | ₹500/month per number after the first two discounted months, plus message charges | Low fixed price, developer API, Indian support, and a registered WhatsApp sender. Current India authentication rate is $0.00142 per delivered template message. |
 | Domain and DNS | A registrar plus Cloudflare DNS | Domain renewal varies; DNS/TLS can be $0 | Buy one `.in` or `.com` domain and point it to the app. |
 | Better Auth | Existing open-source package | $0 license subscription | It runs inside our own service; there is no separate hosted account to buy. |
 
@@ -99,15 +99,17 @@ Create separate Razorpay test and live credentials. The webhook URL will be the 
 
 ### Customer OTP
 
-The current code accepts a provider-neutral HTTPS adapter:
+Login and delivery codes go through MiniMoth (minimoth.dev), chosen 2026-10-10. The app makes and verifies every code; MiniMoth only delivers it, WhatsApp first and then a text from MiniMoth's own TRAI DLT-registered sender, never a call. The store registers nothing on DLT; the trade-off is MiniMoth's name on the message. About ₹0.35 per code, ₹20 free credit to start.
 
 ```env
 MOCK_OTP=false
-SMS_API_URL=https://our-provider-adapter.example.com/send
-SMS_API_TOKEN=...
+MINIMOTH_HOOK_URL=...   # Live Hook URL from the project's "Auth0 Hook" card
+MINIMOTH_HOOK_TOKEN=... # its Live Token
 ```
 
-If MSG91 or direct Meta is selected, the adapter will use provider-specific secrets such as the WhatsApp phone-number ID, WABA ID, access/API token, approved template name, webhook verification token, and app secret. Those names should be added only for the selected provider.
+The "Auth0 Hook" is MiniMoth's own delivery hook (a POST of `{phone, code}` with the token), meant for auth systems that make their own codes, which is what better-auth and the delivery check do. MiniMoth allows 3 codes per number per 10 minutes.
+
+2Factor was tried first and dropped the same day: without the store's own DLT registration it read the codes out in phone calls, and the store wants messages only.
 
 ### Media uploads
 
@@ -127,6 +129,32 @@ SEED_DEMO=false
 ```
 
 Do not set `MOCK_OTP_CODE` in production. Demo seeds and mock OTP are development-only.
+
+## Google Search Console and Google Maps
+
+The site already gives search engines what they need: `/sitemap.xml` (every aisle and product, rebuilt per request), `/robots.txt`, one canonical address per page, product and breadcrumb data on product pages and the shop's details on the home page (`src/lib/seo.ts`). What's left happens outside the code.
+
+**Before submitting**, so Google doesn't index demo data:
+
+1. Replace the demo catalog with the real products. No product description may still say "Fictional demonstration product".
+2. Delete the footer line "Development storefront · Fictional products and prices" (`src/components/site-footer.tsx`).
+3. Save the real shop name, address and phone in Store settings → "Business and tax details". The home page's structured data and the contact page read them from there.
+
+**Search Console** (search.google.com/search-console):
+
+1. Add a **Domain** property for `agarwalonline.in`. It covers `www` and every subdomain.
+2. Google shows a `google-site-verification=…` value. In Hostinger hPanel → Domains → DNS / Nameservers, add a **TXT** record with name `@` and that value. Leave the A, CNAME, MX, SPF, DKIM and DMARC records as they are. Click Verify; DNS can take up to an hour.
+3. Sitemaps → submit `https://agarwalonline.in/sitemap.xml`.
+4. URL Inspection → Request indexing for the home page and one product page.
+5. Check one product in the Rich Results Test (search.google.com/test/rich-results). It should find Product and Breadcrumb data.
+
+**Google Business Profile** (business.google.com). This is what shows the shop in Maps and in "stationery shop near me" searches:
+
+1. Create the profile with the category **Stationery store**, as a business with a storefront that also delivers. List the delivery areas as service areas.
+2. Use exactly the name, address and phone saved in the store details. Google compares them with the site.
+3. Add the website `https://agarwalonline.in`, opening hours and photos of the shop front and shelves.
+4. Google verifies by postcard, phone or video. After verification, ask the first customers to leave reviews there. The site never shows invented ratings.
+5. Once the listing is live, add its Maps link to `storeJsonLd` in `src/lib/seo.ts` as `sameAs: ["https://maps.google.com/?cid=…"]`.
 
 ## Accounts and business documents needed
 

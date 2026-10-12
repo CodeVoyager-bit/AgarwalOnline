@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { clearsShopCache } from "../db/shop-cache";
 const ref = (name: string) => ({
   type: Schema.Types.ObjectId,
   ref: name,
@@ -267,6 +268,8 @@ export const DeliverySlot =
   mongoose.models.DeliverySlot || mongoose.model("DeliverySlot", slotSchema);
 export const SlotPattern =
   mongoose.models.SlotPattern || mongoose.model("SlotPattern", slotPatternSchema);
+// delivery rules and tax details are kept in memory for a minute (shop-cache.ts)
+clearsShopCache(settingSchema);
 export const SystemSetting =
   mongoose.models.SystemSetting ||
   mongoose.model("SystemSetting", settingSchema);

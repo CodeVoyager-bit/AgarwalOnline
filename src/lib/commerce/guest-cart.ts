@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
 import { token, digest } from "../auth/crypto";
@@ -78,8 +79,11 @@ export async function setGuestCartLine(
 export async function guestCartLines() {
   return (await guestBasket()).lines;
 }
-/** The guest basket split like basketFor: buyable lines, and lines no longer sold (shown with Remove). */
-export async function guestBasket() {
+/**
+ * The guest basket split like basketFor: buyable lines, and lines no longer sold (shown with
+ * Remove). Memoised per page render, like basketFor.
+ */
+export const guestBasket = cache(async () => {
   const rawToken = await guestToken();
   if (!rawToken) return resolveBasketLines([]);
   await connectDB();
@@ -95,7 +99,7 @@ export async function guestBasket() {
       quantity: line.quantity,
     })),
   );
-}
+});
 
 export async function mergeGuestCart(customerId: string) {
   const jar = await cookies();

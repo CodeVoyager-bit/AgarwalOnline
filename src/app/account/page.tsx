@@ -45,7 +45,7 @@ export default async function Account({
   const locale = await currentLocale();
   const mr = locale === "mr";
   const profile = await User.findById(user.id).select("preferredPaymentMethod substitutionPreference");
-  const representsSchool = await representsActiveSchool(user.id);
+  const representsSchool = await representsActiveSchool(user.id, user.roles);
   const customerOverview = await Promise.all([
           Order.findOne({
             customerId: user.id,

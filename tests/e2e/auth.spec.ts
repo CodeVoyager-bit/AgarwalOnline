@@ -99,16 +99,26 @@ test("email and password signs a customer in", async ({ page }) => {
   await signOut(page);
 });
 
-test("OTP signs an existing customer in, and refuses a paused account", async ({ page }) => {
+test("a code only resets the password: no code sign-in, a paused account is refused", async ({ page }) => {
   await page.goto("/login");
-  await page.getByRole("button", { name: /Use OTP/ }).click();
+  await expect(page.getByRole("button", { name: /Use OTP|Sign in with OTP/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /Forgot your password/ }).click();
   await page.getByLabel("Mobile number").fill(PAUSED.phone);
-  await page.getByRole("button", { name: "Sign in with OTP" }).click();
+  await page.getByRole("button", { name: "Send code" }).click();
   await expect(page.locator(".error-message")).toContainText("not active");
   await page.getByLabel("Mobile number").fill(CUSTOMER.phone);
-  await page.getByRole("button", { name: "Sign in with OTP" }).click();
+  await page.getByRole("button", { name: "Send code" }).click();
+  // the code alone is not enough: the new password comes with it
   await page.getByLabel("Verification code").fill(OTP);
-  await page.getByRole("button", { name: "Verify & continue" }).click();
+  await page.getByLabel("New password").fill(PASSWORD);
+  await page.getByLabel("Confirm password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Save password & sign in" }).click();
+  await expect(page).toHaveURL("/");
+  await signOut(page);
+  await page.goto("/login");
+  await page.getByLabel("Mobile number").fill(CUSTOMER.phone);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL("/");
   await signOut(page);
 });
@@ -136,14 +146,13 @@ test("staff sign in on the same page, land in their workspace and can switch fro
   await signOut(page);
 });
 
-test("staff can also sign in by OTP, and /staff/login now redirects", async ({ page }) => {
+test("/staff/login now redirects, and staff keep a 30-day session", async ({ page }) => {
   await page.goto("/staff/login");
   await expect(page).toHaveURL("/login");
-  await page.getByRole("button", { name: /Use OTP/ }).click();
-  await page.getByLabel("Mobile number").fill(STAFF.phone);
-  await page.getByRole("button", { name: "Sign in with OTP" }).click();
-  await page.getByLabel("Verification code").fill(OTP);
-  await page.getByRole("button", { name: "Verify & continue" }).click();
+  await page.getByRole("button", { name: "Email", exact: true }).click();
+  await page.getByLabel("Email address").fill(STAFF.email);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in with email" }).click();
   await expect(page).toHaveURL("/admin");
   // staff keep the ordinary 30-day session: a sign-in from 13 hours ago still opens the workspace
   const staffId = (await User.findOne({ phone: STAFF.phone }))!._id;
@@ -220,15 +229,14 @@ async function resetRateLimits() {
     await mongoose.connection.collection(name).deleteMany({});
 }
 
-test("same email back from Google: sign in once with a code, then connect Google", async ({ page }) => {
+test("same email back from Google: sign in once with the password, then connect Google", async ({ page }) => {
   await resetRateLimits();
   await page.goto("/login?error=account_not_linked");
   await expect(page.locator(".error-message").first()).toContainText("your orders are safe");
-  // the form opens on the code step for the existing account
-  await page.getByLabel("Mobile number").fill(CUSTOMER.phone);
-  await page.getByRole("button", { name: "Sign in with OTP" }).click();
-  await page.getByLabel("Verification code").fill(OTP);
-  await page.getByRole("button", { name: "Verify & continue" }).click();
+  // the form opens on email sign-in for the existing account
+  await page.getByLabel("Email address").fill(CUSTOMER.email);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in with email" }).click();
   await expect(page).toHaveURL("/account?connect=google");
   const methods = page.getByRole("region", { name: "Sign-in methods" });
   await expect(methods).toContainText("One more step: connect Google");

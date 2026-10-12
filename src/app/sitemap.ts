@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: origin, changeFrequency: "daily", priority: 1 },
     { url: `${origin}/catalog`, changeFrequency: "daily", priority: 0.8 },
     { url: `${origin}/serviceability`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${origin}/app`, changeFrequency: "monthly", priority: 0.4 },
     ...[POLICIES_HOME, ...LEGAL_PAGES].map((page) => ({
       url: `${origin}${page.href}`,
       changeFrequency: "yearly" as const,

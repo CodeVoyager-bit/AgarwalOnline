@@ -16,13 +16,15 @@ export async function generateMetadata({
   const params = await searchParams;
   const category = (await catalogCategories()).find((item) => item.slug === params.category);
   if (params.q) return { title: `Results for “${params.q.slice(0, 60)}”`, robots: { index: false } };
+  // sort, page and lang only reorder or translate the same list: one address per aisle for search engines
   if (category)
     return {
       title: `${category.en} online in Nagothane`,
       description: `Shop ${category.en.toLowerCase()} from Agarwal General Stores with same-day delivery in and around Nagothane.`,
+      alternates: { canonical: `/catalog?category=${category.slug}` },
     };
-  if (params.sort === "discount") return { title: "Today’s offers and discounts" };
-  return { title: "All products" };
+  if (params.sort === "discount") return { title: "Today’s offers and discounts", alternates: { canonical: "/catalog" } };
+  return { title: "All products", alternates: { canonical: "/catalog" } };
 }
 export default async function Catalog({
   searchParams,

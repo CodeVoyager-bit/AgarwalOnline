@@ -61,7 +61,7 @@ export function BasketLink({ label }: { label: string }) {
       aria-label={count > 0 ? `${label}, ${count}` : label}
     >
       <ShoppingBag size={20} aria-hidden="true" />
-      {count > 0 && <b aria-hidden="true">{count}</b>}
+      {count > 0 && <b aria-hidden="true" key={count}>{count}</b>}
     </Link>
   );
 }
