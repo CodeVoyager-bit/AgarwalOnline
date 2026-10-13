@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.agarwalonline.app",
+      "sha256_cert_fingerprints": ["5B:7A:1E:F7:C4:23:62:FE:62:0B:EB:CC:6A:18:31:3D:BF:9F:62:2D:19:D1:FF:5D:32:9A:0E:A7:2F:42:D4:A0"]
+    }
+  }
+]

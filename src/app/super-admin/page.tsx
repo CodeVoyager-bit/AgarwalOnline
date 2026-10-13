@@ -161,7 +161,7 @@ export default async function StoreSettings({
           services: {
             payments: paymentsEnabled(),
             photos: Boolean(process.env.CLOUDINARY_CLOUD_NAME),
-            sms: Boolean(process.env.SMS_API_URL),
+            sms: Boolean(process.env.MINIMOTH_HOOK_URL),
           },
           today,
           weekdays: WEEKDAYS,
@@ -752,8 +752,8 @@ export default async function StoreSettings({
               </span>
             </p>
             <p>
-              <span className={`staff-state ${process.env.SMS_API_URL ? "active" : "inactive"}`}>
-                SMS {process.env.SMS_API_URL ? "connected" : "test codes only"}
+              <span className={`staff-state ${process.env.MINIMOTH_HOOK_URL ? "active" : "inactive"}`}>
+                Login codes (MiniMoth) {process.env.MINIMOTH_HOOK_URL ? "connected" : "test codes only"}
               </span>
             </p>
             <p className="muted">Keys live in the deployment settings and are never shown here.</p>

@@ -28,8 +28,10 @@ const schema = z
     // Google sign-in; both blank hides the button
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
-    SMS_API_URL: z.string().optional(),
-    SMS_API_TOKEN: z.string().optional(),
+    // MiniMoth (minimoth.dev) delivers the login and delivery codes: the Live Hook URL and Token from
+    // the project's "Auth0 Hook" card. Both blank means test codes only (MOCK_OTP).
+    MINIMOTH_HOOK_URL: z.string().url().optional(),
+    MINIMOTH_HOOK_TOKEN: z.string().optional(),
     // Web push (notifications on a phone or PC): a VAPID key pair from `npm run push:keys`. Both blank
     // turns push off; the bell keeps working. The subject is how push services reach the shop.
     VAPID_PUBLIC_KEY: z
@@ -98,11 +100,11 @@ const schema = z
         message: "VAPID public and private keys must be configured together",
         path: ["VAPID_PUBLIC_KEY"],
       });
-    if (Boolean(env.SMS_API_URL) !== Boolean(env.SMS_API_TOKEN))
+    if (Boolean(env.MINIMOTH_HOOK_URL) !== Boolean(env.MINIMOTH_HOOK_TOKEN))
       ctx.addIssue({
         code: "custom",
-        message: "SMS URL and token must be configured together",
-        path: ["SMS_API_URL"],
+        message: "MiniMoth hook URL and token must be configured together",
+        path: ["MINIMOTH_HOOK_URL"],
       });
     const cloudinary = [
       env.CLOUDINARY_CLOUD_NAME,

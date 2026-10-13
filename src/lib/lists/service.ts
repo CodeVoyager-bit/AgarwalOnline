@@ -45,7 +45,8 @@ export async function listsFor(userId: string, kind: ListKind) {
   // lists made before boards existed have no kind and are baskets
   const ofKind = kind === "board" ? { kind: "board" } : { kind: { $ne: "board" } };
   const all = await ShoppingList.find({ ...members(userId), ...ofKind }).sort({ updatedAt: -1 }).limit(60);
-  const owners = await User.find({ _id: { $in: all.map((list) => list.ownerId) } }).select("name");
+  // most people have no lists: no owners to look up
+  const owners = all.length ? await User.find({ _id: { $in: all.map((list) => list.ownerId) } }).select("name") : [];
   const ownerName = (id: unknown) => firstName(owners.find((o) => String(o._id) === String(id))?.name);
   return {
     owned: all.filter((list) => String(list.ownerId) === userId),

@@ -35,7 +35,7 @@ export function AuthForm({
 }: {
   mock?: boolean;
   locale?: "en" | "mr";
-  initialMode?: "password" | "signup" | "otp";
+  initialMode?: "password" | "email" | "signup";
   /** "connect-google": land on the account page ready to connect Google; a `/lists/…` path: go back to that shared list. */
   then?: string;
 }) {
@@ -54,7 +54,8 @@ export function AuthForm({
       mismatch ? (mr ? "पासवर्ड जुळत नाहीत." : "Passwords do not match.") : "",
     );
   }, [mismatch, mr]);
-  const [mode, setMode] = useState<"password" | "email" | "signup" | "otp">(
+  // a code is sent only to create an account or to set a new password, never just to sign in
+  const [mode, setMode] = useState<"password" | "email" | "signup" | "reset">(
     initialMode,
   );
   const [resendIn, setResendIn] = useState(30);
@@ -71,12 +72,12 @@ export function AuthForm({
   return (
     <>
       {/* two ways to sign in; creating an account is a separate journey, linked below the form */}
-      {!sent.challengeId && mode !== "signup" && (
+      {!sent.challengeId && (mode === "password" || mode === "email") && (
         <div className="auth-mode-tabs" role="group" aria-label={mr ? "साइन इन पद्धत" : "Sign in with"}>
           <button
             type="button"
-            className={mode === "password" || mode === "otp" ? "active" : ""}
-            aria-pressed={mode === "password" || mode === "otp"}
+            className={mode === "password" ? "active" : ""}
+            aria-pressed={mode === "password"}
             onClick={() => setMode("password")}
           >
             {mr ? "मोबाईल" : "Mobile"}
@@ -124,8 +125,8 @@ export function AuthForm({
           <button className="primary-button" disabled={customerSigning}>
             {customerSigning ? (mr ? "साइन इन होत आहे…" : "Signing in…") : (mr ? "साइन इन करा" : "Sign in")}
           </button>
-          <button className="text-button auth-alternate" type="button" onClick={() => setMode("otp")}>
-            {mr ? "पासवर्ड विसरलात किंवा सेट केलेला नाही? OTP वापरा" : "Forgot or haven’t set a password? Use OTP"}
+          <button className="text-button auth-alternate" type="button" onClick={() => setMode("reset")}>
+            {mr ? "पासवर्ड विसरलात किंवा सेट केलेला नाही?" : "Forgot your password, or never set one?"}
           </button>
         </form>
       ) : !sent.challengeId && mode === "email" ? (
@@ -155,13 +156,13 @@ export function AuthForm({
           <button className="primary-button" disabled={emailSigning}>
             {emailSigning ? (mr ? "साइन इन होत आहे…" : "Signing in…") : (mr ? "ईमेलने साइन इन करा" : "Sign in with email")}
           </button>
-          <button className="text-button auth-alternate" type="button" onClick={() => setMode("otp")}>
-            {mr ? "त्याऐवजी मोबाईल OTP वापरा" : "Use mobile OTP instead"}
+          <button className="text-button auth-alternate" type="button" onClick={() => setMode("reset")}>
+            {mr ? "पासवर्ड विसरलात?" : "Forgot your password?"}
           </button>
         </form>
       ) : !sent.challengeId ? (
         <form action={send} onReset={keepTyped} className="form-stack">
-          <input type="hidden" name="intent" value={mode === "signup" ? "signup" : "signin"} />
+          <input type="hidden" name="intent" value={mode === "signup" ? "signup" : "reset"} />
           {mode === "signup" && (
             <label>
               {mr ? "ईमेल पत्ता" : "Email address"}
@@ -191,67 +192,73 @@ export function AuthForm({
             </p>
           )}
           <button className="primary-button" disabled={sending}>
-            {sending ? (mr ? "कोड पाठवत आहे…" : "Sending code…") : mode === "signup" ? (mr ? "खाते तयार करणे सुरू करा" : "Start account creation") : (mr ? "OTP ने साइन इन करा" : "Sign in with OTP")}
+            {sending ? (mr ? "कोड पाठवत आहे…" : "Sending code…") : mode === "signup" ? (mr ? "खाते तयार करणे सुरू करा" : "Start account creation") : (mr ? "कोड पाठवा" : "Send code")}
           </button>
           <p className="muted">
-            {mr ? "आम्ही ६ अंकी कोड पाठवू. तुमचा क्रमांक गोपनीय राहतो." : "We’ll send a 6-digit code. Your number stays private."}
+            {mode === "reset"
+              ? (mr ? "खात्याच्या मोबाईलवर WhatsApp ने (किंवा SMS ने) MiniMoth कडून ६ अंकी कोड येईल. मग नवीन पासवर्ड ठेवा." : "We’ll send a 6-digit code to the account’s mobile on WhatsApp (or SMS) from MiniMoth. Then choose a new password.")
+              : (mr ? "आम्ही ६ अंकी कोड WhatsApp वर (किंवा SMS ने) MiniMoth कडून पाठवू. तुमचा क्रमांक गोपनीय राहतो." : "We’ll send a 6-digit code on WhatsApp (or SMS) from MiniMoth. Your number stays private.")}
           </p>
+          {mode === "reset" && (
+            <button className="text-button auth-alternate" type="button" onClick={() => setMode("password")}>
+              {mr ? "← पासवर्डने साइन इन करा" : "← Back to sign in"}
+            </button>
+          )}
         </form>
       ) : (
         <form action={verify} onReset={keepTyped} className="form-stack">
           {then && <input type="hidden" name="then" value={then} />}
           <div className="auth-step-heading">
-            <span className="status-pill">{sent.newAccount ? (mr ? "नवीन खाते" : "NEW ACCOUNT") : (mr ? "पुन्हा स्वागत" : "WELCOME BACK")}</span>
+            <span className="status-pill">{sent.newAccount ? (mr ? "नवीन खाते" : "NEW ACCOUNT") : (mr ? "नवीन पासवर्ड" : "NEW PASSWORD")}</span>
             <p>{mr ? "+91 ••••••" : "Enter the code sent to +91 ••••••"}{sent.phone?.slice(-4)}{mr ? " वर पाठवलेला कोड टाका." : "."}</p>
           </div>
           <input type="hidden" name="phone" value={sent.phone} />
           <input type="hidden" name="challengeId" value={sent.challengeId} />
-          <input type="hidden" name="intent" value={sent.newAccount ? "signup" : "signin"} />
+          <input type="hidden" name="intent" value={sent.newAccount ? "signup" : "reset"} />
           {sent.email && <input type="hidden" name="email" value={sent.email} />}
           {sent.newAccount && (
-            <>
-              <label>
-                {mr ? "तुमचे नाव" : "Your name"}
-                <input
-                  name="name"
-                  type="text"
-                  minLength={2}
-                  maxLength={80}
-                  autoComplete="name"
-                  placeholder={mr ? "ऑर्डरसाठी वापरले जाणारे नाव" : "Name used for orders"}
-                  required
-                />
-              </label>
-              <label>
-                {mr ? "पासवर्ड तयार करा" : "Create password"}
-                <PasswordInput
-                  name="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  mr={mr}
-                  describedBy="password-help"
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </label>
-              <small className="muted" id="password-help">{mr ? "किमान ८ अक्षरे वापरा." : "Use at least 8 characters."}</small>
-              <label>
-                {mr ? "पासवर्डची खात्री करा" : "Confirm password"}
-                <PasswordInput
-                  name="confirmPassword"
-                  autoComplete="new-password"
-                  minLength={8}
-                  mr={mr}
-                  inputRef={confirmRef}
-                  invalid={mismatch}
-                  onChange={(event) => setConfirm(event.target.value)}
-                />
-              </label>
-              {mismatch && (
-                <small role="alert" className="error-message">
-                  {mr ? "पासवर्ड जुळत नाहीत." : "Passwords do not match."}
-                </small>
-              )}
-            </>
+            <label>
+              {mr ? "तुमचे नाव" : "Your name"}
+              <input
+                name="name"
+                type="text"
+                minLength={2}
+                maxLength={80}
+                autoComplete="name"
+                placeholder={mr ? "ऑर्डरसाठी वापरले जाणारे नाव" : "Name used for orders"}
+                required
+              />
+            </label>
+          )}
+          {/* a new account and a forgotten password both end with a password: the code never signs in on its own */}
+          <label>
+            {sent.newAccount ? (mr ? "पासवर्ड तयार करा" : "Create password") : (mr ? "नवीन पासवर्ड" : "New password")}
+            <PasswordInput
+              name="password"
+              autoComplete="new-password"
+              minLength={8}
+              mr={mr}
+              describedBy="password-help"
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          <small className="muted" id="password-help">{mr ? "किमान ८ अक्षरे वापरा." : "Use at least 8 characters."}</small>
+          <label>
+            {mr ? "पासवर्डची खात्री करा" : "Confirm password"}
+            <PasswordInput
+              name="confirmPassword"
+              autoComplete="new-password"
+              minLength={8}
+              mr={mr}
+              inputRef={confirmRef}
+              invalid={mismatch}
+              onChange={(event) => setConfirm(event.target.value)}
+            />
+          </label>
+          {mismatch && (
+            <small role="alert" className="error-message">
+              {mr ? "पासवर्ड जुळत नाहीत." : "Passwords do not match."}
+            </small>
           )}
           <label>
             {mr ? "पडताळणी कोड" : "Verification code"}
@@ -268,7 +275,7 @@ export function AuthForm({
               required
             />
           </label>
-          <small className="muted" id="otp-help">{mr ? "SMS मधील सहा अंक टाका." : "Enter the six digits shown in your SMS."}</small>
+          <small className="muted" id="otp-help">{mr ? "MiniMoth कडून आलेल्या WhatsApp किंवा SMS मधील सहा अंक टाका." : "Your code arrives on WhatsApp (or SMS) from MiniMoth. Enter its six digits."}</small>
           {sent.newAccount && (
             <p className="muted">
               <LegalText
@@ -298,7 +305,7 @@ export function AuthForm({
             </p>
           )}
           <button className="primary-button" disabled={verifying}>
-            {verifying ? (mr ? "पडताळत आहे…" : "Verifying…") : (mr ? "पडताळा आणि पुढे जा" : "Verify & continue")}
+            {verifying ? (mr ? "पडताळत आहे…" : "Verifying…") : sent.newAccount ? (mr ? "पडताळा आणि पुढे जा" : "Verify & continue") : (mr ? "पासवर्ड बदला आणि साइन इन करा" : "Save password & sign in")}
           </button>
           <div className="split-actions">
             <a className="secondary-button" href={sent.newAccount ? "/signup" : "/login"}>{mr ? "दुसरा क्रमांक वापरा" : "Use another number"}</a>

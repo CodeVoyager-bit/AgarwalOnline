@@ -8,9 +8,11 @@ import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { getEnv } from "../env";
 import { mongoClient } from "../db/connect";
 import { originVariants } from "./origin";
-import { sendLoginCode } from "./sms";
+import { sendCode } from "./sms";
 import { sendEmail } from "../email/send";
 import { verificationEmail } from "../email/templates";
+import { log } from "../logger";
+import { digest } from "./crypto";
 
 type AuthInstance = ReturnType<typeof buildAuth>;
 const instances = new Map<string, AuthInstance>();
@@ -28,6 +30,15 @@ function buildAuth() {
   // the same pool Mongoose uses: one set of Atlas connections per server, not two
   const client = mongoClient(env.MONGODB_URI);
   const db = client.db();
+  // One line per server start naming the key that signs sign-in cookies, as a fingerprint (never the key).
+  // Two deploys logging different fingerprints is why every shopper gets signed out after a deploy:
+  // sessions survive in the database, but their cookies no longer verify. better-auth reads
+  // BETTER_AUTH_SECRETS on its own and lets it override `secret`, so it is checked first.
+  const rotating = process.env.BETTER_AUTH_SECRETS?.split(",")[0]?.split(":").slice(1).join(":");
+  log("info", "auth.cookie-key", {
+    from: rotating ? "BETTER_AUTH_SECRETS" : env.BETTER_AUTH_SECRET ? "BETTER_AUTH_SECRET" : "AUTH_SECRET",
+    fingerprint: digest(rotating || env.BETTER_AUTH_SECRET || env.AUTH_SECRET).slice(0, 8),
+  });
 
   return betterAuth({
     appName: "AGARWAL GENERAL STORES",
@@ -199,7 +210,7 @@ function buildAuth() {
             });
             return;
           }
-          await sendLoginCode(phoneNumber, code);
+          await sendCode(phoneNumber, code);
         },
         ...(env.MOCK_OTP === "true"
           ? {

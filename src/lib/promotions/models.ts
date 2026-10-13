@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { clearsShopCache } from "../db/shop-cache";
 
 const promotionSchema = new Schema(
   {
@@ -42,6 +43,8 @@ const redemptionSchema = new Schema(
 redemptionSchema.index({ promotionId: 1, orderId: 1 }, { unique: true });
 redemptionSchema.index({ promotionId: 1, customerId: 1 });
 
+// the live offers are kept in memory for a minute (shop-cache.ts)
+clearsShopCache(promotionSchema);
 export const Promotion =
   mongoose.models.Promotion || mongoose.model("Promotion", promotionSchema);
 export const PromotionRedemption =

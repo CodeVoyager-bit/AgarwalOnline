@@ -137,9 +137,9 @@ test.afterAll(async () => {
 async function login(page: import("@playwright/test").Page) {
   if (await User.exists({ phone: "9000000088" })) {
     await page.goto("/login");
-    await page.getByRole("button", { name: /Use OTP/ }).click();
     await page.getByLabel("Mobile number").fill("9000000088");
-    await page.getByRole("button", { name: "Sign in with OTP" }).click();
+    await page.getByLabel("Password", { exact: true }).fill("Local-test-password-123");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
   } else {
     await page.goto("/signup");
     await page.getByLabel("Email address").fill("neighbour@e2e.test");
@@ -148,9 +148,9 @@ async function login(page: import("@playwright/test").Page) {
     await page.getByLabel("Your name").fill("Neighbour");
     await page.getByLabel("Create password").fill("Local-test-password-123");
     await page.getByLabel("Confirm password").fill("Local-test-password-123");
+    await page.getByLabel("Verification code").fill("246810");
+    await page.getByRole("button", { name: "Verify & continue" }).click();
   }
-  await page.getByLabel("Verification code").fill("246810");
-  await page.getByRole("button", { name: "Verify & continue" }).click();
   // customers land in the shop after signing in; the account is one tap away
   await expect(page).toHaveURL("/");
   await page.goto("/account");

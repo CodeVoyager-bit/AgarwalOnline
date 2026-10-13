@@ -84,6 +84,9 @@ export function SiteFooter({
               </Link>
             </li>
             <li>
+              <Link href="/app">{mr ? "ॲप मिळवा" : "Get the app"}</Link>
+            </li>
+            <li>
               <Link href="/account/orders">{mr ? "तुमच्या ऑर्डर" : "Your orders"}</Link>
             </li>
             <li>

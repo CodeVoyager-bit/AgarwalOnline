@@ -29,6 +29,7 @@ import {
 import { digest, otpCode, otpDigest, equalHash } from "../auth/crypto";
 import { getEnv } from "../env";
 import { rateLimit } from "../auth/rate-limit";
+import { sendCode } from "../auth/sms";
 import { notify } from "../engagement/service";
 import { returnOffer } from "../promotions/service";
 import { Promotion } from "../promotions/models";
@@ -1147,29 +1148,15 @@ export async function requestDeliveryOTP(
     codeHash: otpDigest(subjectHash, code, env.AUTH_SECRET),
     expiresAt: new Date(Date.now() + 5 * 60000),
   });
-  if (env.MOCK_OTP !== "true") {
-    if (!env.SMS_API_URL || !env.SMS_API_TOKEN)
-      throw Error("SMS delivery is unavailable.");
-    const response = await fetch(env.SMS_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.SMS_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: `+91${order.address.phone}`,
-        message: `Your delivery confirmation code for ${order.number} is ${code}. Share only after receiving your order.`,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok) {
-      await OTPChallenge.deleteOne({ _id: challenge._id });
-      throw Error("Unable to send delivery code.");
-    }
+  try {
+    await sendCode(order.address.phone, code);
+  } catch (error) {
+    await OTPChallenge.deleteOne({ _id: challenge._id });
+    throw error;
   }
   return env.MOCK_OTP === "true"
     ? `Development delivery code: ${code}`
-    : "Delivery code sent to your address contact number.";
+    : "Delivery code sent on WhatsApp (or SMS) from MiniMoth to your address contact number.";
 }
 export async function completeDelivery(actorId: string, input: unknown) {
   await actor(actorId, "delivery:assigned");

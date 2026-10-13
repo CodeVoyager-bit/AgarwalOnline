@@ -44,3 +44,14 @@ Thumbs.db
 
 # Personal Claude Code settings (shared launch.json stays tracked)
 .claude/settings.local.json
+
+# Android app (Bubblewrap): build output stays local; the signing key lives in ~/.android-keys, never here
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/*.apk
+/android/*.aab
+/android/*.idsig
+/android/local.properties
+*.keystore
+*.jks

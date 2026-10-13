@@ -64,7 +64,7 @@ export function MobileNav({ locale, unread = 0 }: { locale: Locale; unread?: num
             <span className="nav-icon">
               <Icon size={21} aria-hidden="true" />
               {basket && count > 0 && (
-                <b className="nav-count" aria-hidden="true">
+                <b className="nav-count" aria-hidden="true" key={count}>
                   {count}
                 </b>
               )}

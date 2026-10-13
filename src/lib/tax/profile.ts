@@ -5,11 +5,18 @@ import { SystemSetting } from "../commerce/models";
 import { objectId } from "../commerce/service";
 import { assertPermission, type Role } from "../auth/permissions";
 import { DEFAULT_TAX_PROFILE, taxProfileSchema, type TaxProfile } from "./gst";
+import { shared } from "../db/shop-cache";
 
 const KEY = "tax-details";
 
-/** The shop's legal name, GSTIN and address for quotations; the defaults until the owner saves them. */
-export async function taxProfile(): Promise<TaxProfile & { configured: boolean }> {
+/**
+ * The shop's legal name, GSTIN and address for quotations; the defaults until the owner saves them.
+ * Pages read it from the shop cache; `fresh` reads the database, for a quotation that keeps a copy.
+ */
+export function taxProfile(fresh = false) {
+  return fresh ? readTaxProfile() : shared("tax-profile", readTaxProfile);
+}
+async function readTaxProfile(): Promise<TaxProfile & { configured: boolean }> {
   await connectDB();
   const setting = await SystemSetting.findOne({ key: KEY });
   const saved = taxProfileSchema.safeParse(setting?.value);

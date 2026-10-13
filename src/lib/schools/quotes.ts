@@ -343,7 +343,8 @@ export async function saveQuoteDraft(actorId: string, requestInput: unknown, she
 export async function sendQuotation(actorId: string, input: unknown) {
   await owner(actorId);
   const data = z.object({ requestId: objectId, stamp: z.string().min(1) }).parse(input);
-  const seller = await taxProfile();
+  // fresh, not the minute-old copy pages use: the quotation keeps these details for good
+  const seller = await taxProfile(true);
   let sent: {
     id: string;
     shareToken: string;

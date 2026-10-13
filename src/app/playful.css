@@ -1,0 +1,307 @@
+/* =============================================================================
+   LIVELY LOOK
+   The First Bench design, given soft depth and motion. Switched on by
+   data-look="playful" on <html> in src/app/layout.tsx: delete that attribute and the
+   classic look returns untouched; delete this file, src/components/playful.tsx and their
+   imports to drop it entirely.
+
+   Rules:
+   - nothing new to look at, only better feel: shadow and motion. Never padding, grids
+     or display, so every phone layout in globals.css keeps working.
+   - every animation answers something: the page arriving, a section coming into view,
+     a pointer over something tappable, a tap landing in the basket.
+   - text never goes see-through on the way in: entrances slide and un-blur instead of
+     fading, so contrast holds on every frame (the axe checks in tests/e2e scan mid-animation).
+   - prefers-reduced-motion turns all of it off; staff pages (.workspace-layout) and
+     browsers without :has() keep the classic look.
+   ============================================================================= */
+
+:root[data-look="playful"]:not(:has(.workspace-layout)) {
+  --lift: 0 22px 40px -26px rgba(15, 23, 42, 0.5), 0 2px 6px -2px rgba(15, 23, 42, 0.08);
+  --lift-sm: 0 12px 24px -16px rgba(15, 23, 42, 0.45);
+  --out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  & ::selection { background: #fde68a; color: var(--ink); }
+
+  /* ---------- cards lift towards the pointer ---------- */
+  & .product-card, & .hub-card, & .deal-card {
+    transition: transform 0.35s var(--out), box-shadow 0.35s var(--out), border-color 0.35s var(--out);
+  }
+  & .product-photo { transition: transform 0.7s var(--out); }
+  & .aisle-tile { transition: transform 0.35s var(--out); }
+  & .aisle-art { transition: box-shadow 0.35s var(--out); }
+  & .aisle-tile img { transition: transform 0.7s var(--out), filter 0.35s; }
+  & .hub-count svg, & .section-heading > a svg, & .deal-price a svg { transition: translate 0.3s var(--out); }
+
+  /* ---------- buttons answer the press ---------- */
+  & .primary-button, & .secondary-button {
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.25s var(--out), box-shadow 0.25s var(--out);
+  }
+  & .primary-button:active, & .secondary-button:active, & .add-button:active:not(:disabled) { transform: scale(0.96); }
+  & .add-button { transition: background 0.2s, color 0.2s, transform 0.2s var(--out); }
+  & .qty-stepper.compact { animation: fx-pop 0.35s var(--spring); }
+  & .wishlist-control button { transition: transform 0.25s var(--spring), color 0.2s, background 0.2s; }
+  & .wishlist-control button.saved svg { animation: fx-pop 0.4s var(--spring); }
+  & .mobile-nav .nav-icon { transition: background 0.25s, transform 0.25s var(--spring); }
+  & .mobile-nav a:active .nav-icon { transform: scale(0.9); }
+
+  /* ---------- section headings: an amber mark on the rule, drawn as the section arrives ---------- */
+  & .section-heading { position: relative; }
+  & .section-heading::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 56px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--offer);
+    transform-origin: left;
+  }
+
+  /* ---------- the aisle links: an underline grows from the left on hover ---------- */
+  & .primary-nav a {
+    border-bottom-color: transparent;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 100% / 0 1.5px;
+    transition: background-size 0.3s var(--out), color 0.2s;
+  }
+  & .primary-nav a:hover { border-bottom-color: transparent; background-size: 100% 1.5px; }
+
+  /* ---------- a sweep of light across a photo on hover ---------- */
+  & .aisle-art::after, & .deal-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.42) 50%, transparent 65%);
+    translate: -110% 0;
+    pointer-events: none;
+  }
+
+  /* ---------- the hero's light follows the pointer; the deal card tilts towards it (--mx/--my/--rx/--ry from playful.tsx) ---------- */
+  & .hero-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: radial-gradient(440px circle at var(--mx, 30%) var(--my, 40%), rgba(251, 191, 36, 0.26), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s var(--out);
+    pointer-events: none;
+  }
+
+  /* ---------- the offer code catches the light now and then ---------- */
+  & .offer-code {
+    background-image: linear-gradient(110deg, transparent 40%, rgba(255, 255, 255, 0.65) 50%, transparent 60%);
+    background-size: 250% 100%;
+    background-position: 150% 0;
+    background-repeat: no-repeat;
+  }
+
+  /* ---------- the fx layer (src/components/playful.tsx) ---------- */
+  & .fx-bump { animation: fx-bump 0.5s var(--spring); }
+
+  @media (hover: hover) {
+    & .product-card:hover { border-color: transparent; transform: translateY(-4px); box-shadow: var(--lift); }
+    & .product-card:hover .product-photo { transform: scale(1.06); }
+    & .aisle-tile:hover { transform: translateY(-4px); }
+    & .aisle-tile:hover .aisle-art { box-shadow: var(--lift-sm); }
+    & .aisle-tile:hover img { transform: scale(1.07); filter: saturate(1); }
+    & .hub-card:hover { border-color: transparent; transform: translateY(-3px); box-shadow: var(--lift); }
+    & .deal-card:hover {
+      border-color: transparent;
+      transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px);
+      box-shadow: var(--lift);
+    }
+    & .aisle-tile:hover .aisle-art::after, & .deal-art:hover::after { translate: 110% 0; transition: translate 0.9s var(--out); }
+    & .hero-card:hover::after { opacity: 1; }
+    & .hub-card:hover .hub-count svg, & .section-heading > a:hover svg, & .deal-price a:hover svg { translate: 4px 0; }
+    & .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -12px rgba(30, 58, 138, 0.7); }
+    & .hero-actions .primary-button:hover { box-shadow: 0 10px 22px -10px rgba(251, 191, 36, 0.75); }
+    & .add-button:hover:not(:disabled) { transform: translateY(-1px); }
+    & .wishlist-control button:hover { transform: scale(1.08); }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* the hero arrives in reading order; the photo settles in behind it */
+    & .hero-card > :not(img) { animation: fx-rise 0.7s var(--out) both; }
+    & .hero-card > h1 { animation-delay: 0.08s; }
+    & .hero-card > p { animation-delay: 0.16s; }
+    & .hero-card > .hero-actions { animation-delay: 0.24s; }
+    & .hero-card img { animation: fx-settle 1.6s var(--out) both; }
+    & .hero-card h1 em { animation: fx-glow 1.6s ease-in-out 0.7s; }
+    & .deal-card { animation: fx-rise 0.7s var(--out) 0.18s both; }
+    & .benefits > div { animation: fx-rise 0.6s var(--out) both; }
+    & .benefits > div:nth-child(1) { animation-delay: 0.3s; }
+    & .benefits > div:nth-child(2) { animation-delay: 0.38s; }
+    & .benefits > div:nth-child(3) { animation-delay: 0.46s; }
+    & .benefits > div:hover .benefit-icon { animation: fx-nudge 0.5s var(--spring); }
+    & .offer-code { animation: fx-glint 4.5s ease-in-out 1s infinite; }
+    & .empty-state .empty-icon { animation: fx-float 2.8s ease-in-out infinite alternate; }
+    @media (max-width: 760px) {
+      & .cart-bar { animation: fx-slide-up 0.5s var(--spring); }
+    }
+
+    /* a page's title settles in as the page opens */
+    & #main .workspace-heading { animation: fx-rise 0.5s var(--out) both; }
+    /* search suggestions arrive one after another */
+    & .search-popover a { animation: fx-rise 0.3s var(--out) both; }
+    & .search-popover a:nth-child(2) { animation-delay: 0.03s; }
+    & .search-popover a:nth-child(3) { animation-delay: 0.06s; }
+    & .search-popover a:nth-child(4) { animation-delay: 0.09s; }
+    & .search-popover a:nth-child(n + 5) { animation-delay: 0.12s; }
+    /* menus open from their button; the share sheet rises (from the bottom edge on phones) */
+    & .account-menu[open] .account-menu-panel, & .popover[open] .popover-panel { transform-origin: top right; animation: fx-menu 0.18s var(--out); }
+    & .add-to-list[open] .popover-panel { transform-origin: top left; }
+    & .share-sheet[open] { animation: fx-sheet 0.28s var(--out); }
+    & .share-sheet[open]::backdrop { animation: fx-fade 0.25s var(--out); }
+    @media (max-width: 760px) {
+      & .share-sheet[open] { animation-name: fx-sheet-up; }
+    }
+
+    /* the basket's numbers roll over when they change (each is re-keyed on its value) */
+    & .cart-bar b, & .cart-bar small, & .cart-button b, & .mobile-nav .nav-count { animation: fx-tick 0.35s var(--out); }
+    /* free delivery and the shop offers: the bar fills on arrival, a reached goal pops, the last one cheers */
+    & .basket-goals-track progress::-webkit-progress-value { animation: fx-fill 0.9s var(--out) 0.15s both; transition: width 0.5s var(--out); }
+    & .basket-goals-track progress::-moz-progress-bar { animation: fx-fill 0.9s var(--out) 0.15s both; }
+    & .goal-marker.is-reached { animation: fx-pop 0.45s var(--spring) 0.6s both; }
+    & .basket-goals.is-done .basket-goals-headline svg { animation: fx-nudge 0.7s var(--spring) 0.4s both; }
+
+    /* an order: its icon pops, the tracker's line draws from step to step, the step happening now breathes */
+    & .order-hero-icon { animation: fx-pop 0.5s var(--spring) 0.1s both; }
+    & .order-tracker li + li::before { transform-origin: left; animation: fx-draw 0.45s var(--out) both; }
+    & .order-tracker li:nth-child(2)::before { animation-delay: 0.15s; }
+    & .order-tracker li:nth-child(3)::before { animation-delay: 0.35s; }
+    & .order-tracker li:nth-child(4)::before { animation-delay: 0.55s; }
+    & .order-tracker .tracker-dot { animation: fx-pop 0.45s var(--spring) both; }
+    & .order-tracker li:nth-child(2) .tracker-dot { animation-delay: 0.3s; }
+    & .order-tracker li:nth-child(3) .tracker-dot { animation-delay: 0.5s; }
+    & .order-tracker li:nth-child(4) .tracker-dot { animation-delay: 0.7s; }
+    & .order-tracker li.is-current > .tracker-dot { animation: fx-pop 0.45s var(--spring) both, fx-breathe 2.2s ease-out 1s infinite; }
+  }
+
+  /* sections come up as they scroll in; product rails on phones scroll sideways, so they're left still */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      & .section-heading, & .aisle-tile, & .offer-ladder, & .delivery-steps {
+        animation: fx-reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 40%;
+      }
+      & .section-heading::after {
+        animation: fx-draw linear both;
+        animation-timeline: view();
+        animation-range: entry 30% cover 35%;
+      }
+      @media (min-width: 761px) {
+        & .product-card, & .hub-card {
+          animation: fx-reveal linear both;
+          animation-timeline: view();
+          animation-range: entry 0% entry 40%;
+        }
+        /* across a row the cards follow one another in */
+        & .product-grid > .product-card:nth-child(5n + 2), & .aisles > .aisle-tile:nth-child(6n + 2), & .hubs > .hub-card:nth-child(4n + 2) { animation-range: entry 5% entry 45%; }
+        & .product-grid > .product-card:nth-child(5n + 3), & .aisles > .aisle-tile:nth-child(6n + 3), & .hubs > .hub-card:nth-child(4n + 3) { animation-range: entry 10% entry 50%; }
+        & .product-grid > .product-card:nth-child(5n + 4), & .aisles > .aisle-tile:nth-child(6n + 4), & .hubs > .hub-card:nth-child(4n) { animation-range: entry 15% entry 55%; }
+        & .product-grid > .product-card:nth-child(5n), & .aisles > .aisle-tile:nth-child(6n + 5) { animation-range: entry 20% entry 60%; }
+        & .aisles > .aisle-tile:nth-child(6n) { animation-range: entry 25% entry 65%; }
+      }
+    }
+  }
+  /* the header settles a shadow under itself once the page moves */
+  @supports (animation-timeline: scroll()) {
+    & .header {
+      animation: fx-header linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 96px;
+    }
+    /* how far down the page you are; a page too short to scroll keeps it empty */
+    @media (prefers-reduced-motion: no-preference) {
+      & .header::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        background: var(--offer);
+        transform-origin: left;
+        scale: 0 1;
+        animation: fx-progress linear both;
+        animation-timeline: scroll(root);
+      }
+    }
+  }
+}
+
+@keyframes fx-rise { from { translate: 0 14px; filter: blur(6px); } }
+@keyframes fx-settle { from { scale: 1.08; } }
+@keyframes fx-glow { 45% { text-shadow: 0 0 22px rgba(251, 191, 36, 0.6); } }
+@keyframes fx-reveal { from { translate: 0 32px; } }
+@keyframes fx-draw { from { scale: 0 1; } }
+@keyframes fx-header { to { box-shadow: 0 10px 28px -20px rgba(15, 23, 42, 0.4); } }
+@keyframes fx-pop { from { scale: 0.6; } }
+@keyframes fx-bump { 40% { scale: 1.16; } }
+@keyframes fx-nudge { 40% { rotate: -10deg; scale: 1.08; } }
+@keyframes fx-progress { to { scale: 1 1; } }
+@keyframes fx-glint { 0%, 70% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+@keyframes fx-float { to { translate: 0 -6px; } }
+@keyframes fx-slide-up { from { translate: 0 120%; } }
+@keyframes fx-tick { from { translate: 0 45%; filter: blur(3px); } }
+@keyframes fx-fill { from { width: 0; } }
+@keyframes fx-breathe {
+  0% { box-shadow: 0 0 0 4px var(--brand-tint), 0 0 0 4px rgba(30, 58, 138, 0.35); }
+  70%, 100% { box-shadow: 0 0 0 4px var(--brand-tint), 0 0 0 14px rgba(30, 58, 138, 0); }
+}
+@keyframes fx-menu { from { opacity: 0; scale: 0.96; translate: 0 -4px; } }
+@keyframes fx-sheet { from { opacity: 0; scale: 0.96; translate: 0 12px; } }
+@keyframes fx-sheet-up { from { translate: 0 100%; } }
+@keyframes fx-fade { from { opacity: 0; } }
+
+/* the sparkle when something lands in the basket, hearts when it's saved (pointer-events off: taps go through) */
+.fx-burst { position: fixed; z-index: 1000; width: 0; height: 0; pointer-events: none; }
+.fx-burst i {
+  position: absolute;
+  left: -3.5px;
+  top: -3.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+  animation: fx-fly 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.fx-burst.hearts i { left: -6px; top: -8px; width: auto; height: auto; background: none; color: #e11d48; font-style: normal; font-size: 13px; line-height: 1; }
+@keyframes fx-fly {
+  60% { opacity: 1; }
+  to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
+}
+
+/* the photo that flies into the basket: the outer box travels across, the photo arcs up and drops in */
+.fx-ghost { position: fixed; z-index: 1000; pointer-events: none; }
+.fx-ghost img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 14px 28px -12px rgba(15, 23, 42, 0.55);
+}
+
+/* the look switch for comparing while developing (never rendered in production) */
+.fx-switch {
+  position: fixed;
+  right: 12px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 90;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 1px solid #0f172a;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  font: 600 0.8rem/1.2 var(--font-sans);
+  box-shadow: 0 10px 24px -12px rgba(15, 23, 42, 0.6);
+}
+@media (max-width: 760px) { .fx-switch { bottom: calc(var(--bottom-nav-h) + 96px + env(safe-area-inset-bottom)); } }

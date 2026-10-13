@@ -26,7 +26,7 @@ All seeded brands, products, people, addresses, orders and analytics are fiction
 
 - Browse and search the catalog with live suggestions, in English or Marathi.
 - Keep an anonymous basket for 30 days, merged into the account after sign-in.
-- Sign up with phone OTP, then sign in with OTP, phone and password, or email and password.
+- Sign up with a phone code and a password, then sign in with phone or email and the password (or Google). A code is sent only to create an account, to reset a forgotten password (which signs other devices out) and for the doorstep delivery check.
 - Check out with cash on delivery or Razorpay. The server calculates the quote and applies the best valid promotion.
 - Track, cancel and reorder orders, and download invoices.
 - Save a wishlist, addresses and preferences.
@@ -228,7 +228,7 @@ The app validates these on startup and refuses to run with an invalid combinatio
 | `MOCK_OTP` | No | `true` accepts `MOCK_OTP_CODE` instead of sending SMS. Forbidden in production. |
 | `MOCK_OTP_CODE` | No | Six-digit code used when mock OTP is on. Defaults to `246810`. |
 | `ALLOW_MOCK_OTP_IN_PRODUCTION` | Pre-launch testing only | `true` lets mock OTP run on a Vercel test deployment, which always runs in production mode. Any `MOCK_OTP_CODE` is accepted, and anyone who knows it can sign in as any phone number. Remove it before real customers use the site. |
-| `SMS_API_URL`, `SMS_API_TOKEN` | Production | SMS gateway. Set both or neither. |
+| `MINIMOTH_HOOK_URL`, `MINIMOTH_HOOK_TOKEN` | Production | MiniMoth sends the login and delivery codes. Set both or neither. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | For online payment | Set all three, or checkout offers cash on delivery only. Production requires `rzp_live_` keys. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Production | Set all three or none. Without them, photos are saved to `.local/uploads` on the server's disk. |
 | `ATLAS_SEARCH_ENABLED` | No | `true` switches product search to Atlas Search. Enable it only after creating the index. |
@@ -347,7 +347,7 @@ Put HTTPS in front of it, and set the same environment variables.
 - **Google sign-in.** In the Google Cloud Console, open **APIs & Services**, set up the **OAuth consent screen**, then under **Credentials** create an **OAuth client ID** of type **Web application**. Add one **Authorised redirect URI** per address the site runs on: `http://localhost:3000/api/auth/callback/google` for local work and `https://YOUR_DOMAIN/api/auth/callback/google` for each live address. Copy the client ID and secret into `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. The redirect address is built from `APP_ORIGIN`, so the two must match exactly. Google signs a person in to an existing account only when that account's email is verified. Anyone else sees a message asking them to sign in another way first and connect Google from the account page. People who join with Google have no mobile number on their account; delivery addresses still carry their own number.
 - **Cloudinary.** Copy the cloud name, API key and API secret from **Settings**, then **API Keys**. There's nothing else to configure, because the server signs each upload.
 - **Razorpay.** Add the key ID and secret from the dashboard. Create a webhook pointing at `https://YOUR_DOMAIN/api/payments/razorpay/webhook` with a secret of your choice. Subscribe to `payment.authorized`, `payment.captured`, `payment.failed`, `refund.processed` and `refund.failed`.
-- **SMS.** The app sends `POST SMS_API_URL` with `Authorization: Bearer SMS_API_TOKEN` and a JSON body of `{ "to": "+91XXXXXXXXXX", "message": "..." }`. Most Indian gateways use their own format, so a small relay may be needed. Transactional SMS in India also needs DLT registration of the sender ID and template. The OTP text is fixed in `src/lib/auth/sms.ts`.
+- **Login and delivery codes.** The app makes and checks every 6-digit code; [MiniMoth](https://minimoth.dev) only delivers it (`src/lib/auth/sms.ts`): WhatsApp first, then a text from MiniMoth's own DLT-registered sender, never a call, so the store needs no DLT registration. The cost is MiniMoth's name on the message instead of the shop's. Setup: sign up at app.minimoth.dev, create a project, enable its "Auth0 Hook" card (MiniMoth's plain delivery hook: a POST of `{phone, code}`), and copy the Live Hook URL and Token into `MINIMOTH_HOOK_URL` and `MINIMOTH_HOOK_TOKEN`. 2Factor was tried first (2026-10-10) and dropped: without the store's own DLT registration it read the codes out in phone calls.
 - **Atlas Search (optional).** Create a search index named `products` on the `products` collection from [docs/atlas-search.json](docs/atlas-search.json), then set `ATLAS_SEARCH_ENABLED=true`. Synonyms are managed from the super-admin dashboard.
 
 ### Scheduled jobs
@@ -373,7 +373,7 @@ On other hosts, run the npm scripts from cron instead.
 - [ ] `APP_ORIGIN` set to the HTTPS domain
 - [ ] Owner account created on the production database with `npm run owner:create`
 - [ ] better-auth indexes created on the production database
-- [ ] SMS gateway configured, with DLT registration complete
+- [ ] MiniMoth live hook set (`MINIMOTH_HOOK_URL`, `MINIMOTH_HOOK_TOKEN`), `MOCK_OTP=false`, `ALLOW_MOCK_OTP_IN_PRODUCTION` removed
 - [ ] Razorpay live keys and webhook set up
 - [ ] Cloudinary configured
 - [ ] `CRON_SECRET` set, and the three jobs showing successful runs under **Settings**, then **Cron Jobs**, in Vercel
@@ -381,6 +381,22 @@ On other hosts, run the npm scripts from cron instead.
 - [ ] A paid Atlas tier with backups, and a tested restore
 - [ ] Monitoring and error alerts
 - [ ] Tested on real phones, with the Razorpay sandbox
+
+### Android app
+
+The Android app is a Trusted Web Activity: a small APK, built by Google's [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap), that opens `https://agarwalonline.in` full-screen through Chrome. New features on the site show up in the app straight away; only a change to the app's name, icon, colours or package needs a new APK. It's offered as a direct download on `/app` (Get the app), not on the Play Store.
+
+- `android/twa-manifest.json` describes the app (package `in.agarwalonline.app`, colours, icons from the live site); the rest of `android/` is generated from it.
+- `public/.well-known/assetlinks.json` holds the signing key's SHA-256 fingerprint. While it matches, the app opens without a browser address bar.
+- The built APK is served from `public/downloads/agarwal-online.apk`.
+
+**The signing key is not in the repo.** It lives at `~/.android-keys/agarwal-online.keystore`, with its password in `~/.android-keys/agarwal-online-passwords.txt`. Back both up somewhere safe (a password manager). Android only installs an update signed with the same key, so without it everyone would have to uninstall the app and install a new one.
+
+To ship a new APK (needs JDK 17 and the Android SDK; `~/.bubblewrap/config.json` points Bubblewrap at them):
+
+1. In `android/twa-manifest.json`, raise `appVersionCode` by one and set `appVersionName`.
+2. In `android/`, run `npx @bubblewrap/cli update --skipVersionUpgrade`, then `npx @bubblewrap/cli build --skipPwaValidation` (it asks for the keystore password, or reads `BUBBLEWRAP_KEYSTORE_PASSWORD` and `BUBBLEWRAP_KEY_PASSWORD`).
+3. Copy `android/app-release-signed.apk` to `public/downloads/agarwal-online.apk`, update the size on `src/app/app/page.tsx` if it changed, and deploy.
 
 ## Security
 

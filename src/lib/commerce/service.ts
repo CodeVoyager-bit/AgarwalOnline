@@ -1,7 +1,9 @@
+import { cache } from "react";
 import { paymentsEnabled, paymentConfig } from "../payments/provider";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB } from "../db/connect";
+import { shared } from "../db/shop-cache";
 import { POLICY_VERSION } from "../legal/version";
 import {
   InventoryItem,
@@ -43,15 +45,16 @@ export async function cartFor(customerId: string) {
 /**
  * The basket split into lines that can be bought and lines that can't. The unavailable ones are
  * kept (not silently skipped) so the basket can show them with a Remove button; checkout would
- * otherwise refuse the order over an item the customer can't see.
+ * otherwise refuse the order over an item the customer can't see. Memoised per page render (the
+ * layout and the basket page both ask); an action reads it fresh every time.
  */
-export async function basketFor(customerId: string) {
+export const basketFor = cache(async (customerId: string) => {
   await connectDB();
   const lines = await CartLine.find({ customerId });
   return resolveBasketLines(
     lines.map((line) => ({ id: String(line._id), variantId: line.variantId, quantity: line.quantity })),
   );
-}
+});
 export async function setCartLine(
   customerId: string,
   variantInput: unknown,
@@ -79,11 +82,13 @@ export async function setCartLine(
     { upsert: true, runValidators: true },
   );
 }
-export async function deliveryRules() {
-  await connectDB();
-  const setting = await SystemSetting.findOne({ key: "delivery" });
-  return rulesSchema.parse(setting?.value ?? defaultRules);
-}
+/** Cut-off, free-delivery threshold and fees, from the shop cache: the header shows them on every page. */
+export const deliveryRules = () =>
+  shared("delivery-rules", async () => {
+    await connectDB();
+    const setting = await SystemSetting.findOne({ key: "delivery" });
+    return rulesSchema.parse(setting?.value ?? defaultRules);
+  });
 export async function checkout(customerId: string, input: unknown) {
   const data = z
     .object({

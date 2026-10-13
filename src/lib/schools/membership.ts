@@ -40,9 +40,10 @@ export async function memberships(userId: string): Promise<SchoolSummary[]> {
  * Whether there's an open (not paused) school this person may shop for: the shop then shows
  * them its way in ("For my school", or "For schools" for the owner).
  */
-export async function representsActiveSchool(userId: string) {
+export async function representsActiveSchool(userId: string, roles: Role[]) {
   await connectDB();
-  if (await shopsForEverySchool(userId)) return Boolean(await School.exists({ active: { $ne: false } }));
+  // the roles come from the page's signed-in user, already read this request
+  if (hasPermission(roles, "settings:write")) return Boolean(await School.exists({ active: { $ne: false } }));
   const rows = await SchoolMember.find({ userId }).select("schoolId");
   if (!rows.length) return false;
   return Boolean(await School.exists({ _id: { $in: rows.map((row) => row.schoolId) }, active: { $ne: false } }));

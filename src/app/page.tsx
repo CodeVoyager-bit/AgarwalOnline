@@ -18,9 +18,14 @@ import { currentLocale } from "@/lib/i18n";
 import { Order } from "@/lib/commerce/models";
 import { liveAreaNames } from "@/lib/commerce/areas";
 import { recommendationsFor } from "@/lib/catalog/recommendations";
-import { Promotion } from "@/lib/promotions/models";
+import { liveOffers, runningAt } from "@/lib/promotions/service";
 import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display";
+import { taxProfile } from "@/lib/tax/profile";
+import { jsonLd, storeJsonLd } from "@/lib/seo";
+import { getEnv } from "@/lib/env";
 export const dynamic = "force-dynamic";
+// the title and description are the root layout's; shared links with tracking tags fold into one address
+export const metadata = { alternates: { canonical: "/" } };
 
 const copy = {
   en: {
@@ -223,17 +228,15 @@ export default async function Home() {
     deliveryRules(),
   ]);
   // everything that only needs to know who's signed in, in one round
-  const [recommended, activeOffers, areaDocs, previousOrder] = await Promise.all([
+  const [recommended, activeOffers, areaDocs, previousOrder, shop] = await Promise.all([
     recommendationsFor({
       customerId: user?.id,
       limit: 8,
     }),
-    Promotion.find({ active: true, startsAt: { $lte: now }, endsAt: { $gte: now } })
-      .sort({ minimumSubtotalPaise: 1 })
-      .limit(2)
-      .select("name code kind discountType discountValue minimumSubtotalPaise"),
+    liveOffers().then((offers) => offers.filter(runningAt(now)).slice(0, 2)),
     liveAreaNames(),
     user ? Order.findOne({ customerId: user.id }).sort({ createdAt: -1 }).select("items.variantId") : null,
+    taxProfile(),
   ]);
   const previousIds = new Set(
     previousOrder?.items.map((item: { variantId: unknown }) =>
@@ -318,6 +321,10 @@ export default async function Home() {
   };
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(storeJsonLd(shop, areaDocs, getEnv().APP_ORIGIN)) }}
+      />
       <section className="hero" aria-labelledby="welcome-title">
         <div className="hero-card">
           <Image src={heroImage} alt="" fill sizes="60vw" priority />

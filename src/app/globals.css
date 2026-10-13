@@ -397,6 +397,28 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .skeleton-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .skeleton-grid .skeleton { min-height: 240px; }
 
+/* NavProgress: a bar across the top from the tap until the next page arrives. It waits 120ms before
+   showing, so prefetched pages that open at once never flash it. */
+.nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: calc(var(--z-modal) + 10);
+  height: 3px;
+  background: var(--offer);
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
+  transform-origin: left;
+  scale: 0 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-progress[data-state="loading"] { opacity: 1; transition: opacity 0.15s 0.12s; animation: nav-trickle 12s cubic-bezier(0.1, 0.75, 0.2, 1) forwards; }
+.nav-progress[data-state="done"] { scale: 1 1; opacity: 0; transition: scale 0.2s ease-out, opacity 0.3s 0.15s; }
+@keyframes nav-trickle { from { scale: 0 1; } 6% { scale: 0.35 1; } to { scale: 0.92 1; } }
+/* the tapped link answers too: it dims while its page loads */
+a[data-pending] { cursor: progress; opacity: 0.72; transition: opacity 0.15s 0.12s; }
+
 details > summary { cursor: pointer; list-style: none; font-weight: 600; }
 details > summary::-webkit-details-marker { display: none; }
 details.panel > summary, .create-staff > summary, .address-card > summary, .profile-settings > summary {
@@ -1187,7 +1209,7 @@ tbody tr:hover { background: var(--canvas); }
 .list-total strong { font-family: var(--font-display); font-size: 1.65rem; font-weight: 800; }
 .list-qty { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .list-inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.share-field { display: grid; gap: 6px; margin-top: 14px; font-size: 0.85rem; font-weight: 600; }
+.share-field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 14px; font-size: 0.85rem; font-weight: 600; }
 .share-field > div { display: flex; gap: 8px; }
 .share-field input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--brand-soft); color: var(--ink-2); font-size: 0.85rem; font-weight: 400; }
 .share-field button { flex: none; display: inline-flex; align-items: center; gap: 6px; }
@@ -1405,6 +1427,11 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .utility-card { text-align: left; }
 .utility-card.empty-state { text-align: center; }
 .serviceability-card .form-stack { margin-top: 16px; }
+.app-options { display: grid; gap: 22px; margin-top: 22px; }
+.app-option { display: grid; gap: 8px; }
+.app-option h2 { margin: 0; font-size: 1rem; }
+.app-option p { margin: 0; color: var(--muted); font-size: 0.875rem; }
+.app-options > .primary-button, .app-option .secondary-button { justify-self: stretch; text-align: center; }
 .serviceability-result { margin-top: 16px; border-left: 4px solid var(--line-strong); font-weight: 500; }
 .serviceability-result.available { border-left-color: var(--success); background: var(--success-bg); color: var(--success); }
 .serviceability-result.unavailable { border-left-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
@@ -1600,7 +1627,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .workspace-nav a[aria-current="page"] { border-color: var(--brand); }
   .workspace-main .page-container { padding-bottom: 40px; }
   .staff-layout, .settings-grid, .analytics-grid { grid-template-columns: 1fr; }
-  .basket-layout, .checkout-form { grid-template-columns: 1fr; gap: 24px; }
+  .basket-layout, .checkout-form { grid-template-columns: minmax(0, 1fr); gap: 24px; } /* minmax: a long line wraps instead of widening the page */
   .basket-layout > aside, .checkout-summary { position: static; }
   /* after the base .list-layout rule, so it wins */
   .list-layout { grid-template-columns: 1fr; gap: 24px; }
@@ -1663,7 +1690,16 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   }
   /* every tab keeps its place and its name, as the staff tab bar does: icon above, word below */
   .mobile-nav a { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; color: var(--muted); }
-  .mobile-nav a[aria-current="page"] { color: var(--brand); }
+  .mobile-nav a[aria-current="page"], .mobile-nav a[data-pending] { color: var(--brand); }
+  /* the tapped tab takes the highlight at once; the one being left lets go of it */
+  .mobile-nav a[data-pending] { opacity: 1; }
+  .mobile-nav:has(a[data-pending]) a[aria-current="page"]:not([data-pending]) { color: var(--muted); }
+  .mobile-nav:has(a[data-pending]) a[aria-current="page"]:not([data-pending]) .nav-icon { background: transparent; }
+  .mobile-nav a[data-pending] .nav-icon { background: var(--brand-tint); }
+  .mobile-nav a[data-pending] .nav-icon svg { fill: color-mix(in oklab, currentColor 18%, transparent); }
+  .mobile-nav:has(a[data-pending]) a[aria-current="page"]:not([data-pending]) .nav-icon svg { fill: none; }
+  .mobile-nav a[data-pending] .nav-label { font-weight: 700; }
+  .mobile-nav:has(a[data-pending]) a[aria-current="page"]:not([data-pending]) .nav-label { font-weight: 600; }
   .nav-icon { position: relative; display: inline-grid; place-items: center; width: 52px; height: 28px; border-radius: var(--r-pill); transition: background var(--fast); }
   .nav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.6875rem; font-weight: 600; line-height: 1.2; }
   .mobile-nav a[aria-current="page"] .nav-icon { background: var(--brand-tint); }
@@ -1767,7 +1803,8 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .catalog-filters.is-open { display: grid; grid-template-columns: 1fr 1fr; }
   .catalog-filters label:first-of-type, .catalog-filters > button { grid-column: 1 / -1; }
   .catalog-filters .checkbox-label { padding: 8px 0; }
-  .audit-filters { display: grid; grid-template-columns: 1fr 1fr; }
+  .audit-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .audit-filters :is(input, select) { width: 100%; min-width: 0; } /* a date field's natural width is wider than half a phone */
   .audit-filters > label:last-of-type:nth-of-type(odd), .audit-filters > button:not(:has(+ a)) { grid-column: 1 / -1; }
   .basket-line.panel { grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; }
   .basket-line > .list-qty { grid-column: 1; grid-row: 2; }
@@ -1858,7 +1895,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 }
 @media (max-width: 340px) {
   .product-grid { grid-template-columns: 1fr; }
-  .catalog-filters.is-open, .audit-filters { grid-template-columns: 1fr; }
+  .catalog-filters.is-open, .audit-filters { grid-template-columns: minmax(0, 1fr); }
 }
 /* Rows become cards on phones: the table renders once and each cell grows its
    column name, replacing the old "render everything twice and hide one" trick.
@@ -2112,7 +2149,7 @@ table.order-lines { min-width: 0; font-size: 0.92rem; }
 .settings-intro h2 { margin-bottom: 8px; font-size: 1.25rem; }
 .settings-intro p { color: var(--muted); font-size: 0.9rem; }
 .settings-intro .notice { margin-top: 12px; color: var(--warning); }
-.settings-cards { display: grid; gap: 16px; align-content: start; }
+.settings-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
 .settings-cards > .panel { margin: 0; }
 .settings-cards-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; }
 .day-picker { display: flex; flex-wrap: wrap; gap: 4px 16px; }
@@ -3276,9 +3313,9 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
 .slip-sign { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-top: 12px; color: var(--muted); font-size: 0.9rem; }
 
 /* Staff Stock page: update many packs from a spreadsheet */
-.stock-import { display: grid; gap: 16px; margin-top: 14px; }
-.stock-import-steps { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
-.stock-import-steps > li { position: relative; display: grid; justify-items: start; gap: 6px; padding-left: 38px; counter-increment: step; }
+.stock-import { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 14px; }
+.stock-import-steps { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.stock-import-steps > li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 6px; padding-left: 38px; counter-increment: step; }
 .stock-import-steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--brand-soft); color: var(--ink); font-size: 0.85rem; font-weight: 700; }
 .stock-import-steps .secondary-button { gap: 8px; }
 .stock-import-upload.stock-import-upload { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
@@ -3568,4 +3605,52 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
 @media (max-width: 760px) {
   .account-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .account-stats > :last-child:nth-child(odd) { grid-column: auto; }
+}
+
+/* ---------- Phone fixes from the 2026-10-11 bug bash (every page at 320, 360, 375 and 412px) ---------- */
+/* iOS Safari zooms the whole page into any field whose text is under 16px the moment it gets focus */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="hidden"]), select, textarea { font-size: max(16px, 1rem) !important; }
+}
+.welcome-short { display: none; }
+@media (max-width: 760px) {
+  /* a two-up card is ~130px inside: the price takes its own line, ADD (then the stepper) the full width below */
+  .price-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .price-row .add-button, .price-row .qty-stepper.compact { width: 100%; }
+  .price-row .qty-stepper.compact { justify-content: space-between; }
+  .price-row .quick-add { margin-left: 0; } /* the audit's right-push (above) would stop ADD stretching */
+  /* the welcome offer in a few words, so the strip stays on one or two lines beside the school door and language */
+  .welcome-long { display: none; }
+  .welcome-short { display: inline; }
+  /* a new board gets the whole row: its name box and button need the width */
+  .board-new { grid-column: 1 / -1; }
+  /* the assistant floats above a pinned buy bar as it does above the basket bar */
+  body:has(.buy-bar) .assistant-launcher, body:has(.quote-bar) .assistant-launcher { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 84px); }
+  /* school header without a search box: back, logo, and the school pill takes what's left instead of sliding over the logo */
+  .school-header .header-inner:has(.search-back):not(:has(.smart-search:not(.phone-hidden))) { grid-template-columns: auto auto minmax(0, 1fr); }
+  .school-header .school-switch { justify-self: end; max-width: 100%; }
+  .school-header .school-pill { max-width: 100%; }
+  /* school cards: "Add to basket" on one line */
+  .quote-add:not(.is-compact) .add-button { padding-inline: 8px; letter-spacing: 0.03em; white-space: nowrap; }
+  /* the school product page's pinned box: price and GST wrap instead of sliding under the quantity box */
+  .variant-card:only-child:has(.quote-add) .variant-price { flex-wrap: wrap; row-gap: 0; }
+  .variant-card:only-child:has(.quote-add) .variant-price b { font-size: 1.25rem; }
+  .variant-card:only-child .quote-add { grid-template-columns: 64px auto; }
+  /* every menu stays on screen (the dashboard's New menu has its own rule above, from the audit) */
+  .popover-panel { max-width: calc(100vw - 2 * var(--gutter)); }
+}
+/* small phones: the tab labels get a little more room ("Categories", "Quotations" were cut to "Catego…") */
+@media (max-width: 380px) {
+  .mobile-nav { left: 8px; right: 8px; padding: 0 4px; }
+  .nav-label { letter-spacing: -0.01em; }
+}
+@media (max-width: 400px) {
+  /* the school door shrinks to its icon; its name stays for screen readers */
+  .school-door-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .top-strip-links > a.school-door { min-width: 32px; justify-content: center; }
+}
+@media (max-width: 340px) {
+  .mobile-nav { padding: 0 2px; }
+  .nav-label { letter-spacing: -0.025em; }
+  .quote-add:not(.is-compact) .add-button { white-space: normal; }
 }

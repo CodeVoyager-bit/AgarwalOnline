@@ -1,4 +1,5 @@
 "use server";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -139,7 +140,8 @@ export async function sendOTPAction(
     await checkOrigin();
     await connectDB();
     const phone = phoneSchema.parse(form.get("phone"));
-    const intent = z.enum(["signup", "signin"]).parse(form.get("intent"));
+    // a code goes out only to create an account or to set a new password; signing in is by password
+    const intent = z.enum(["signup", "reset"]).parse(form.get("intent"));
     const email =
       intent === "signup"
         ? z.string().trim().toLowerCase().email().parse(form.get("email"))
@@ -150,7 +152,7 @@ export async function sendOTPAction(
       throw new Error("This account is not active. Please contact the store.");
     if (intent === "signup" && existing)
       return { error: "An account already exists for this number. Sign in instead." };
-    if (intent === "signin" && !existing)
+    if (intent === "reset" && !existing)
       return { error: "No account found for this number. Create an account first." };
     if (email && (await User.exists({ email })))
       return { error: "An account already exists for this email. Sign in instead." };
@@ -196,14 +198,13 @@ export async function verifyOTPAction(
       : z.string().trim().toLowerCase().email().parse(form.get("email"));
     if (email && (await User.exists({ email })))
       return { error: "An account already exists for this email. Sign in instead." };
-    const passwordValue = form.get("password");
-    const password = existingBeforeVerification
-      ? undefined
-      : z.string().min(8).max(128).parse(passwordValue);
+    // a code never signs in on its own: a new account and a reset both set the password
+    const password = z.string().min(8).max(128).parse(form.get("password"));
     // the client blocks a mismatch, but the client is not the authority
-    if (password && form.get("confirmPassword") !== password)
+    if (form.get("confirmPassword") !== password)
       return { error: "Passwords do not match." };
     await rateLimit(`verify:${digest(phone)}`, 10);
+    const verifying = new Date();
     const result = await getAuth().api.verifyPhoneNumber({
       body: { phoneNumber: phone, code },
       headers: await headers(),
@@ -215,8 +216,12 @@ export async function verifyOTPAction(
         { $set: { ...(name ? { name } : {}), ...(email ? { email } : {}) } },
       );
     }
-    if (password)
-      await upsertCredential(result.user.id, await hashStaffPassword(password));
+    await upsertCredential(result.user.id, await hashStaffPassword(password));
+    // a reset signs every other device out, so whoever knew the old password is out too
+    if (existingBeforeVerification)
+      await mongoose.connection
+        .collection("authSessions")
+        .deleteMany({ userId: existingBeforeVerification._id, createdAt: { $lt: verifying } });
     // a new account's email starts unverified: send the confirmation link, but never fail sign-up over it
     if (email)
       await getAuth()
@@ -228,7 +233,7 @@ export async function verifyOTPAction(
     target = afterSignIn(form, landing((signedIn?.roles ?? []) as Role[], merged.added > 0));
     await AuditLog.create({
       actorId: result.user.id,
-      action: "auth.customer.login",
+      action: existingBeforeVerification ? "auth.customer.password_reset" : "auth.customer.login",
     });
   } catch (error) {
     return { error: safeError(error) };
