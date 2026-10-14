@@ -88,6 +88,12 @@ export const productImages: Record<string, string> = {
 export const heroImage =
   "https://images.unsplash.com/photo-1743385779392-cab22721fac6?auto=format&fit=crop&w=1200&q=80";
 export const categoryImages: Record<string, string> = {
+  // the shop's real aisles, shown with the licensed shots above (products carry their own photos)
+  pens: productImages["gel-pen-set"],
+  pencils: productImages["hb-pencils-with-eraser"],
+  "long-books": productImages["long-ruled-notebooks"],
+  notebooks: productImages["a5-hardcover-notebook"],
+  diaries: productImages["pen-and-diary-gift-set"],
   stationery: productImages["smooth-ball-pen-set"],
   paper: productImages["sticky-notes-set"],
   office: productImages["a4-copier-paper"],

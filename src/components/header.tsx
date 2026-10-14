@@ -40,8 +40,6 @@ function workspaceLinks(
   return [];
 }
 
-/** Primary navigation is a fixed set of aisle groups; labels come from the catalog. */
-const NAV_SLUGS = ["stationery", "paper", "art-craft", "gift-sets", "gift-wrap"];
 
 export async function Header({
   locale,
@@ -79,9 +77,8 @@ export async function Header({
   // the owner shops for any school, so it isn't "my" school
   const schoolDoor =
     staffRoleOf(user?.roles ?? []) === "super-admin" ? schoolCopy[locale].forSchools : schoolCopy[locale].forMySchool;
-  const nav = NAV_SLUGS.map((slug) => categories.find((c) => c.slug === slug)).filter(
-    (c): c is CategoryLink => Boolean(c),
-  );
+  // the first five aisles in the shop's order (AISLE_ORDER in catalog/queries.ts)
+  const nav = categories.slice(0, 5);
   const cutoff = `${rules.cutoffHour % 12 || 12} ${rules.cutoffHour >= 12 ? "PM" : "AM"}`;
   return (
     <>

@@ -55,11 +55,11 @@ export function generateMetadata(): Metadata {
     // resolves the relative canonical and share-image links pages set
     metadataBase: new URL(getEnv().APP_ORIGIN),
     title: {
-      default: "Agarwal General Stores | Stationery & gifts delivered same day in Nagothane",
+      default: "Agarwal General Stores | Pens, notebooks & stationery in Nagothane",
       template: "%s | Agarwal General Stores",
     },
     description:
-      "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in and around Nagothane.",
+      "Pens, pencils, notebooks, long books and diaries from Cello, Classmate, Sulabh, Nataraj, Apsara and more at Agarwal General Stores, delivered same day in and around Nagothane.",
     // the app's name and look once it is added to an iPhone's home screen (Chrome reads app/manifest.ts)
     appleWebApp: { capable: true, title: "Agarwal", statusBarStyle: "default" },
     // the WhatsApp/Facebook link preview; product pages swap in their own photo

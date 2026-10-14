@@ -16,6 +16,7 @@ export function productJsonLd(p: CatalogItem, origin: string, categoryName: stri
       name: p.name.en,
       description: p.description.en,
       url,
+      category: categoryName,
       ...(p.brand ? { brand: { "@type": "Brand", name: p.brand } } : {}),
       ...(photos.length ? { image: photos.map((src) => new URL(src, origin).href) } : {}),
       // verified-purchase reviews only; nothing is shown until there is one
@@ -25,6 +26,7 @@ export function productJsonLd(p: CatalogItem, origin: string, categoryName: stri
       offers: p.variants.map((v) => ({
         "@type": "Offer",
         name: v.label,
+        ...(v.sku ? { sku: v.sku } : {}),
         url,
         priceCurrency: "INR",
         price: (v.pricePaise / 100).toFixed(2),

@@ -40,7 +40,8 @@ export function mongoClient(uri = getEnv().MONGODB_URI): MongoClient {
  */
 function authIndexes(db: ReturnType<MongoClient["db"]>) {
   return Promise.all([
-    db.collection("authSessions").createIndex({ token: 1 }),
+    // unique, as better-auth builds it too: asking for a plain one under the same name fails
+    db.collection("authSessions").createIndex({ token: 1 }, { unique: true }),
     db.collection("authSessions").createIndex({ userId: 1 }),
     db.collection("authAccounts").createIndex({ userId: 1 }),
     db.collection("authAccounts").createIndex({ providerId: 1, accountId: 1 }),

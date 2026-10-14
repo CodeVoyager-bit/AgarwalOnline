@@ -12,7 +12,7 @@ const pen = {
   rating: 0,
   reviewCount: 0,
   variants: [
-    { id: "a", label: "Pack of 5", pricePaise: 5500, mrpPaise: 6000, available: 3, maxQuantity: 5 },
+    { id: "a", sku: "ST-001", label: "Pack of 5", pricePaise: 5500, mrpPaise: 6000, available: 3, maxQuantity: 5 },
     { id: "b", label: "Pack of 10", pricePaise: 9900, mrpPaise: 9900, available: 0, maxQuantity: 5 },
   ],
 } as CatalogItem;
@@ -23,6 +23,8 @@ describe("Search engine data", () => {
     expect(product.image).toEqual([`${origin}/api/evidence/abc`, "https://images.example/x.jpg"]);
     expect(product).not.toHaveProperty("brand");
     expect(product).not.toHaveProperty("aggregateRating");
+    expect(product.category).toBe("Writing");
+    expect(product.offers.map((offer) => ("sku" in offer ? offer.sku : null))).toEqual(["ST-001", null]);
     expect(product.offers.map((offer) => [offer.name, offer.price, offer.availability])).toEqual([
       ["Pack of 5", "55.00", "https://schema.org/InStock"],
       ["Pack of 10", "99.00", "https://schema.org/OutOfStock"],

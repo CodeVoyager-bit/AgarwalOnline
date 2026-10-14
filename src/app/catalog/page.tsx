@@ -20,7 +20,7 @@ export async function generateMetadata({
   if (category)
     return {
       title: `${category.en} online in Nagothane`,
-      description: `Shop ${category.en.toLowerCase()} from Agarwal General Stores with same-day delivery in and around Nagothane.`,
+      description: `Shop ${category.en} from Agarwal General Stores with same-day delivery in and around Nagothane.`,
       alternates: { canonical: `/catalog?category=${category.slug}` },
     };
   if (params.sort === "discount") return { title: "Today’s offers and discounts", alternates: { canonical: "/catalog" } };

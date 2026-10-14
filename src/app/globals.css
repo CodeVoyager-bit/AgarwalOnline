@@ -790,6 +790,8 @@ tbody tr:hover { background: var(--canvas); }
   gap: 16px;
   padding: 20px var(--gutter) 0;
 }
+/* no discount in the shop means no deal card: the hero takes the whole row */
+.hero-card:only-child { grid-column: 1 / -1; }
 .hero-card {
   position: relative;
   display: flex;
@@ -1840,6 +1842,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .variant-card .form-stack { grid-template-columns: 1fr; }
   .variant-card .form-stack input { width: 100%; }
   .product-art.large { aspect-ratio: 16 / 10; }
+  /* a pack shot in the wide frame: show all of it rather than cropping the top and bottom off */
+  .product-art.large:not(.quiet) { background: var(--paper); }
+  .product-art.large .product-photo { object-fit: contain; }
   /* the h1 repeats the last crumb */
   .breadcrumb { margin-bottom: 12px; }
   .breadcrumb > :nth-last-child(-n + 2) { display: none; }

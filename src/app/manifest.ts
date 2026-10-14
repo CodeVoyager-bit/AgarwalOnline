@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Agarwal General Stores",
     short_name: "Agarwal",
     description:
-      "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in Nagothane.",
+      "Pens, pencils, notebooks and school stationery from Agarwal General Stores, delivered same day in Nagothane.",
     start_url: "/",
     scope: "/",
     display: "standalone",
