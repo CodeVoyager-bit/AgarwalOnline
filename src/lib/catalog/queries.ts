@@ -84,9 +84,12 @@ export async function catalogForSchools(input: { q?: string; category?: string }
 const AISLE_ORDER = [
   "pens",
   "pencils",
+  "colours-markers",
   "long-books",
   "notebooks",
   "diaries",
+  "project-paper",
+  "school-essentials",
   // toys and games (Ratna's catalogue, 2026-10-16)
   "games-puzzles",
   "learning-toys",
