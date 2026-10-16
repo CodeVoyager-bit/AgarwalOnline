@@ -14,6 +14,7 @@ import { requirePage } from "@/lib/auth/session";
 import {
   grants,
   staffRoleOf,
+  accountRoles,
   staffRoles,
   type Permission,
   type Role,
@@ -28,6 +29,12 @@ const labels: Record<string, string> = {
   admin: "Admin",
   "super-admin": "Owner",
 };
+/** The same four roles, in the same order, in every picker on this page. */
+const roleOptions = accountRoles.map((role) => (
+  <option key={role} value={role}>
+    {{ customer: "Customer", delivery: "Delivery partner", admin: "Admin", "super-admin": "Owner (super admin)" }[role]}
+  </option>
+));
 const SUMMARY: Record<string, string> = {
   delivery:
     "Delivers the orders assigned to them and records the cash they collect.",
@@ -165,14 +172,7 @@ export default async function StaffManagement({
                       staffRoleOf(editing.roles as Role[]) ?? "customer"
                     }
                   >
-                    {staffRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {labels[role]}
-                      </option>
-                    ))}
-                    <option value="customer">
-                      No staff role (customer only)
-                    </option>
+                    {roleOptions}
                   </select>
                 </label>
                 <label>
@@ -280,14 +280,14 @@ export default async function StaffManagement({
               cell: (person) => <When at={person.createdAt} />,
             },
             {
-              header: "Add as",
+              header: "Role",
               cell: (person) => (
                 <ActionForm
                   action={staffAction}
-                  submit="Add to team"
+                  submit="Save role"
                   className="form-stack inline-grant"
                   buttonClassName="secondary-button compact-button"
-                  confirmMessage={`${person.name} will be able to open the store workspace with the role you picked. You can change or remove it later.`}
+                  confirmMessage={`${person.name} gets the role you picked: a staff role opens the store workspace. You can change it later.`}
                 >
                   <input type="hidden" name="operation" value="grant" />
                   <input
@@ -303,11 +303,7 @@ export default async function StaffManagement({
                     name="role"
                     defaultValue="admin"
                   >
-                    {staffRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {labels[role]}
-                      </option>
-                    ))}
+                    {roleOptions}
                   </select>
                 </ActionForm>
               ),
@@ -332,14 +328,14 @@ export default async function StaffManagement({
         <summary>Not in the list? Create a new account</summary>
         <ActionForm
           action={staffAction}
-          submit="Create staff account"
-          confirmMessage="The account on this phone number gets the role you picked and can open the store workspace. You can change or remove it later."
+          submit="Create account"
+          confirmMessage="The account on this phone number gets the role you picked. You can change it later."
         >
           <input type="hidden" name="operation" value="create" />
           <p className="muted">
-            If this mobile number already has a customer account, the role is
-            added to it and the other fields are optional. Otherwise all fields
-            create a new account.
+            If this mobile number already has an account, it gets the role you
+            pick and the other fields are optional. Otherwise all fields create a
+            new account.
           </p>
           <PolicyNotice kind="staff" />
           <div className="staff-form-grid">
@@ -350,11 +346,7 @@ export default async function StaffManagement({
             <label>
               Role
               <select name="role" defaultValue="admin">
-                {staffRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {labels[role]}
-                  </option>
-                ))}
+                {roleOptions}
               </select>
             </label>
             <label>

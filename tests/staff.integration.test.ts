@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AuditLog, User } from "../src/lib/db/models";
 import { Order, OrderTimelineEvent } from "../src/lib/commerce/models";
 import { connectDB } from "../src/lib/db/connect";
-import { createStaff, updateStaff } from "../src/lib/staff/service";
+import { createStaff, grantStaffRole, updateStaff } from "../src/lib/staff/service";
 import { getAuth } from "../src/lib/auth/better-auth";
 
 const uri = process.env.TEST_MONGODB_URI;
@@ -143,6 +143,37 @@ describe.skipIf(!uri)("Staff access management", () => {
       password: "",
     });
     expect((await User.findById(customer._id))?.roles).toEqual(["customer"]);
+  });
+
+  it("offers Customer as a fourth role in every picker", async () => {
+    // a new account can be a plain customer
+    const made = await createStaff(superAdminId, {
+      phone: "9000000077",
+      role: "customer",
+      name: "Phone Customer",
+      email: "phone.customer@example.test",
+      password: "Temporary-password-123",
+    });
+    expect(made).toEqual({ created: true, role: "customer" });
+    const customer = await User.findOne({ phone: "9000000077" });
+    expect(customer?.roles).toEqual(["customer"]);
+    // picking Customer for someone who is already one changes nothing and says why
+    await expect(grantStaffRole(superAdminId, { userId: String(customer!._id), role: "customer" })).rejects.toThrow(
+      "Already a customer",
+    );
+    // a staff member goes back to customer from the list...
+    await grantStaffRole(superAdminId, { userId: String(customer!._id), role: "delivery" });
+    expect((await User.findById(customer!._id))?.roles).toEqual(["customer", "delivery"]);
+    await grantStaffRole(superAdminId, { userId: String(customer!._id), role: "customer" });
+    expect((await User.findById(customer!._id))?.roles).toEqual(["customer"]);
+    expect(await AuditLog.exists({ action: "staff.remove", target: String(customer!._id) })).toBeTruthy();
+    // ...or by phone number in "Create a new account"
+    await createStaff(superAdminId, { phone: "9000000077", role: "admin", name: "", email: "", password: "" });
+    expect(await createStaff(superAdminId, { phone: "9000000077", role: "customer", name: "", email: "", password: "" })).toEqual({
+      created: false,
+      role: "customer",
+    });
+    expect((await User.findById(customer!._id))?.roles).toEqual(["customer"]);
   });
 
   it("needs name, email and a password to create a brand-new staff account", async () => {

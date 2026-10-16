@@ -3,6 +3,9 @@ export type Role = (typeof roles)[number];
 /** Everyone holds "customer"; at most one of these is added on top. */
 export const staffRoles = ["delivery", "admin", "super-admin"] as const;
 export type StaffRole = (typeof staffRoles)[number];
+/** Every role an account can be given, in the order the owner's pickers list them. */
+export const accountRoles = ["customer", ...staffRoles] as const;
+export type AccountRole = (typeof accountRoles)[number];
 export const grants = {
   customer: [
     "profile:own",

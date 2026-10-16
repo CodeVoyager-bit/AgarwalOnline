@@ -21,10 +21,17 @@ export async function staffAction(
       active: form.get("active") === "on",
     };
     let success = "Staff account updated.";
-    if (operation === "create")
-      success = (await createStaff(actor.id, input)).created
-        ? "Staff account created."
-        : "Staff access added to the existing account.";
+    if (operation === "create") {
+      const { created, role } = await createStaff(actor.id, input);
+      success =
+        role === "customer"
+          ? created
+            ? "Customer account created."
+            : "That account is a customer account now."
+          : created
+            ? "Staff account created."
+            : "Staff access added to the existing account.";
+    }
     else if (operation === "grant") {
       await grantStaffRole(actor.id, input);
       granted = String(form.get("userId"));
@@ -41,7 +48,7 @@ export async function staffAction(
   } catch (error) {
     if (error instanceof z.ZodError) return { error: plainMessage(error) };
     const message = error instanceof Error ? error.message : "";
-    if (/^(Manage your|Keep at least|Staff account|Name, work|This rider has|Enter a 10-digit)/.test(message))
+    if (/^(Manage your|Keep at least|Staff account|Name, work|This rider has|Enter a 10-digit|Already a customer)/.test(message))
       return { error: message };
     if (/duplicate key/i.test(message))
       return { error: "That email or phone number is already in use." };

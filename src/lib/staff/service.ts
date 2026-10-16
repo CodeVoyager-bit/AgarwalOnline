@@ -3,8 +3,10 @@ import { z } from "zod";
 import {
   assertPermission,
   rolesFor,
+  accountRoles,
   staffRoleOf,
   staffRoles,
+  type AccountRole,
   type Role,
 } from "../auth/permissions";
 import { connectDB } from "../db/connect";
@@ -38,23 +40,26 @@ const blank = <T extends z.ZodTypeAny>(schema: T) =>
     .transform((value) => (value === "" ? undefined : value) as z.output<T> | undefined);
 
 type Person = InstanceType<typeof User>;
-/** Gives an existing account a staff role, signs it out so the new role applies, and records who did it. */
+/**
+ * Gives an existing account a role, signs it out so the new role applies, and records who did it.
+ * "customer" takes any staff role away and leaves an ordinary customer account.
+ */
 async function giveRole(
   actorId: string,
   person: Person,
-  role: (typeof staffRoles)[number],
+  role: AccountRole,
   session: mongoose.ClientSession,
   details: Record<string, unknown> = {},
 ) {
   const previousRole = staffRoleOf(person.roles as Role[]);
-  person.roles = rolesFor(role);
+  person.roles = rolesFor(role === "customer" ? null : role);
   await person.save({ session });
   await revokeStaffSessions(String(person._id), session);
   await AuditLog.create(
     [
       {
         actorId,
-        action: "staff.grant",
+        action: role === "customer" ? "staff.remove" : "staff.grant",
         target: String(person._id),
         details: { phone: person.phone, email: person.email, role, previousRole, ...details },
       },
@@ -66,13 +71,15 @@ async function giveRole(
 /** Gives someone picked from the list of existing accounts a staff role. Works for accounts without a phone number. */
 export async function grantStaffRole(actorId: string, input: unknown) {
   await authorize(actorId);
-  const data = z.object({ userId: objectId, role: z.enum(staffRoles) }).parse(input);
+  const data = z.object({ userId: objectId, role: z.enum(accountRoles) }).parse(input);
   if (data.userId === actorId)
     throw Error("Manage your own account through a separate verified flow.");
   let name = "";
   await mongoose.connection.transaction(async (session) => {
     const person = await User.findOne({ _id: data.userId, active: true }).session(session);
     if (!person) throw Error("Staff account not found, or the account is paused.");
+    if (data.role === "customer" && !staffRoleOf(person.roles as Role[]))
+      throw Error(`Already a customer: pick Delivery partner, Admin or Owner to give ${person.name} a staff role.`);
     name = person.name;
     await giveRole(actorId, person, data.role, session);
   });
@@ -85,7 +92,7 @@ export async function createStaff(actorId: string, input: unknown) {
   const data = z
     .object({
       phone,
-      role: z.enum(staffRoles),
+      role: z.enum(accountRoles),
       name: blank(name),
       email: blank(email),
       password: blank(password),
@@ -132,7 +139,7 @@ export async function createStaff(actorId: string, input: unknown) {
           name: data.name,
           email: data.email,
           phone: data.phone,
-          roles: rolesFor(data.role),
+          roles: rolesFor(data.role === "customer" ? null : data.role),
           emailVerified: true,
           active: true,
         },
@@ -157,7 +164,7 @@ export async function createStaff(actorId: string, input: unknown) {
       { session },
     );
   });
-  return { created };
+  return { created, role: data.role };
 }
 
 /** Edits a staff member; role "customer" removes staff access and leaves an ordinary customer account. */
@@ -171,7 +178,7 @@ export async function updateStaff(actorId: string, input: unknown) {
       // and staff who joined with Google may have no number
       email: blank(email),
       phone: blank(phone),
-      role: z.enum([...staffRoles, "customer"]),
+      role: z.enum(accountRoles),
       active: z.boolean(),
       password: z.union([password, z.literal("")]),
     })

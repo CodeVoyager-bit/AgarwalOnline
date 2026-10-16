@@ -327,7 +327,7 @@ test("Super Admin manages staff and reviews the audit trail", async ({
   await page.getByLabel("Role for Picker Candidate").selectOption("delivery");
   await page
     .locator("form", { has: page.getByLabel("Role for Picker Candidate") })
-    .getByRole("button", { name: "Add to team" })
+    .getByRole("button", { name: "Save role" })
     .click();
   await page.getByRole("button", { name: /^Yes, / }).click();
   await expect(page.getByRole("status")).toContainText("Picker Candidate is now on the team");
@@ -342,7 +342,7 @@ test("Super Admin manages staff and reviews the audit trail", async ({
   await form.getByLabel("Phone").fill("9000000084");
   await form.getByLabel("Role").selectOption("delivery");
   await form.getByLabel("Temporary password").fill("Temporary-password-123");
-  await form.getByRole("button", { name: "Create staff account" }).click();
+  await form.getByRole("button", { name: "Create account" }).click();
   // giving someone workspace access asks first
   await page.getByRole("button", { name: /^Yes, / }).click();
   await expect(page.getByRole("status")).toContainText("Staff account created");
