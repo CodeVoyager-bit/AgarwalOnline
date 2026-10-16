@@ -45,6 +45,7 @@ export default async function CODPage() {
       </div>
       <DataTable
         caption="Cash on delivery collections with partner, amounts and reconciliation status"
+        exportName="Cash collections"
         rows={collections}
         rowKey={(item) => String(item._id)}
         columns={[

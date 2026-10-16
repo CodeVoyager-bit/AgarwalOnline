@@ -55,7 +55,7 @@ export function SchoolHeader({
     <header className="header school-header">
       <div className="header-inner">
         <Link href="/school" className="brand" aria-label={text.home}>
-          Agarwal<small>{text.forSchools}</small>
+          Agarwal Online<small>{text.forSchools}</small>
         </Link>
         <nav className="primary-nav" aria-label={text.aislesLabel}>
           <BackButton label={shop.back} className="nav-back" />

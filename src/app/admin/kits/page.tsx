@@ -113,7 +113,6 @@ export default async function KitsPage({
         eyebrow="Run the store"
         title="School kits"
         lead="Each school's list for a class, ready for parents to buy in one tap. Parents with a matching child are told when you publish."
-        aside={<span className="live-chip">{kits.length} shown</span>}
       />
       <CatalogAdminNav />
       {editing && (
@@ -201,6 +200,11 @@ export default async function KitsPage({
           </select>
         </label>
       </FilterBar>
+      <p className="results-line" role="status">
+        <span>
+          <strong>{kits.length}</strong> {kits.length === 1 ? "kit" : "kits"}
+        </span>
+      </p>
       <DataTable
         caption="School kits with their year, number of lines, total and status"
         rows={kits}

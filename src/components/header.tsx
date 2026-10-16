@@ -40,15 +40,16 @@ function workspaceLinks(
   return [];
 }
 
-/** Primary navigation is a fixed set of aisle groups; labels come from the catalog. */
-const NAV_SLUGS = ["stationery", "paper", "art-craft", "gift-sets", "gift-wrap"];
 
 export async function Header({
   locale,
   categories,
+  offers = false,
 }: {
   locale: Locale;
   categories: CategoryLink[];
+  /** Something sells below MRP: without it the Offers page would list everything at full price. */
+  offers?: boolean;
 }) {
   const now = new Date();
   const [user, rules, offer] = await Promise.all([
@@ -79,9 +80,8 @@ export async function Header({
   // the owner shops for any school, so it isn't "my" school
   const schoolDoor =
     staffRoleOf(user?.roles ?? []) === "super-admin" ? schoolCopy[locale].forSchools : schoolCopy[locale].forMySchool;
-  const nav = NAV_SLUGS.map((slug) => categories.find((c) => c.slug === slug)).filter(
-    (c): c is CategoryLink => Boolean(c),
-  );
+  // the first five aisles in the shop's order (AISLE_ORDER in catalog/queries.ts)
+  const nav = categories.slice(0, 5);
   const cutoff = `${rules.cutoffHour % 12 || 12} ${rules.cutoffHour >= 12 ? "PM" : "AM"}`;
   return (
     <>
@@ -120,8 +120,8 @@ export async function Header({
       </div>
       <header className="header">
         <div className="header-inner">
-          <Link href="/" className="brand" aria-label="Agarwal General Stores, home">
-            Agarwal<small>General Stores</small>
+          <Link href="/" className="brand" aria-label="Agarwal Online, home">
+            Agarwal<small>Online</small>
           </Link>
           <nav className="primary-nav" aria-label={text.shopByCategory}>
             {/* desktop and tablet: first in the category row; phones get the one beside search */}
@@ -132,9 +132,11 @@ export async function Header({
                 {category[locale]}
               </Link>
             ))}
-            <Link href="/catalog?sort=discount" className="offers">
-              {text.deals}
-            </Link>
+            {offers && (
+              <Link href="/catalog?sort=discount" className="offers">
+                {text.deals}
+              </Link>
+            )}
             {representsSchool && (
               <Link href="/school" className="school-door-pill">
                 <School size={16} aria-hidden="true" /> {schoolDoor}

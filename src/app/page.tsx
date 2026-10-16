@@ -23,6 +23,7 @@ import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display"
 import { taxProfile } from "@/lib/tax/profile";
 import { jsonLd, storeJsonLd } from "@/lib/seo";
 import { getEnv } from "@/lib/env";
+import { paymentsEnabled } from "@/lib/payments/provider";
 export const dynamic = "force-dynamic";
 // the title and description are the root layout's; shared links with tracking tags fold into one address
 export const metadata = { alternates: { canonical: "/" } };
@@ -38,12 +39,12 @@ const copy = {
     hubs: "Explore the categories",
     hubsMr: "विभाग पाहा",
     productsCount: (n: number) => (n === 1 ? "1 product" : `${n} products`),
-    lead: "Stationery, school supplies, gifts and party essentials at fair prices, carried to your door by the same people who serve you in store.",
+    lead: "Stationery, school supplies, toys and games at fair prices, carried to your door by the same people who serve you in store.",
     pinLabel: "Check delivery at your PIN code",
     pinHint: "Six digits. Used only to check serviceability.",
     checkPin: "Check",
     freeFrom: (amount: string) => `Free delivery from ${amount}`,
-    payment: "Cash on delivery or pay online",
+    payment: (online: boolean) => (online ? "Cash on delivery or pay online" : "Cash on delivery"),
     areasLabel: (areas: string) => `Delivering in ${areas}`,
     benefitsLabel: "Delivery and payment facts",
     offers: "Offers running now",
@@ -59,7 +60,7 @@ const copy = {
     aislesMr: "विभागानुसार खरेदी",
     allAisles: (n: number) => `All ${n} categories`,
     usuals: "Your usuals",
-    usualsTitle: "Buy it again.",
+    usualsTitle: "Buy it again",
     pastOrders: "Past orders",
     popular: "Popular in the shop",
     popularMr: "दुकानातील लोकप्रिय",
@@ -76,10 +77,10 @@ const copy = {
     step2: "Packed at the counter",
     step2Note: "By the same people who serve you in store.",
     step3: "At your door the same day",
-    step3Note: "Pay in cash when it arrives, or online.",
+    step3Note: (online: boolean) => (online ? "Pay in cash when it arrives, or online." : "Pay in cash when it arrives."),
     storyTitle: "A counter you already know.",
     storyBody:
-      "Agarwal General Stores has served Nagothane from one counter for years. The website is the same shelves and the same prices, with delivery added. Order in English or Marathi, pay in cash at the door if you prefer.",
+      "Agarwal Online has served Nagothane from one counter for years. The website is the same shelves and the same prices, with delivery added. Order in English or Marathi and pay in cash at the door.",
     storyArea: "Check your area",
     storyTalk: "Talk to the store",
   },
@@ -93,12 +94,12 @@ const copy = {
     hubs: "विभाग पाहा",
     hubsMr: "Explore the categories",
     productsCount: (n: number) => `${n} उत्पादने`,
-    lead: "लेखन साहित्य, शालेय वस्तू, भेटवस्तू आणि पार्टी साहित्य योग्य किमतीत, दुकानातील तीच माणसे तुमच्या दारापर्यंत पोहोचवतात.",
+    lead: "लेखन साहित्य, शालेय वस्तू, खेळणी आणि खेळ योग्य किमतीत, दुकानातील तीच माणसे तुमच्या दारापर्यंत पोहोचवतात.",
     pinLabel: "तुमच्या पिन कोडवर वितरण तपासा",
     pinHint: "सहा अंक. फक्त वितरण उपलब्धता तपासण्यासाठी.",
     checkPin: "तपासा",
     freeFrom: (amount: string) => `${amount} पासून मोफत वितरण`,
-    payment: "रोख किंवा ऑनलाइन पेमेंट",
+    payment: (online: boolean) => (online ? "रोख किंवा ऑनलाइन पेमेंट" : "वितरणावेळी रोख"),
     areasLabel: (areas: string) => `${areas} येथे वितरण`,
     benefitsLabel: "वितरण आणि पेमेंट माहिती",
     offers: "सध्याच्या ऑफर",
@@ -114,7 +115,7 @@ const copy = {
     aislesMr: "Shop by category",
     allAisles: (n: number) => `सर्व ${n} विभाग`,
     usuals: "तुमच्या नेहमीच्या वस्तू",
-    usualsTitle: "पुन्हा खरेदी करा.",
+    usualsTitle: "पुन्हा खरेदी करा",
     pastOrders: "मागील ऑर्डर",
     popular: "दुकानातील लोकप्रिय",
     popularMr: "Popular in the shop",
@@ -131,10 +132,10 @@ const copy = {
     step2: "काउंटरवर पॅक",
     step2Note: "दुकानात तुम्हाला भेटणारी तीच माणसे.",
     step3: "त्याच दिवशी तुमच्या दारी",
-    step3Note: "आल्यावर रोख द्या, किंवा ऑनलाइन.",
+    step3Note: (online: boolean) => (online ? "आल्यावर रोख द्या, किंवा ऑनलाइन." : "आल्यावर रोख द्या."),
     storyTitle: "तुमच्या ओळखीचाच काउंटर.",
     storyBody:
-      "अग्रवाल जनरल स्टोअर्स वर्षानुवर्षे नागोठण्याला एकाच काउंटरवरून सेवा देत आहे. वेबसाइटवर त्याच वस्तू आणि त्याच किमती, फक्त वितरणाची सोय जोडली आहे. इंग्रजी किंवा मराठीत ऑर्डर करा, हवे असल्यास दारात रोख द्या.",
+      "अग्रवाल ऑनलाइन वर्षानुवर्षे नागोठण्याला एकाच काउंटरवरून सेवा देत आहे. वेबसाइटवर त्याच वस्तू आणि त्याच किमती, फक्त वितरणाची सोय जोडली आहे. इंग्रजी किंवा मराठीत ऑर्डर करा आणि दारात रोख द्या.",
     storyArea: "तुमचे क्षेत्र तपासा",
     storyTalk: "दुकानाशी बोला",
   },
@@ -145,12 +146,15 @@ function AisleTile({
   category,
   locale,
   eager = false,
+  fallback,
 }: {
   category: { slug: string; en: string; mr: string };
   locale: "en" | "mr";
   eager?: boolean;
+  /** An aisle without a chosen photo shows its first product's. */
+  fallback?: string;
 }) {
-  const photo = categoryImages[category.slug];
+  const photo = categoryImages[category.slug] ?? fallback;
   const other = locale === "en" ? "mr" : "en";
   return (
     <Link
@@ -247,6 +251,7 @@ export default async function Home() {
     product.variants.some((variant) => previousIds.has(variant.id)),
   );
   const t = copy[locale];
+  const online = paymentsEnabled();
   const cutoff = `${rules.cutoffHour % 12 || 12} ${rules.cutoffHour >= 12 ? "PM" : "AM"}`;
   const freeFrom = formatPrice(rules.freeThresholdPaise);
   const areas = areaDocs.join(" · ");
@@ -298,6 +303,8 @@ export default async function Home() {
       items: products.filter((product) => product.categorySlug === category.slug),
     }))
     .filter((hub) => hub.items.length > 0)
+    // the fullest aisles, so stationery and toys both show; ties keep the aisle order
+    .sort((a, b) => b.items.length - a.items.length)
     .slice(0, 4);
   const buyAgainRow = take(buyAgain, 5);
   const popular = take(bestsellers.length ? bestsellers : products, 10);
@@ -389,15 +396,15 @@ export default async function Home() {
           <span className="benefit-icon">
             <Wallet aria-hidden="true" />
           </span>
-          <strong>{t.payment}</strong>
-          <small>{t.step3Note}</small>
+          <strong>{t.payment(online)}</strong>
+          <small>{t.step3Note(online)}</small>
         </div>
         <div>
           <span className="benefit-icon">
             <Clock3 aria-hidden="true" />
           </span>
           <strong>{t.step1(cutoff)}</strong>
-          <small>{t.step2Note}</small>
+          <small>{t.step1Note}</small>
         </div>
       </div>
       <div className="page-container home">
@@ -437,6 +444,7 @@ export default async function Home() {
                 category={category}
                 locale={locale}
                 eager={index < 6}
+                fallback={products.find((product) => product.categorySlug === category.slug && product.image)?.image}
               />
             ))}
             <Link href="/catalog" className="aisle-tile quiet">
@@ -534,7 +542,7 @@ export default async function Home() {
             <li>
               <Truck size={22} aria-hidden="true" />
               <strong>{t.step3}</strong>
-              <small>{t.step3Note}</small>
+              <small>{t.step3Note(online)}</small>
             </li>
           </ol>
           <form className="pin-check" action="/serviceability">
@@ -611,8 +619,11 @@ export default async function Home() {
                     {category[other]}
                   </span>
                   <strong lang={locale}>{category[locale]}</strong>
+                  {/* each line once: the sizes after the comma used to repeat one book three times */}
                   <p lang={locale}>
-                    {items.slice(0, 3).map((product) => product.name[locale]).join(" · ")}
+                    {[...new Set(items.map((product) => product.name[locale].split(",")[0].trim()))]
+                      .slice(0, 3)
+                      .join(" · ")}
                   </p>
                   <span className="hub-count">
                     {t.productsCount(items.length)}

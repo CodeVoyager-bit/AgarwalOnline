@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import config from "../next.config";
@@ -8,7 +8,6 @@ import { DEFAULT_FACTS } from "../src/lib/legal/format";
 import { notice, type NoticeKind } from "../src/lib/legal/notices";
 import { LEGAL_PAGES, POLICIES_HOME } from "../src/lib/legal/pages";
 import { privacyDoc } from "../src/lib/legal/privacy";
-import { refundsDoc } from "../src/lib/legal/refunds";
 import { shippingDoc } from "../src/lib/legal/shipping";
 import { termsDoc } from "../src/lib/legal/terms";
 import type { Block, LegalDoc, LegalFacts } from "../src/lib/legal/types";
@@ -110,13 +109,39 @@ describe("store policies", () => {
     expect(privacy).toContain("first name, school and class");
     expect(privacy).toContain("Browser push services");
     expect(privacy).toContain("An order you mark private at checkout stays yours.");
-    const family = termsDoc.en(LIVE).sections.find((s) => s.id === "family")!;
-    const text = family.blocks.flatMap(texts).join("\n");
-    expect(text).toContain("₹1,00,000");
-    expect(text).toContain("due by the 10th");
-    expect(text).toContain("no interest and no late fee");
-    expect(words(refundsDoc.en(LIVE))).toContain("credit on the tab");
-    expect(words(termsDoc.mr(LIVE))).toContain("कुटुंब टॅब");
+  });
+
+  it("points to the area list only when there is one", () => {
+    const charges = (facts: LegalFacts) => words(shippingDoc.en(facts));
+    expect(charges(LIVE)).toContain("shown above");
+    expect(charges(DEFAULT_FACTS)).not.toContain("shown above");
+    expect(words(shippingDoc.mr(DEFAULT_FACTS))).not.toContain("वर दाखवले");
+  });
+
+  it("describes only what is live: no family tab, no online payment, no shop assistant", () => {
+    for (const [key, builder] of Object.entries(DOCS)) {
+      const en = words(builder.en(LIVE));
+      const mr = words(builder.mr(LIVE));
+      // the khata was removed on 2026-10-16; online payment and the assistant are switched off
+      for (const gone of [/family tab/i, /\btab\b/i, /khata/i, /Razorpay/, /pay(ment)? online|online payment/i, /assistant/i])
+        expect(en, `${key} ${gone}`).not.toMatch(gone);
+      for (const gone of [/टॅब/, /Razorpay/, /ऑनलाइन पेमेंट/, /सहाय्यक/]) expect(mr, `${key} ${gone}`).not.toMatch(gone);
+    }
+    expect(words(termsDoc.en(LIVE))).toContain("We take **cash on delivery** only");
+    expect(notice("family", "en")).not.toMatch(/\btab\b/);
+  });
+
+  it("names the code sender, the session length and voice search the way the code has them", () => {
+    const privacy = words(privacyDoc.en(LIVE));
+    const source = (file: string) => readFileSync(join(process.cwd(), file), "utf8");
+    // src/lib/auth/sms.ts posts every code to MiniMoth's hook
+    expect(source("src/lib/auth/sms.ts")).toContain("MINIMOTH_HOOK_URL");
+    expect(privacy).toContain("MiniMoth");
+    expect(privacy).not.toContain("SMS provider");
+    const days = Number(/expiresIn: (\d+) \* 24 \* 60 \* 60/.exec(source("src/lib/auth/better-auth.ts"))![1]);
+    expect(privacy).toContain(`Keeps you signed in. ${days} days`);
+    expect(source("next.config.ts")).toContain("microphone=(self)");
+    expect(privacy).toContain("speech service");
   });
 
   it("says how long photos are kept, from the cleanup job's setting", () => {

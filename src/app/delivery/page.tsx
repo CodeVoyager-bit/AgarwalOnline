@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { dayLabel } from "@/lib/commerce/slots";
 import { MapPin, PackageCheck, Phone } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { requirePage } from "@/lib/auth/session";
@@ -82,11 +83,7 @@ export default async function Delivery() {
                 </span>
                 <StatusPill value={o.deliveryStatus} />
                 <strong className="stop-collect">
-                  {o.paymentMethod === "cod"
-                    ? `Collect ${formatPrice(o.totalPaise)}`
-                    : o.paymentMethod === "tab"
-                      ? "Family tab · collect nothing"
-                      : "Already paid"}{" "}
+                  {o.paymentMethod === "cod" ? `Collect ${formatPrice(o.totalPaise)}` : "Already paid"}{" "}
                   →
                 </strong>
               </Link>
@@ -123,7 +120,7 @@ export default async function Delivery() {
           {history.map((o) => (
             <li key={String(o._id)}>
               <Link href={`/delivery/orders/${o._id}`}>{o.number}</Link>
-              <small>{o.deliveryDate}</small>
+              <small>{o.deliveryDate ? dayLabel(o.deliveryDate) : ""}</small>
             </li>
           ))}
         </ul>

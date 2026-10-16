@@ -6,7 +6,7 @@
 // Set SHOT_DIR to also write a full-page screenshot of every route.
 import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, writeFileSync } from "node:fs";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { User, Product, ProductVariant } from "../../src/lib/db/models";
@@ -16,7 +16,7 @@ import { ChatConversation } from "../../src/lib/chat/models";
 import { QuoteBasket, QuoteRequest, School } from "../../src/lib/schools/models";
 import { istDatePlus, quoteTotals } from "../../src/lib/schools/quote-math";
 import { DEFAULT_TAX_PROFILE } from "../../src/lib/tax/gst";
-import { Family, SchoolKit, TabPayment } from "../../src/lib/family/models";
+import { Family, SchoolKit } from "../../src/lib/family/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
 import { LEGAL_PAGES, POLICIES_HOME } from "../../src/lib/legal/pages";
 
@@ -206,13 +206,10 @@ test.beforeAll(async () => {
     adults: [customer!._id],
     inviteToken: "layout-family-invite-000",
     children: [{ name: "Aarav", school: "Demo School", className: "5", year: "2026-27" }],
-    // an open tab with a payment, so the tab card and /admin/tabs have something in them
-    tab: { status: "active", limitPaise: 500000, requestedAt: new Date(), decidedAt: new Date() },
   });
   await Order.updateMany({}, { familyId: home._id });
   // Aarav's kit this year, and next year's out already, so the card shows the kit and the class question
   const staff = (await User.findOne({ email: EMAILS.owner }))!;
-  await TabPayment.create({ familyId: home._id, amountPaise: 20000, method: "upi", reference: "412345678901", idempotencyKey: "layout-tab-payment", recordedBy: staff._id });
   const kitPacks = await ProductVariant.find().limit(4);
   for (const [className, year] of [["5", "2026-27"], ["6", "2027-28"]])
     await SchoolKit.create({
@@ -232,11 +229,36 @@ test.afterAll(async () => {
   await mongoose.disconnect();
 });
 
+/**
+ * With SHOT_DIR set (a bug bash), what each page throws or logs as an error, the requests that fail,
+ * and links to pages that don't exist, written beside the screenshots. Normal runs don't collect it.
+ */
+const noise: Record<string, string[]> = {};
+function note(path: string, line: string) {
+  const lines = (noise[path] ??= []);
+  if (!lines.includes(line)) lines.push(line);
+}
+function listen(page: Page) {
+  const at = () => new URL(page.url(), "http://x").pathname;
+  page.on("pageerror", (error) => note(at(), `page error: ${error.message.split("\n")[0]}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") note(at(), `console error: ${message.text().slice(0, 240)}`);
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400) note(at(), `${response.status()} ${response.url().slice(0, 160)}`);
+  });
+  page.on("requestfailed", (request) => {
+    const why = request.failure()?.errorText ?? "";
+    if (!why.includes("ERR_ABORTED")) note(at(), `request failed (${why}): ${request.url().slice(0, 160)}`);
+  });
+}
+
 async function signedIn(browser: Browser, who: Who, use: TestInfo["project"]["use"]): Promise<Page> {
   const { baseURL, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor } = use;
   const page = await (
     await browser.newContext({ baseURL, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor })
   ).newPage();
+  if (out) listen(page);
   if (who === "guest") return page;
   await page.goto("/login");
   await page.getByRole("button", { name: "Email", exact: true }).click();
@@ -281,10 +303,85 @@ function layoutProblems() {
   return [...new Set(problems)].slice(0, 8);
 }
 
+/**
+ * Controls drawn wrong: their own words or icon running past their border ("Save" through the pill's
+ * edge), or a parent cutting part of them off (a pill whose bottom a nav row clips).
+ */
+function controlProblems() {
+  const problems: string[] = [];
+  const name = (el: Element) =>
+    `${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}[${(el.textContent ?? "").trim().slice(0, 30)}]`;
+  const px = (value: string) => parseFloat(value) || 0;
+  const edged = (width: string, color: string) => px(width) > 0 && !/transparent|rgba\(.*, 0\)$/.test(color);
+  for (const el of document.body.querySelectorAll("a, button, summary")) {
+    const box = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    if (!box.width || !box.height || style.visibility === "hidden" || el.closest(".sr-only, .skip-link")) continue;
+    if (el.matches(":is(p, li, td, small, label) a")) continue;
+    // what's drawn inside: text and icons, cut to any clipping box on the way (an ellipsis is fine)
+    const left = box.left + px(style.borderLeftWidth);
+    const right = box.right - px(style.borderRightWidth);
+    let [first, last] = [Infinity, -Infinity];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) =>
+        node instanceof Element && (node.matches(".sr-only") || getComputedStyle(node).display === "none")
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT,
+    });
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const isText = node.nodeType === Node.TEXT_NODE;
+      if (!isText && !(node instanceof SVGSVGElement || node instanceof HTMLImageElement)) continue;
+      if (isText && !node.textContent?.trim()) continue;
+      let rects: DOMRect[];
+      if (isText) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        rects = [...range.getClientRects()];
+      } else rects = [(node as Element).getBoundingClientRect()];
+      let clipL = left, clipR = right;
+      for (let p = node.parentElement; p && p !== el; p = p.parentElement)
+        if (getComputedStyle(p).overflowX !== "visible") {
+          const pb = p.getBoundingClientRect();
+          [clipL, clipR] = [Math.max(clipL, pb.left), Math.min(clipR, pb.right)];
+        }
+      for (const r of rects)
+        if (r.width) [first, last] = [Math.min(first, Math.max(r.left, clipL)), Math.max(last, Math.min(r.right, clipR))];
+    }
+    const spill = Math.max(last - right, left - first);
+    if (spill > 1) problems.push(`${name(el)}: its contents run ${Math.round(spill)}px past its border`);
+    // a bordered button needs room inside its outline, or the words sit on the line
+    else if (edged(style.borderLeftWidth, style.borderLeftColor) && edged(style.borderRightWidth, style.borderRightColor) && Math.min(first - left, right - last) < 4)
+      problems.push(`${name(el)}: its words touch its border`);
+    // cut off by a parent: hidden overflow, or a scroller that only scrolls a few pixels (an accident)
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const ps = getComputedStyle(p);
+      if (ps.overflowX === "visible" && ps.overflowY === "visible") continue;
+      const pb = p.getBoundingClientRect();
+      const top = pb.top + px(ps.borderTopWidth), bottom = top + p.clientHeight;
+      const lft = pb.left + px(ps.borderLeftWidth), rgt = lft + p.clientWidth;
+      const accident = (overflow: string, extra: number) => /hidden|clip/.test(overflow) || extra <= 12;
+      const shown = box.bottom > top && box.top < bottom && box.right > lft && box.left < rgt;
+      const cutY = (box.top < top - 1 || box.bottom > bottom + 1) && accident(ps.overflowY, p.scrollHeight - p.clientHeight);
+      const cutX = (box.left < lft - 1 || box.right > rgt + 1) && accident(ps.overflowX, p.scrollWidth - p.clientWidth);
+      if (shown && (cutY || cutX)) {
+        problems.push(`${name(el)} is cut off by ${p.tagName.toLowerCase()}.${[...p.classList].join(".")}`);
+        break;
+      }
+    }
+  }
+  return [...new Set(problems)].slice(0, 8);
+}
+
+/** Both checks, on the page as it settled. */
+async function problemsOn(page: Page) {
+  return [...(await page.evaluate(layoutProblems)), ...(await page.evaluate(controlProblems))];
+}
+
 test("every page holds its layout", async ({ browser }, info) => {
   test.setTimeout(20 * 60_000); // a cold dev server compiles all 40 pages
   const pages = new Map<Who, Page>();
   const report: Record<string, string[]> = {};
+  const links = new Map<string, { who: Who; from: string }>();
   for (const route of routes) {
     const path = route.includes("[") ? samples[route] : route;
     if (!path) {
@@ -299,31 +396,59 @@ test("every page holds its layout", async ({ browser }, info) => {
     await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
     // a redirect that arrives just after "load" (/staff/login → /login on a slow server) restarts the
     // page under the measurement: measure the page it settled on
-    const problems = await page.evaluate(layoutProblems).catch(async () => {
+    const problems = await problemsOn(page).catch(async () => {
       await page.waitForLoadState("load");
-      return page.evaluate(layoutProblems);
+      return problemsOn(page);
     });
     if ((response?.status() ?? 0) >= 500) problems.unshift(`answered ${response?.status()}`);
+    // a page that crashed while rendering still lays out fine: its error screen is the failure
+    if (await page.getByRole("heading", { name: "This page needs another try." }).count()) problems.unshift("shows the error page");
     if (problems.length) report[path] = problems;
-    if (out)
+    if (out) {
       await page.screenshot({
         path: `${out}/${info.project.name}${route.replace(/[/[\]]+/g, "_") || "_home"}.png`,
         fullPage: true,
       });
+      for (const href of await page.$$eval("a[href^='/']", (as) => as.map((a) => a.getAttribute("href")!.split("#")[0])))
+        if (!links.has(href)) links.set(href, { who, from: path });
+    }
   }
-  // the policies come in full Marathi too: longer words, same layout rules
-  const marathi = await signedIn(browser, "guest", info.project.use);
-  await marathi.context().addCookies([{ name: "ags_locale", value: "mr", url: info.project.use.baseURL! }]);
-  for (const policy of [POLICIES_HOME, ...LEGAL_PAGES]) {
-    await marathi.goto(policy.href);
-    await marathi.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-    const problems = await marathi.evaluate(layoutProblems);
-    if (problems.length) report[`${policy.href} (mr)`] = problems;
+  // signed in, the shopping pages grow more controls: Save to a board, another basket, the school pill
+  const customer = pages.get("customer") ?? (await signedIn(browser, "customer", info.project.use));
+  for (const path of ["/", "/catalog", samples["/products/[slug]"], "/cart"]) {
+    await customer.goto(path);
+    await customer.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    const problems = await problemsOn(customer);
+    if (problems.length) report[`${path} (signed in)`] = problems;
     if (out)
-      await marathi.screenshot({
-        path: `${out}/${info.project.name}${policy.href.replace(/\//g, "_")}_mr.png`,
+      await customer.screenshot({
+        path: `${out}/${info.project.name}-signed-in${path.replace(/[/[\]]+/g, "_") || "_home"}.png`,
         fullPage: true,
       });
+  }
+  // the shop and the policies come in full Marathi too: longer words, same layout rules
+  const marathi = await signedIn(browser, "guest", info.project.use);
+  await marathi.context().addCookies([{ name: "ags_locale", value: "mr", url: info.project.use.baseURL! }]);
+  for (const href of ["/", "/catalog", samples["/products/[slug]"], "/cart", "/login", POLICIES_HOME.href, ...LEGAL_PAGES.map((policy) => policy.href)]) {
+    await marathi.goto(href);
+    await marathi.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+    const problems = await problemsOn(marathi);
+    if (problems.length) report[`${href} (mr)`] = problems;
+    if (out)
+      await marathi.screenshot({
+        path: `${out}/${info.project.name}${href.replace(/\//g, "_")}_mr.png`,
+        fullPage: true,
+      });
+  }
+  if (out) {
+    // every link a page offers should lead somewhere, opened as the person who saw it
+    for (const [href, { who, from }] of links) {
+      const page = pages.get(who) ?? marathi;
+      const status = (await page.request.get(href, { maxRedirects: 0 }).catch(() => null))?.status() ?? 0;
+      if (status === 404 || status >= 500 || !status) note(from, `link to ${href} answers ${status || "nothing"}`);
+    }
+    writeFileSync(`${out}/noise-${info.project.name}.json`, JSON.stringify(noise, null, 1));
+    for (const key of Object.keys(noise)) delete noise[key];
   }
   expect(report).toEqual({});
 });
@@ -342,7 +467,7 @@ test("the shopping path holds at 200% text", async ({ browser }, info) => {
       await page.goto(path);
       await page.addStyleTag({ content: "html { font-size: 200%; }" });
       await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-      const problems = await page.evaluate(layoutProblems);
+      const problems = await problemsOn(page);
       if (problems.length) report[path] = problems;
       if (out) await page.screenshot({ path: `${out}/${info.project.name}-200${path.replace(/[/[\]]+/g, "_")}.png` });
     }

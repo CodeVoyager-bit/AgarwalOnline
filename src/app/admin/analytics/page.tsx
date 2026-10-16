@@ -3,7 +3,8 @@ import { FilterBar } from "@/components/filter-bar";
 import { DataTable } from "@/components/data-table";
 import { PackageCheck } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { analytics } from "@/lib/analytics/service";
+import { analytics, profitReport } from "@/lib/analytics/service";
+import { hasPermission } from "@/lib/auth/permissions";
 import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { MetricList } from "@/components/metric-list";
@@ -24,7 +25,9 @@ export default async function AnalyticsPage({
 }) {
   const user = await requirePage("analytics:read");
   const params = await searchParams;
-  const data = await analytics(user.id, params);
+  // profit uses purchase prices, which only owners see
+  const isOwner = hasPermission(user.roles, "settings:write");
+  const [data, profit] = await Promise.all([analytics(user.id, params), isOwner ? profitReport(user.id, params) : null]);
   const cards = [
     ["Gross sales", money(data.metrics.grossPaise)],
     ["Net revenue", money(data.metrics.netPaise)],
@@ -43,7 +46,16 @@ export default async function AnalyticsPage({
       <PageHeading
         eyebrow="Run the store"
         title="Analytics"
-        lead="Sales, stock, customers and delivery for the dates you choose. Demo orders count when the demo data is loaded."
+        lead="Sales, profit, stock, customers and delivery for the dates you choose."
+        aside={
+          <a
+            className="secondary-button"
+            href={`/api/staff/export/orders?${new URLSearchParams(Object.entries({ from: params.from, to: params.to }).filter(([, v]) => v) as [string, string][])}`}
+            download
+          >
+            Export orders (Excel)
+          </a>
+        }
       />
       <FilterBar
         label="Choose dates"
@@ -67,6 +79,69 @@ export default async function AnalyticsPage({
           </article>
         ))}
       </div>
+      {profit && (
+        <div className="panel" id="profit">
+          <div className="panel-heading">
+            <div>
+              <span className="eyebrow">Owners only</span>
+              <h2>Profit</h2>
+            </div>
+            <span className="order-count">
+              {profit.totals.unpriced
+                ? `${profit.totals.unpriced} sold ${profit.totals.unpriced === 1 ? "pack has" : "packs have"} no purchase price yet`
+                : "Every sold pack has a purchase price"}
+            </span>
+          </div>
+          <div className="analytics-cards">
+            {[
+              ["Item sales", money(profit.totals.revenuePaise)],
+              ["Offer discounts", money(profit.totals.discountPaise)],
+              ["Cost of goods", money(profit.totals.costPaise)],
+              // with no purchase prices at all there is no profit to show yet, not a ₹0 one
+              profit.totals.costPaise || !profit.totals.unpriced
+                ? [`Gross profit · ${Math.round(profit.totals.margin * 100)}% margin`, money(profit.totals.profitPaise)]
+                : ["Gross profit · needs purchase prices", "—"],
+            ].map(([label, value]) => (
+              <article className="panel" key={label}>
+                <small>{label}</small>
+                <strong>{value}</strong>
+              </article>
+            ))}
+          </div>
+          <DataTable
+            bare
+            caption="Profit by pack for the dates chosen"
+            exportName="Profit"
+            rows={profit.rows}
+            rowKey={(row) => row.id}
+            columns={[
+              { header: "Product", cell: (row) => row.name },
+              { header: "Pack", cell: (row) => row.label },
+              { header: "Sold", numeric: true, cell: (row) => row.quantity },
+              { header: "Takings", numeric: true, cell: (row) => money(row.revenuePaise) },
+              { header: "Cost", numeric: true, cell: (row) => (row.costPaise != null ? money(row.costPaise) : "No purchase price") },
+              { header: "Profit", numeric: true, cell: (row) => (row.profitPaise != null ? money(row.profitPaise) : "—") },
+              {
+                header: "Margin",
+                numeric: true,
+                cell: (row) => (row.profitPaise != null && row.revenuePaise ? `${Math.round((row.profitPaise / row.revenuePaise) * 100)}%` : "—"),
+              },
+            ]}
+            empty={
+              <EmptyState
+                icon={PackageCheck}
+                title="Nothing sold in these dates"
+                body="Profit shows here once orders come in. Add purchase prices on each product’s page."
+                heading="h3"
+              />
+            }
+          />
+          <p className="muted">
+            Gross profit = item sales − offer discounts − cost of goods, for packs with a purchase price. Delivery charges are left
+            out. It uses each pack’s current purchase price.
+          </p>
+        </div>
+      )}
       <div className="analytics-grid">
         <MetricList title="Order status" rows={data.orderStatuses} />
         <MetricList title="Payment methods" rows={data.paymentMethods.map(([method, count]) => [methodLabel(String(method)), count])} />
@@ -90,12 +165,12 @@ export default async function AnalyticsPage({
             <span className="eyebrow">Action needed</span>
             <h2>Low stock</h2>
           </div>
-          <span className="order-count">10 or fewer</span>
+          <span className="order-count">Below each pack’s alert level</span>
         </div>
         {/* the lowest ten here; the Stock page has the whole list and can change it */}
         <DataTable
           bare
-          caption="Products at or below the low-stock threshold"
+          caption="Packs below their stock alert level"
           rows={[...data.lowStock].sort((a, b) => a.available - b.available).slice(0, 10)}
           rowKey={(item) => item.id}
           columns={[
@@ -107,7 +182,7 @@ export default async function AnalyticsPage({
             <EmptyState
               icon={PackageCheck}
               title="Everything is in stock"
-              body="Packs fall below the threshold here when they run low."
+              body="Packs show up here when fewer than their alert level can be sold."
               heading="h3"
             />
           }

@@ -3,7 +3,7 @@ import type { Locale } from "../locale-types";
 /** Words for the school marketplace's header and tab bar. Its pages are in English for now. */
 const en = {
   forSchools: "For schools",
-  home: "Agarwal General Stores for schools, school home",
+  home: "Agarwal Online for schools, school home",
   navLabel: "School navigation",
   aislesLabel: "School categories",
   allItems: "All school items",
@@ -28,7 +28,7 @@ export const schoolCopy: Record<Locale, typeof en> = {
   en,
   mr: {
     forSchools: "शाळांसाठी",
-    home: "अग्रवाल जनरल स्टोअर्स शाळांसाठी, शाळेचे मुख्य पान",
+    home: "अग्रवाल ऑनलाइन शाळांसाठी, शाळेचे मुख्य पान",
     navLabel: "शाळेचा मेनू",
     aislesLabel: "शाळेचे विभाग",
     allItems: "सर्व शालेय वस्तू",

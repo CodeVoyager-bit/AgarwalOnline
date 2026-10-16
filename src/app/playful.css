@@ -60,13 +60,13 @@
     transform-origin: left;
   }
 
-  /* ---------- the aisle links: an underline grows from the left on hover ---------- */
-  & .primary-nav a {
+  /* ---------- the aisle links: an underline grows from the left on hover (the school pill keeps its outline) ---------- */
+  & .primary-nav a:not(.school-door-pill) {
     border-bottom-color: transparent;
     background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 100% / 0 1.5px;
     transition: background-size 0.3s var(--out), color 0.2s;
   }
-  & .primary-nav a:hover { border-bottom-color: transparent; background-size: 100% 1.5px; }
+  & .primary-nav a:not(.school-door-pill):hover { border-bottom-color: transparent; background-size: 100% 1.5px; }
 
   /* ---------- a sweep of light across a photo on hover ---------- */
   & .aisle-art::after, & .deal-art::after {
@@ -184,10 +184,11 @@
   /* sections come up as they scroll in; product rails on phones scroll sideways, so they're left still */
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
+      /* settled once a third of it shows: a row resting at the bottom of the screen never sits half-risen */
       & .section-heading, & .aisle-tile, & .offer-ladder, & .delivery-steps {
         animation: fx-reveal linear both;
         animation-timeline: view();
-        animation-range: entry 0% entry 40%;
+        animation-range: entry 0% entry 25%;
       }
       & .section-heading::after {
         animation: fx-draw linear both;
@@ -198,14 +199,14 @@
         & .product-card, & .hub-card {
           animation: fx-reveal linear both;
           animation-timeline: view();
-          animation-range: entry 0% entry 40%;
+          animation-range: entry 0% entry 25%;
         }
         /* across a row the cards follow one another in */
-        & .product-grid > .product-card:nth-child(5n + 2), & .aisles > .aisle-tile:nth-child(6n + 2), & .hubs > .hub-card:nth-child(4n + 2) { animation-range: entry 5% entry 45%; }
-        & .product-grid > .product-card:nth-child(5n + 3), & .aisles > .aisle-tile:nth-child(6n + 3), & .hubs > .hub-card:nth-child(4n + 3) { animation-range: entry 10% entry 50%; }
-        & .product-grid > .product-card:nth-child(5n + 4), & .aisles > .aisle-tile:nth-child(6n + 4), & .hubs > .hub-card:nth-child(4n) { animation-range: entry 15% entry 55%; }
-        & .product-grid > .product-card:nth-child(5n), & .aisles > .aisle-tile:nth-child(6n + 5) { animation-range: entry 20% entry 60%; }
-        & .aisles > .aisle-tile:nth-child(6n) { animation-range: entry 25% entry 65%; }
+        & .product-grid > .product-card:nth-child(5n + 2), & .aisles > .aisle-tile:nth-child(6n + 2), & .hubs > .hub-card:nth-child(4n + 2) { animation-range: entry 3% entry 28%; }
+        & .product-grid > .product-card:nth-child(5n + 3), & .aisles > .aisle-tile:nth-child(6n + 3), & .hubs > .hub-card:nth-child(4n + 3) { animation-range: entry 6% entry 31%; }
+        & .product-grid > .product-card:nth-child(5n + 4), & .aisles > .aisle-tile:nth-child(6n + 4), & .hubs > .hub-card:nth-child(4n) { animation-range: entry 9% entry 34%; }
+        & .product-grid > .product-card:nth-child(5n), & .aisles > .aisle-tile:nth-child(6n + 5) { animation-range: entry 12% entry 37%; }
+        & .aisles > .aisle-tile:nth-child(6n) { animation-range: entry 15% entry 40%; }
       }
     }
   }

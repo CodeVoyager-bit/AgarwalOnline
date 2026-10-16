@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* =============================================================================
-   AGARWAL GENERAL STORES — design system · "Paper & Ink, warmed"
+   AGARWAL ONLINE — design system · "Paper & Ink, warmed"
    Foundation: serif headlines on an oat canvas with espresso actions and clay
    links. Photography where the store has it. Marigold means one thing only:
    an offer (offer strip, discount tags, coupon codes, free-delivery banners).
@@ -144,10 +144,14 @@ body > main { flex: 1 0 auto; }
 :lang(mr) { line-height: 1.65; }
 /* Devanagari has no case and no tracking tradition: letter-spacing pulls conjuncts apart. */
 :is(h1, h2, h3, h4):lang(mr), :lang(mr) :is(h1, h2, h3, h4) { letter-spacing: 0; }
-:is(.eyebrow, .brand small, .top-strip, th, .workspace-group-label, .site-footer h2):lang(mr),
-:lang(mr) :is(.eyebrow, .brand small, .top-strip, th, .workspace-group-label, .site-footer h2) {
+/* (the logo's "Online" is Latin on every page, so it keeps its English tracking) */
+:is(.eyebrow, .top-strip, th, .workspace-group-label, .site-footer h2, .legal-toc h2, .legal-pager small):lang(mr),
+:lang(mr) :is(.eyebrow, .top-strip, th, .workspace-group-label, .site-footer h2, .legal-toc h2, .legal-pager small) {
   letter-spacing: 0.02em;
 }
+/* English reads small-caps labels at 0.72rem; Devanagari has no capitals to carry them, so it needs more size */
+:is(.eyebrow, .site-footer h2, .legal-toc h2, .legal-pager small):lang(mr),
+:lang(mr) :is(.eyebrow, .site-footer h2, .legal-toc h2, .legal-pager small) { font-size: 0.84rem; }
 a { color: inherit; text-decoration: none; transition: color var(--fast); }
 a:hover { color: var(--accent); }
 p a, li a, td a, .muted a { color: var(--link); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -280,6 +284,8 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 }
 .section-heading > a:hover, .results-line a:hover { color: var(--accent); }
 .workspace-heading { align-items: center; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+/* the title and lead give way, so the page's action stays on the right instead of dropping under a long lead */
+.workspace-heading > :first-child { flex: 1 1 14rem; min-width: 0; }
 .workspace-heading p { margin: 6px 0 0; color: var(--muted); }
 .results-line { align-items: center; margin-bottom: 20px; color: var(--muted); font-size: 0.9rem; }
 .results-line p { margin: 0; }
@@ -443,7 +449,8 @@ details.panel > summary::after, .address-card > summary::after {
 }
 details.panel[open] > summary::after, .address-card[open] > summary::after { transform: rotate(-135deg); }
 details.panel[open] > summary, .address-card[open] > summary { margin-bottom: 16px; }
-details:not(.panel) > summary { padding: 8px 0; color: var(--accent); font-size: 0.9rem; }
+/* a plain "show more" link; dropdown buttons (.popover: Save, another basket, …) style their own */
+details:not(.panel, .popover) > summary { padding: 8px 0; color: var(--accent); font-size: 0.9rem; }
 .address-card summary span:first-child strong, .address-card summary span:first-child small { display: block; }
 .address-card summary small { color: var(--muted); font-family: var(--font-sans); font-weight: 400; font-size: 0.85rem; }
 .address-card summary > span:last-child:not(:first-child) {
@@ -482,6 +489,8 @@ details:not(.panel) > summary { padding: 8px 0; color: var(--accent); font-size:
 .form-stack { display: grid; gap: 16px; }
 .form-stack label, .catalog-filters label, .audit-filters label, .promo-form label {
   display: grid;
+  /* in a row of fields, a taller neighbour (a hint on two lines) never stretches this box: fields line up */
+  align-content: end;
   gap: 6px;
   color: var(--ink-2);
   font-size: 0.875rem;
@@ -517,6 +526,19 @@ details:not(.panel) > summary { padding: 8px 0; color: var(--accent); font-size:
   border-radius: var(--r);
   background: var(--canvas);
   font-size: 0.875rem;
+}
+/* the browser's own "Choose file" button, dressed like the shop's buttons */
+input[type="file"]::file-selector-button {
+  min-height: 36px;
+  margin-right: 12px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 .form-stack label:has(> input[type="checkbox"]), .checkbox-label {
   grid-template-columns: auto 1fr;
@@ -572,6 +594,8 @@ input[type="checkbox"], input[type="radio"] {
 }
 .staff-form-grid, .settings-grid, .analytics-grid, .staff-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .staff-form-grid { gap: 12px; }
+/* the cards after an analytics grid keep the grid's own gap */
+.analytics-grid + .panel { margin-top: 16px; }
 .staff-form-grid .checkbox-label { grid-column: 1 / -1; }
 .field-wide { grid-column: 1 / -1; }
 .settings-grid .panel, .analytics-grid .panel { margin: 0; }
@@ -790,6 +814,8 @@ tbody tr:hover { background: var(--canvas); }
   gap: 16px;
   padding: 20px var(--gutter) 0;
 }
+/* no discount in the shop means no deal card: the hero takes the whole row */
+.hero-card:only-child { grid-column: 1 / -1; }
 .hero-card {
   position: relative;
   display: flex;
@@ -1038,8 +1064,11 @@ tbody tr:hover { background: var(--canvas); }
 .stock-badge { background: rgba(15, 23, 42, 0.82); background: color-mix(in oklab, var(--ink) 82%, transparent); color: var(--canvas); }
 .product-card h3 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* three lines: names end in the size ("…Notebook, 172 Pages"), which two lines cut off on a phone */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+  /* always two lines' room, so the pack line sits at the same height on most cards in a row */
+  min-height: 2.7em;
   margin: 0 0 2px;
   overflow: hidden;
   font-family: var(--font-sans);
@@ -1050,7 +1079,8 @@ tbody tr:hover { background: var(--canvas); }
 }
 .product-rating { display: inline-flex; align-items: center; gap: 4px; width: fit-content; margin: 0 0 4px; color: var(--gold); font-size: 0.78rem; font-weight: 600; }
 .product-rating small { color: var(--muted); font-weight: 500; }
-.pack { margin: auto 0 10px; color: var(--muted); font-size: 0.82rem; }
+/* right under the name; a taller card's spare room goes above the price line instead */
+.pack { margin: 0 0 10px; color: var(--muted); font-size: 0.82rem; }
 .price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 40px; margin: 6px 13px 13px; padding-top: 10px; border-top: 1px solid var(--line); }
 .price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; min-width: 0; }
 .price-row strong { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; line-height: 1; }
@@ -1153,7 +1183,7 @@ tbody tr:hover { background: var(--canvas); }
 .product-detail { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(24px, 5vw, 64px); align-items: start; margin-top: 8px; }
 .product-gallery { position: sticky; top: calc(var(--header-h) + 16px); min-width: 0; }
 .product-art.large { aspect-ratio: 1; margin: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--brand-soft); }
-.product-art.large .photo-note { position: absolute; left: 12px; bottom: 12px; padding: 5px 9px; border-radius: var(--r-sm); background: rgba(255, 255, 255, 0.92); background: color-mix(in srgb, var(--canvas) 92%, transparent); color: var(--muted); font-size: 0.6875rem; }
+.product-gallery .photo-note { display: block; margin-top: 8px; color: var(--muted); font-size: 0.6875rem; }
 .gallery-thumbs { display: flex; gap: 10px; margin-top: 12px; padding-bottom: 2px; overflow-x: auto; }
 .gallery-thumbs button { position: relative; flex: none; width: 72px; height: 72px; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--brand-soft); }
 .gallery-thumbs button[aria-pressed="true"] { border: 2px solid var(--ink); }
@@ -1396,6 +1426,8 @@ progress::-moz-progress-bar { background: var(--ink); border-radius: var(--r-pil
 .checkout-summary > h2 { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .checkout-summary > p { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .checkout-summary > p.muted { display: block; margin-top: 12px; font-size: 0.8rem; text-align: center; }
+/* a sentence with a link (the Terms notice) reads as one line, not as label-and-value */
+.checkout-summary > p.form-notice, .basket-layout > aside > p.form-notice { display: block; }
 .checkout-summary .summary-total { margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--font-display); font-size: 1.7rem; }
 .checkout-summary .checkbox-label { margin-top: 8px; font-size: 0.875rem; }
 .checkout-form > .error-message, .checkout-form > .success-message { grid-column: 1 / -1; }
@@ -1438,13 +1470,13 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .service-area-list { display: block; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* ---------- Account ---------- */
-.profile-mark { width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--ink); color: var(--canvas); font-family: var(--font-display); font-size: 1.6rem; }
+.profile-mark { width: 2.2em; height: 2.2em; flex: none; line-height: 1; display: grid; place-items: center; border-radius: var(--r-pill); background: var(--ink); color: var(--canvas); font-family: var(--font-display); font-size: 1.6rem; }
 .governance-stats, .analytics-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 0 0 24px; }
 .account-stats { grid-template-columns: repeat(3, 1fr); }
 .governance-stats a, .governance-stats > div, .analytics-cards article { min-height: 110px; margin: 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); transition: border-color var(--fast); }
 .governance-stats a:hover { border-color: var(--ink); color: var(--ink); }
 .governance-stats span, .analytics-cards strong { display: block; margin-bottom: 6px; font-family: var(--font-display); font-size: 2.4rem; font-weight: 800; line-height: 1; }
-.governance-stats small, .analytics-cards small { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 500; }
+.governance-stats small, .analytics-cards small { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 500; overflow-wrap: break-word; hyphens: auto; }
 .analytics-cards small { margin-bottom: 6px; }
 .dashboard-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 0 0 24px; }
 .account-tile { display: flex; align-items: center; gap: 16px; min-height: 84px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); transition: border-color var(--fast); }
@@ -1487,9 +1519,11 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .workspace-nav a[aria-current="page"] svg { color: var(--brand); }
 .workspace-main { min-width: 0; }
 .workspace-main .page-container { width: 100%; padding: 0 0 72px; }
-.metric-list > div { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0; padding-bottom: 8px; border-bottom: 4px solid var(--brand-soft); text-transform: capitalize; }
+.metric-list > div { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 12px 0; padding-bottom: 8px; border-bottom: 4px solid var(--brand-soft); }
+/* raw codes ("out-for-delivery") read as a sentence; names and labels keep their own capitals */
+.metric-list > div > span::first-letter { text-transform: uppercase; }
 .metric-list i { position: absolute; left: 0; bottom: -4px; height: 4px; border-radius: var(--r-pill); background: var(--accent); }
-.permission-panel ul { columns: 2; font-size: 0.85rem; }
+.permission-panel ul { font-size: 0.85rem; }
 .permission-panel details { margin-bottom: 8px; }
 .catalog-admin-nav { display: flex; gap: 4px; width: fit-content; max-width: 100%; margin: 16px 0 28px; padding: 4px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
 .catalog-admin-nav a { min-height: 38px; padding: 8px 14px; border-radius: var(--r); display: inline-flex; align-items: center; color: var(--muted); font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
@@ -1505,7 +1539,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .queue-heading { margin-top: 28px; }
 
 /* ---------- Chat ---------- */
-.chat-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; height: min(70vh, 640px); height: min(70dvh, 640px); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.chat-panel { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto auto; height: min(70vh, 640px); height: min(70dvh, 640px); overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
 .chat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .chat-toolbar > span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--r-pill); font-size: 0.78rem; font-weight: 600; }
 .chat-toolbar > span.muted { background: var(--brand-soft); }
@@ -1520,7 +1554,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .chat-message p { margin: 0 0 4px; overflow-wrap: anywhere; }
 .typing-label { margin: 0; padding: 4px 16px; color: var(--muted); font-size: 0.78rem; }
 .chat-panel > .error-message { margin: 8px 16px 0; }
-.chat-compose { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; padding: 12px 16px; border-top: 1px solid var(--line); }
+.chat-compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 12px 16px; border-top: 1px solid var(--line); }
 .chat-compose .internal-toggle { grid-column: 1 / -1; }
 .chat-compose textarea { min-height: 48px; max-height: 160px; }
 
@@ -1587,8 +1621,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 /* ---------- Responsive ---------- */
 @media (max-width: 1180px) {
   .primary-nav { gap: 18px; }
-  /* the tagline goes before the search gets squeezed */
-  .brand small { display: none; }
+  /* "Online" is half the name, so it stays: under "Agarwal", so the search keeps its width */
+  .header:not(.staff-header, .school-header) .brand { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .header:not(.staff-header, .school-header) .brand small { font-size: 0.625rem; letter-spacing: 0.32em; }
   .top-strip-links > a { display: none; }
 }
 /* keep the last row full: render 10 and show the largest multiple that fits */
@@ -1640,6 +1675,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .benefits { gap: 24px; }
 }
 @media (max-width: 760px) {
+  /* the four catalogue tabs share the row instead of the last one being cut at the edge */
+  .catalog-admin-nav { width: 100%; }
+  .catalog-admin-nav a { flex: 1 1 auto; justify-content: center; padding-inline: 8px; }
   /* --header-collapse is the brand row: it scrolls away and the search row stays pinned */
   :root { --header-h: 116px; --header-collapse: 60px; --gutter: 20px; }
   html { scroll-padding-top: calc(var(--header-h) - var(--header-collapse) + 16px); }
@@ -1654,14 +1692,16 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .top-strip p:has(.offer-code) > span:not(:last-child) { display: none; }
   .top-strip .locale-toggle button { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
   .header-inner {
-    grid-template-columns: auto minmax(0, 1fr); /* the promise gives way (wraps) before the logo does */
+    /* the promise gives way (wraps) before the logo does; with enlarged text the logo's "Online" wraps too */
+    grid-template-columns: fit-content(62%) minmax(0, 1fr);
     grid-template-areas: "brand location" "search search";
     gap: 6px 12px;
     padding: 10px var(--gutter) 12px;
   }
   .primary-nav { display: none; }
   .brand { min-height: 44px; align-items: center; font-size: 25px; } /* px on purpose: enlarged text grows the content, not the wordmark */
-  .brand small { display: none; }
+  /* a phone's brand row has room for "Agarwal Online" side by side (about 366px with the promise) */
+  .header:not(.staff-header, .school-header) .brand { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; }
   .header-actions { display: contents; }
   .smart-search { grid-area: search; }
   .location { grid-area: location; }
@@ -1835,11 +1875,13 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .staff-form-grid, .approval-values { grid-template-columns: 1fr; }
   .refund-row { grid-template-columns: auto 1fr; }
   .refund-row > :last-child { grid-column: 2; }
-  .permission-panel ul { columns: 1; }
   .panel, .address-card { padding: 18px; }
   .variant-card .form-stack { grid-template-columns: 1fr; }
   .variant-card .form-stack input { width: 100%; }
   .product-art.large { aspect-ratio: 16 / 10; }
+  /* a pack shot in the wide frame: show all of it rather than cropping the top and bottom off */
+  .product-art.large:not(.quiet) { background: var(--paper); }
+  .product-art.large .product-photo { object-fit: contain; }
   /* the h1 repeats the last crumb */
   .breadcrumb { margin-bottom: 12px; }
   .breadcrumb > :nth-last-child(-n + 2) { display: none; }
@@ -1869,18 +1911,26 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .variant-card:only-child .form-stack > .primary-button { padding-inline: 16px; }
   /* the pinned buy bar replaces the basket bar here; the basket tab still carries the count */
   body:has(.variant-card:only-child) .cart-bar { display: none; }
-  .footer-inner { grid-template-columns: 1fr; gap: 14px; padding: 24px var(--gutter) 12px; }
-  .footer-brand .brand { margin-bottom: 4px; font-size: 1.3rem; }
-  .footer-brand p:not(.footer-areas), .footer-shop, .site-footer h2 { display: none; }
-  .site-footer ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  /* the brand and its delivery line on top, then Help and Policies as two headed columns, then the
+     account links with the language switch; the aisles are a tab away in Categories */
+  .footer-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px; padding: 24px var(--gutter) 16px; }
+  .footer-brand { grid-column: 1 / -1; display: grid; justify-items: start; gap: 6px; }
+  .footer-brand .brand { grid-area: auto; margin-bottom: 0; font-size: 1.3rem; }
+  .footer-brand p:not(.footer-areas), .footer-shop { display: none; }
+  .site-footer h2 { margin-bottom: 2px; }
+  .site-footer ul { gap: 0; }
   .site-footer li a { display: inline-flex; align-items: center; min-height: 40px; }
-  .footer-store .locale-toggle { margin-top: 4px; }
+  .footer-store { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 16px; }
+  .footer-store h2 { flex-basis: 100%; }
+  .footer-store ul { display: flex; gap: 0 20px; }
+  .footer-store .locale-toggle { margin-top: 0; }
   .footer-base-inner { flex-direction: column; gap: 2px; padding-block: 12px; }
   .legal-layout { grid-template-columns: 1fr; gap: 20px; }
   /* the sticky contents column gives way to a folded list above the text */
   .legal-toc { display: none; }
   .legal-toc-phone { display: block; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
-  .legal-toc-phone > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 16px; font-weight: 600; cursor: pointer; }
+  /* details.… outranks the plain "show more" summary rule, which would take the side padding away */
+  details.legal-toc-phone > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 16px; font-weight: 600; cursor: pointer; }
   .legal-toc-phone > summary small { color: var(--muted); font-size: 0.8rem; font-weight: 400; }
   .legal-toc-phone ol { margin: 0; padding: 0 16px 10px 36px; }
   .legal-toc-phone li a { display: flex; align-items: center; min-height: 36px; color: var(--accent); }
@@ -2141,11 +2191,17 @@ table.order-lines { min-width: 0; font-size: 0.92rem; }
 @media (max-width: 900px) {
   /* on a phone the next step and the customer's number come before the item list */
   .order-layout > :last-child { order: -1; }
+  /* staff: only the next step comes first, then the items and the packing checklist it needs; the rider,
+     the customer and "Cancel this order" follow */
+  .basket-layout.order-layout > :last-child { display: contents; }
+  .basket-layout.order-layout > :last-child > .next-step { order: -1; }
 }
 
 /* Settings: what a group is for on the left, its controls on the right. */
 .settings-section { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px 40px; padding: 32px 0; border-top: 1px solid var(--line); }
 .settings-section:first-of-type { padding-top: 8px; border-top: 0; }
+/* a section holding a table (delivery slots, service areas) puts its intro on top: the table needs the full width */
+.settings-section:has(.data-table) { grid-template-columns: minmax(0, 1fr); }
 .settings-intro h2 { margin-bottom: 8px; font-size: 1.25rem; }
 .settings-intro p { color: var(--muted); font-size: 0.9rem; }
 .settings-intro .notice { margin-top: 12px; color: var(--warning); }
@@ -2208,7 +2264,18 @@ table.order-lines { min-width: 0; font-size: 0.92rem; }
 /* A row action inside a table: same button, smaller. */
 .compact-button { min-height: 36px; padding: 6px 14px; font-size: 0.85rem; white-space: nowrap; }
 .data-table td del { margin-left: 6px; }
+/* the first column is the record's name: never squeezed to a sliver by wide number headers; codes stay whole */
+.data-table td:first-child { min-width: 12rem; }
+.data-table code { white-space: nowrap; }
+/* a cell's name with a detail under it (a customer and their phone) */
+.data-table td > :is(strong, a) + small { display: block; color: var(--muted); font-size: 0.82rem; }
 .data-table .status-pill { white-space: nowrap; }
+/* the low-stock email's two extra buttons, under its Save button */
+.report-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; margin-top: 14px; }
+.report-actions .form-stack > .secondary-button { min-width: 0; }
+/* every staff table's "Export to Excel": quiet, right-aligned, above the table */
+.table-export-bar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.table-export { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; font-size: 0.85rem; }
 td .form-stack { gap: 6px; }
 td .form-stack > .compact-button { min-width: 0; }
 
@@ -2362,12 +2429,22 @@ td .form-stack > .compact-button { min-width: 0; }
 .summary-offer-link { display: inline-flex; align-items: center; min-height: 32px; margin: 0 0 8px; color: var(--brand); font-size: 0.85rem; font-weight: 600; }
 
 @media (max-width: 760px) {
-  .header-inner:has(.search-back) { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "brand brand location" "back search search"; }
+  /* in every brand row the promise is the column that gives way (it wraps); it used to keep its full
+     width and push "Agarwal Online" into it on phones under ~380px, or with Back in the row */
+  .header-inner:has(.search-back) { grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "brand brand location" "back search search"; }
   /* no search on a phone (account, basket, checkout): one row, Back beside the logo, pinned */
   .smart-search.phone-hidden { display: none; }
-  .header-inner:not(:has(.smart-search:not(.phone-hidden))) { min-height: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand location"; }
-  .header-inner:has(.search-back):not(:has(.smart-search:not(.phone-hidden))) { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "back brand location"; }
+  .header-inner:not(:has(.smart-search:not(.phone-hidden))) { min-height: 0; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "brand location"; }
+  .header-inner:has(.search-back):not(:has(.smart-search:not(.phone-hidden))) { grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "back brand location"; }
+  /* Back, the name and the promise need ~424px in one row: "Online" goes under the name, as on a tablet */
+  .header:not(.staff-header, .school-header) .header-inner:has(.search-back):not(:has(.smart-search:not(.phone-hidden))) .brand { flex-direction: column; align-items: flex-start; gap: 3px; }
   .header:not(:has(.smart-search:not(.phone-hidden))) { top: 0; }
+}
+@media (max-width: 379px) {
+  /* side by side, the name and the promise need about 366px */
+  .header:not(.staff-header, .school-header) .brand { flex-direction: column; align-items: flex-start; gap: 3px; }
+}
+@media (max-width: 760px) {
   .search-back { grid-area: back; position: relative; display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--line); border-radius: var(--r); background: var(--brand-soft); }
   .search-back .back-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   /* popups rise from the bottom like an app sheet, clear of the home bar */
@@ -2598,7 +2675,9 @@ td .form-stack > .compact-button { min-width: 0; }
   .quotation-table { border: 0; background: transparent; }
   /* phones give tables a 640px floor so they scroll; the quotation reads as cards instead */
   .quotation-table table, .quotation-tax table { min-width: 0; }
-  .quotation-tax th, .quotation-tax td { padding: 8px; }
+  /* four money columns fit a phone when the cells are tighter */
+  .quotation-tax :is(th, td) { font-size: 0.8rem; }
+  .quotation-tax th, .quotation-tax td { padding: 8px 6px; }
   .quotation-table table, .quotation-table tbody { display: block; }
   .quotation-table thead { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .quotation-table tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -2972,28 +3051,6 @@ details.spend-month > summary span { margin-left: auto; }
 .kit-lines li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .kit-lines small { color: var(--muted); }
 
-/* The family tab (khata) on the family page */
-.tab-card { display: grid; gap: 10px; }
-.tab-card h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1rem; }
-.tab-card > p { margin: 0; }
-.tab-card.open { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
-.tab-card.open h2 { color: var(--offer); font-size: 0.75rem; letter-spacing: 0.1em; }
-.tab-card.open > p, .tab-card.open .tab-payments { color: color-mix(in oklab, var(--on-brand) 85%, var(--brand)); }
-.tab-paused { padding: 2px 8px; border-radius: var(--r-pill); background: var(--offer); color: var(--on-offer); letter-spacing: 0; }
-.tab-owed strong { margin-right: 4px; color: var(--on-brand); font-family: var(--font-display); font-size: 2rem; font-weight: 800; }
-.tab-meter { height: 8px; overflow: hidden; border-radius: var(--r-pill); background: color-mix(in oklab, var(--on-brand) 22%, var(--brand)); }
-.tab-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--offer); }
-.tab-payments { display: grid; margin: 4px 0 0; padding: 0; list-style: none; font-size: 0.85rem; }
-.tab-payments li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid color-mix(in oklab, var(--on-brand) 22%, var(--brand)); }
-.tab-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.tab-decisions { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
-.tab-decision { flex: 1 1 200px; }
-.tab-void { min-width: 240px; }
-@media (max-width: 760px) {
-  .tab-figures { grid-template-columns: minmax(0, 1fr); }
-  .tab-decision button { width: 100%; min-height: 44px; }
-}
-
 /* ---------- Ratings & feedback: the "How did we do?" sheet, the order page's card, the owner's page ---------- */
 /* stars are radio buttons underneath: the label is the tap target, the ring follows the keyboard */
 .star-input legend { margin-bottom: 6px; font-size: 0.95rem; font-weight: 600; }
@@ -3034,7 +3091,6 @@ details.spend-month > summary span { margin-left: auto; }
 /* the owner's reading page: scoreboard, then cards to read, low ratings first */
 .feedback-board { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 24px; }
 /* tags and names are already written as they should read */
-.feedback-board .metric-list > div { text-transform: none; }
 .feedback-tabs { margin: 0 0 16px; }
 .feedback-results { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; }
 .feedback-results a { color: var(--link); text-decoration: underline; }
@@ -3251,7 +3307,7 @@ li .school-row-item { text-decoration: none; }
 .product-quantity .error-message { padding: 6px 10px; text-align: left; }
 
 /* Catalogue: "Load more" under the grid */
-.load-more { display: flex; justify-content: center; margin: 28px 0 8px; }
+.load-more { display: flex; justify-content: center; margin: 28px 0 32px; }
 .load-more .secondary-button { min-height: 48px; padding-inline: 28px; }
 
 /* Checkout: delivery times as buttons, grouped by day */
@@ -3534,7 +3590,6 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
 
 /* The customer's order tracker: the line up to the step the order is at is green too */
 .order-tracker li.is-done + li.is-current::before { background: var(--success); }
-.tab-credit { color: var(--success); font-weight: 600; }
 
 @media print {
   .settings-fold, .more-sheet-shop, .more-sheet-quick { display: none !important; }

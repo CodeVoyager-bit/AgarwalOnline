@@ -199,7 +199,7 @@ export async function cancelAction(
 export async function quickAddAction(
   _state: MutationState,
   form: FormData,
-): Promise<MutationState> {
+): Promise<MutationState & { at?: number }> {
   try {
     const user = await currentUser();
     if (user)
@@ -208,7 +208,8 @@ export async function quickAddAction(
       const { setGuestCartLine } = await import("./guest-cart");
       await setGuestCartLine(form.get("variantId"), form.get("quantity"));
     }
-    return { success: "Basket updated." };
+    // the server's clock once it is saved: a page rendered from an older read of the basket loses to it
+    return { success: "Basket updated.", at: Date.now() };
   } catch (e) {
     return { error: errorMessage(e) };
   }

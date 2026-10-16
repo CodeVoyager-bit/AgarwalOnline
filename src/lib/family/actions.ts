@@ -9,7 +9,6 @@ import { plainMessage } from "../form-errors";
 import { log } from "../logger";
 import * as family from "./service";
 import { kitToBasket, promoteChild } from "./kits";
-import { requestTab } from "./tab";
 
 function errorMessage(e: unknown) {
   if (e instanceof z.ZodError) return plainMessage(e);
@@ -68,10 +67,6 @@ export async function familyAction(_state: MutationState, form: FormData): Promi
       }
       case "promote":
         await promoteChild(user.id, { childId: form.get("childId"), year: form.get("year"), moved: form.get("moved") });
-        break;
-      case "request-tab":
-        await requestTab(user.id);
-        success = "Asked. The store will be in touch before the tab opens.";
         break;
       case "remove-child":
         await family.removeChild(user.id, form.get("childId"));

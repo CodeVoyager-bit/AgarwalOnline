@@ -8,6 +8,7 @@ import { objectId } from "@/lib/commerce/service";
 import { formatIst, formatPrice, noBreakTimes } from "@/lib/display";
 import { dayLabel } from "@/lib/commerce/slots";
 import { lineNotes, type PackedLine } from "@/lib/operations/packing";
+import { taxProfile } from "@/lib/tax/profile";
 import { PrintButton } from "@/components/print-button";
 export const metadata = { title: "Packing slip", robots: { index: false } };
 
@@ -26,7 +27,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
   await requirePage("order:manage");
   const { id } = await params;
   if (!objectId.safeParse(id).success) notFound();
-  const o = await Order.findById(id);
+  const [o, shop] = await Promise.all([Order.findById(id), taxProfile()]);
   if (!o) notFound();
   const customer = await User.findById(o.customerId).select("substitutionPreference");
   const lines = o.items as (PackedLine & { variantId: string; name: string; label: string; quantity: number })[];
@@ -54,7 +55,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
       <article className="packing-slip">
         <header className="slip-head">
           <div>
-            <p className="slip-shop">Agarwal General Stores · packing slip</p>
+            <p className="slip-shop">{shop.legalName} · packing slip</p>
             <h1>{o.number}</h1>
             <p>Placed {formatIst(o.createdAt)}</p>
           </div>

@@ -43,7 +43,7 @@ const CAN: Partial<Record<Permission, string>> = {
   "order:manage": "Confirm, pack and complete orders",
   "packing:write": "Fill in packing checklists",
   "delivery:assign": "Assign delivery partners",
-  "cod:reconcile": "Reconcile cash handovers and record family tab payments",
+  "cod:reconcile": "Reconcile cash handovers",
   "catalog:write": "Edit products, categories and school kits",
   "inventory:adjust": "Adjust stock",
   "approval:request": "Ask for price and stock changes",
@@ -56,7 +56,6 @@ const CAN: Partial<Record<Permission, string>> = {
   "staff:manage": "Add staff and change roles",
   "promotion:write": "Create and pause offers",
   "refund:write": "Issue refunds",
-  "tab:approve": "Open, limit and close family tabs",
   "audit:read": "Read the audit trail",
 };
 
@@ -393,19 +392,19 @@ export default async function StaffManagement({
             columns={[
               {
                 header: "Person",
+                text: (member) => member.name,
                 cell: (member) => (
-                  <span className="product-cell">
-                    <span>
-                      <strong>
-                        {member.name}
-                        {String(member._id) === actor.id ? " (you)" : ""}
-                      </strong>
-                      <small>{placeholderEmail(member.email) ? "No email yet" : member.email}</small>
-                    </span>
-                  </span>
+                  <>
+                    <Link href={`/super-admin/staff?edit=${member._id}#edit`}>
+                      {member.name}
+                      {String(member._id) === actor.id ? " (you)" : ""}
+                    </Link>
+                    <small>
+                      {[placeholderEmail(member.email) ? "No email yet" : member.email, member.phone].filter(Boolean).join(" · ")}
+                    </small>
+                  </>
                 ),
               },
-              { header: "Phone", cell: (member) => member.phone ?? "—" },
               {
                 header: "Role",
                 cell: (member) => (
@@ -424,17 +423,6 @@ export default async function StaffManagement({
                     <StatusPill tone="bad">Paused</StatusPill>
                   ),
               },
-              {
-                header: "Action",
-                cell: (member) => (
-                  <Link
-                    href={`/super-admin/staff?edit=${member._id}#edit`}
-                    aria-label={`Edit ${member.name}`}
-                  >
-                    Edit
-                  </Link>
-                ),
-              },
             ]}
             empty={
               <EmptyState
@@ -450,16 +438,19 @@ export default async function StaffManagement({
           <span className="eyebrow">Role guide</span>
           <h2>What each role can do</h2>
           {staffRoles.map((role) => (
-            <details key={role} open={role !== "super-admin"}>
+            <details key={role} open>
               <summary>{labels[role]}</summary>
               <p className="muted">{SUMMARY[role]}</p>
-              <ul>
-                {grants[role as Role]
-                  .filter((grant) => CAN[grant as Permission])
-                  .map((grant) => (
-                    <li key={grant}>{CAN[grant as Permission]}</li>
-                  ))}
-              </ul>
+              {/* an owner can do everything: the summary says so, a list of every permission would just be long */}
+              {role !== "super-admin" && (
+                <ul>
+                  {grants[role as Role]
+                    .filter((grant) => CAN[grant as Permission])
+                    .map((grant) => (
+                      <li key={grant}>{CAN[grant as Permission]}</li>
+                    ))}
+                </ul>
+              )}
             </details>
           ))}
           <p className="muted">

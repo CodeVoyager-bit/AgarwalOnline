@@ -2,13 +2,13 @@ import type { Model } from "mongoose";
 import { hasPermission, type Permission, type Role } from "@/lib/auth/permissions";
 import { connectDB } from "@/lib/db/connect";
 import { InventoryItem } from "@/lib/db/models";
+import { LOW_STOCK } from "@/lib/inventory/low-stock";
 import { Order } from "@/lib/commerce/models";
 import { CODCollection } from "@/lib/operations/models";
 import { ChatConversation } from "@/lib/chat/models";
 import { Complaint } from "@/lib/aftercare/models";
 import { ApprovalRequest } from "@/lib/governance/models";
 import { Refund } from "@/lib/payments/models";
-import { Family } from "@/lib/family/models";
 import { OrderFeedback } from "@/lib/feedback/models";
 import { FEEDBACK_PERMISSION } from "@/lib/feedback/access";
 import { NEEDS_ATTENTION } from "@/lib/feedback/rules";
@@ -27,7 +27,6 @@ export type QueueKey =
   | "approvals"
   | "refundOwed"
   | "refunds"
-  | "familyTabs"
   | "soldOut";
 
 type QueueDef = {
@@ -50,7 +49,6 @@ type QueueDef = {
 };
 
 const SOLD_OUT = { $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 0] } };
-const LOW_STOCK = { $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 10] } };
 const asModel = (model: unknown) => model as Model<unknown>;
 
 /** Everything that can wait on the team, oldest-first within each. Filters match the order list's steps. */
@@ -199,18 +197,6 @@ export const QUEUES: QueueDef[] = [
     lateAfterMinutes: 48 * 60,
   },
   {
-    key: "familyTabs",
-    label: "Family tabs to open",
-    note: "Families asked to buy on a monthly tab.",
-    action: "Review",
-    permission: "tab:approve",
-    model: asModel(Family),
-    filter: { "tab.status": "requested" },
-    sortField: "tab.requestedAt",
-    listHref: "/admin/tabs?status=requested",
-    lateAfterMinutes: 48 * 60,
-  },
-  {
     key: "soldOut",
     label: "Packs sold out",
     note: "Shoppers can’t buy these until stock is added.",
@@ -253,8 +239,7 @@ export async function loadQueues(roles: readonly Role[], now = new Date()): Prom
               .lean() as Promise<(Record<string, unknown> & { _id: unknown }) | null>)
           : null,
       ]);
-      // a dotted field ("tab.requestedAt") comes back nested
-      const at = def.sortField?.split(".").reduce<unknown>((value, key) => (value as Record<string, unknown> | null)?.[key], oldest);
+      const at = def.sortField ? oldest?.[def.sortField] : null;
       const since = at instanceof Date ? at : null;
       const late = Boolean(since && now.getTime() - since.getTime() > def.lateAfterMinutes * 60000);
       return {

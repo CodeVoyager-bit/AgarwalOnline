@@ -9,9 +9,6 @@ import { istDate } from "@/lib/commerce/delivery";
 import { familyOf, familySpend } from "@/lib/family/service";
 import { familyAction } from "@/lib/family/actions";
 import { childKits, kitSchools } from "@/lib/family/kits";
-import { tabStanding } from "@/lib/family/checkout";
-import { TabPayment } from "@/lib/family/models";
-import { When } from "@/components/when";
 import { conversationAction } from "@/lib/chat/actions";
 import { productImages } from "@/lib/catalog/images";
 import { CLASSES, classLabel } from "@/lib/family/models";
@@ -134,15 +131,12 @@ export default async function FamilyPage() {
   if (!family) return <StartFamily mr={mr} />;
 
   const owner = String(family.ownerId) === user.id;
-  const [people, spend, kits, schools, standing, payments] = await Promise.all([
+  const [people, spend, kits, schools] = await Promise.all([
     User.find({ _id: { $in: family.adults } }).select("name"),
     familySpend(family),
     childKits(family),
     kitSchools(),
-    tabStanding(user.id),
-    TabPayment.find({ familyId: family._id, voidedAt: null }).sort({ createdAt: -1 }).limit(5),
   ]);
-  const tabOpen = standing?.status === "active" || standing?.status === "paused";
   const nameOf = (id: unknown) => people.find((p) => String(p._id) === String(id))?.name ?? "Someone";
   const adults = family.adults.map((id: unknown) => ({ id: String(id), name: nameOf(id), you: String(id) === user.id }));
   const children: Child[] = family.children;
@@ -208,7 +202,7 @@ export default async function FamilyPage() {
                 <a
                   className="primary-button"
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    t(`Join our family “${family.name}” on Agarwal: ${inviteUrl}`, `Agarwal वर आपल्या “${family.name}” मध्ये सामील व्हा: ${inviteUrl}`),
+                    t(`Join our family “${family.name}” on Agarwal Online: ${inviteUrl}`, `अग्रवाल ऑनलाइनवर आपल्या “${family.name}” मध्ये सामील व्हा: ${inviteUrl}`),
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -280,9 +274,7 @@ export default async function FamilyPage() {
             value: formatPrice(current?.totalPaise ?? 0),
             href: "#spend",
           },
-          tabOpen
-            ? { label: t("Owed on the family tab", "कुटुंब खात्यावर बाकी"), value: formatPrice(Math.max(0, standing!.owedPaise)), href: "#tab" }
-            : { label: t("Last 12 months", "मागील १२ महिने"), value: formatPrice(spend.totalPaise), href: "#spend" },
+          { label: t("Last 12 months", "मागील १२ महिने"), value: formatPrice(spend.totalPaise), href: "#spend" },
         ]}
       />
 
@@ -394,15 +386,6 @@ export default async function FamilyPage() {
         </div>
 
         <aside className="family-aside">
-          <TabCard
-            standing={standing}
-            payments={payments}
-            owner={owner}
-            mr={mr}
-            dueBy={new Intl.DateTimeFormat(mr ? "mr-IN" : "en-IN", { day: "numeric", month: "long", timeZone: "UTC" }).format(
-              new Date(`${thisMonth}-10T00:00:00Z`),
-            )}
-          />
           {spend.people.length > 0 && (
             <section className="panel by-person" aria-labelledby="by-person-title">
               <h2 id="by-person-title">{t("By person · 12 months", "व्यक्तीनुसार · १२ महिने")}</h2>
@@ -450,99 +433,6 @@ export default async function FamilyPage() {
           )}
         </aside>
       </div>
-    </section>
-  );
-}
-
-type Standing = Awaited<ReturnType<typeof tabStanding>>;
-
-/** The khata: what is owed against the limit and when to pay, or how to ask the store for one. */
-function TabCard({
-  standing,
-  payments,
-  owner,
-  mr,
-  dueBy,
-}: {
-  standing: Standing;
-  payments: { _id: unknown; amountPaise: number; method: string; createdAt: Date }[];
-  owner: boolean;
-  mr: boolean;
-  dueBy: string;
-}) {
-  const t = (en: string, marathi: string) => (mr ? marathi : en);
-  if (!standing || standing.status === "requested" || standing.status === "closed") {
-    const owed = standing && standing.owedPaise > 0 ? standing.owedPaise : 0;
-    return (
-      <section id="tab" className="panel tab-card" aria-labelledby="tab-title">
-        <h2 id="tab-title">{t("Family tab", "कुटुंब खाते")}</h2>
-        {standing?.status === "requested" ? (
-          <p className="muted">{t("You asked for a tab. The store will be in touch before it opens.", "तुम्ही खाते मागितले आहे. खाते उघडण्यापूर्वी दुकान संपर्क करेल.")}</p>
-        ) : (
-          <>
-            <p className="muted">
-              {standing?.status === "closed"
-                ? owed
-                  ? t(`Your tab is closed. ${formatPrice(owed)} is still owed; pay it at the store.`, `खाते बंद आहे. ${formatPrice(owed)} अजून बाकी आहे; दुकानात भरा.`)
-                  : t("Your tab is closed.", "तुमचे खाते बंद आहे.")
-                : t(
-                    "Order now and settle with the store once a month, like a khata. The store sets your family's limit.",
-                    "आत्ता ऑर्डर करा आणि महिन्यातून एकदा दुकानात हिशोब करा, खात्यासारखे. मर्यादा दुकान ठरवते.",
-                  )}
-            </p>
-            {owner ? (
-              <ActionForm action={familyAction} submit={t("Ask the store for a tab", "दुकानाकडे खाते मागा")} buttonClassName="secondary-button">
-                <input type="hidden" name="intent" value="request-tab" />
-              </ActionForm>
-            ) : (
-              <p className="muted">{t("The family's owner can ask the store for one.", "कुटुंबाचे मालक दुकानाकडे खाते मागू शकतात.")}</p>
-            )}
-          </>
-        )}
-      </section>
-    );
-  }
-  const owed = Math.max(0, standing.owedPaise);
-  const used = standing.limitPaise ? Math.min(100, Math.round((owed / standing.limitPaise) * 100)) : 100;
-  return (
-    <section id="tab" className="panel tab-card open" aria-labelledby="tab-title">
-      <h2 id="tab-title">
-        {t("FAMILY TAB", "कुटुंब खाते")}
-        {standing.status === "paused" && <span className="tab-paused">{t("Paused", "थांबवले")}</span>}
-      </h2>
-      <p className="tab-owed">
-        <strong>{formatPrice(owed)}</strong> {t(`owed of ${formatPrice(standing.limitPaise)}`, `बाकी, मर्यादा ${formatPrice(standing.limitPaise)}`)}
-        {/* paid before anything was owed: it's why "left" can be more than the limit */}
-        {standing.owedPaise < 0 && (
-          <small className="tab-credit">
-            {" · "}
-            {t(`${formatPrice(-standing.owedPaise)} paid ahead`, `${formatPrice(-standing.owedPaise)} आगाऊ भरले`)}
-          </small>
-        )}
-      </p>
-      <div className="tab-meter" role="img" aria-label={t(`${used}% of the limit used`, `मर्यादेपैकी ${used}% वापरले`)}>
-        <span style={{ width: `${used}%` }} />
-      </div>
-      <p>
-        {standing.duePaise > 0
-          ? t(
-              `${formatPrice(standing.duePaise)} from last month${standing.overdue ? " is overdue" : `, please pay by ${dueBy}`}.`,
-              `मागच्या महिन्याचे ${formatPrice(standing.duePaise)}${standing.overdue ? " थकले आहेत" : ` ${dueBy} पर्यंत भरा`}.`,
-            )
-          : t(`${formatPrice(standing.availablePaise)} left. Pay at the store or to the rider.`, `${formatPrice(standing.availablePaise)} शिल्लक. दुकानात किंवा डिलिव्हरीवेळी भरा.`)}
-      </p>
-      {payments.length > 0 && (
-        <ul className="tab-payments" aria-label={t("Recent payments", "अलीकडील भरणा")}>
-          {payments.map((payment) => (
-            <li key={String(payment._id)}>
-              <span>
-                {t("Paid", "भरले")} · {payment.method === "upi" ? "UPI" : t("cash", "रोख")} · <When at={payment.createdAt} />
-              </span>
-              <strong>{formatPrice(payment.amountPaise)}</strong>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }

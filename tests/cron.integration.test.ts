@@ -51,13 +51,22 @@ describe.skipIf(!uri)("cron jobs against a database", () => {
       { token: "expired", expiresAt: new Date(Date.now() - 1000) },
       { token: "live", expiresAt: new Date(Date.now() + 60000) },
     ]);
-    for (const job of ["expire-reservations", "publish-scheduled", "tab-statements"]) {
+    // better-auth's sign-in attempt rows carry the IP address and only a lastRequest time
+    const attempts = mongoose.connection.collection("authRateLimits");
+    await attempts.insertMany([
+      { key: "203.0.113.9|/sign-in/email", count: 1, lastRequest: Date.now() - 2 * 86400 * 1000 },
+      { key: "203.0.113.9|/sign-in/phone-number", count: 1, lastRequest: Date.now() },
+    ]);
+    for (const job of ["expire-reservations", "publish-scheduled"]) {
       const response = await call(job, `Bearer ${secret}`);
       expect(response.status).toBe(200);
     }
     const retention = await call("retention", `Bearer ${secret}`);
     expect(retention.status).toBe(200);
-    expect((await retention.json()).authSessions).toBe(1);
+    const removed = await retention.json();
+    expect(removed.authSessions).toBe(1);
+    expect(removed.authRateLimits).toBe(1);
+    expect((await attempts.find().toArray()).map((a) => a.key)).toEqual(["203.0.113.9|/sign-in/phone-number"]);
     expect(
       (await sessions.find().toArray()).map((s) => s.token),
     ).toEqual(["live"]);

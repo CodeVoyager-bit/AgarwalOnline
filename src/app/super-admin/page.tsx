@@ -34,8 +34,10 @@ import {
   rulesAction,
   synonymAction,
   stockThresholdAction,
+  stockReportAction,
   taxDetailsAction,
 } from "@/lib/admin/actions";
+import { hourLabel, reportSettings } from "@/lib/inventory/low-stock";
 import { MoneyInput } from "@/components/money-input";
 import { taxProfile } from "@/lib/tax/profile";
 import { settingsHub } from "@/lib/admin/settings-summary";
@@ -97,7 +99,7 @@ export default async function StoreSettings({
   const until = new Date(`${today}T00:00:00Z`);
   until.setUTCDate(until.getUTCDate() + DAYS_AHEAD);
   const slotArea = params.slots && mongoose.isValidObjectId(params.slots) ? params.slots : undefined;
-  const [areas, rules, patterns, upcoming, synonyms, stockThreshold, gaps, business] = await Promise.all([
+  const [areas, rules, patterns, upcoming, synonyms, stockThreshold, gaps, business, report] = await Promise.all([
     ServiceArea.find({}).sort({ name: 1 }),
     deliveryRules(),
     SlotPattern.find({}).sort({ startMinutes: 1 }),
@@ -111,6 +113,7 @@ export default async function StoreSettings({
     SystemSetting.findOne({ key: "large-stock-threshold" }).select("value"),
     slotGaps(now),
     taxProfile(),
+    reportSettings(),
   ]);
   const live = areas.filter((area) => area.enabled);
   const areaName = new Map(areas.map((area) => [String(area._id), area.name as string]));
@@ -157,6 +160,7 @@ export default async function StoreSettings({
             grievanceName: business.grievanceName,
           },
           stockThreshold: Number(stockThreshold?.value ?? 100),
+          stockReport: report.hour === null ? null : hourLabel(report.hour),
           synonymGroups: synonyms.length,
           services: {
             payments: paymentsEnabled(),
@@ -618,10 +622,10 @@ export default async function StoreSettings({
         </div>
         <div className="settings-cards">
           <div className="panel">
-            <h2>On quotations and the Contact page</h2>
+            <h2>On bills, quotations and the Contact page</h2>
             <ActionForm action={taxDetailsAction} submit="Save business details">
               <label>
-                Legal name <small>As registered for GST</small>
+                Business name on bills <small>Printed on bills, packing slips, quotations and the policy pages; as registered for GST once you are</small>
                 <input name="legalName" defaultValue={business.legalName} maxLength={120} required />
               </label>
               <label>
@@ -692,15 +696,16 @@ export default async function StoreSettings({
           <h2 id="checks-heading">Checks and search</h2>
           <SettingsFold section="checks" label="checks and search" />
           <p>
-            Which stock changes wait for a second owner, which words shoppers can search with, and
-            which outside services are connected.
+            Which stock changes from staff wait for you, when the low-stock report is emailed, which words
+            shoppers can search with, and which outside services are connected.
           </p>
         </div>
         <div className="settings-cards">
           <div className="panel" id="stock-approval" tabIndex={-1}>
             <h2>Stock changes that need approval</h2>
             <p className="muted">
-              A stock adjustment of this many units or more waits for a second owner to approve it.
+              A stock adjustment by staff of this many units or more waits for an owner to approve it. Owners’ own
+              changes apply at once.
             </p>
             <ActionForm action={stockThresholdAction} submit="Save limit">
               <label>
@@ -714,6 +719,36 @@ export default async function StoreSettings({
                 />
               </label>
             </ActionForm>
+          </div>
+          <div className="panel" id="stock-report" tabIndex={-1}>
+            <h2>Low-stock email</h2>
+            <p className="muted">
+              Each day at this time, every owner gets an email with an Excel file of the packs running low (fewer left than
+              each pack’s alert level), with purchase prices. Nothing is sent on a day when nothing is low.
+            </p>
+            <ActionForm action={stockReportAction} submit="Save time">
+              <input type="hidden" name="operation" value="schedule" />
+              <label>
+                Send it at <small>Indian time; it arrives within that hour</small>
+                <select name="hour" defaultValue={report.hour === null ? "off" : String(report.hour)}>
+                  <option value="off">Off</option>
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <option key={hour} value={hour}>
+                      {hourLabel(hour)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </ActionForm>
+            <div className="report-actions">
+              <ActionForm action={stockReportAction} submit="Send it now" buttonClassName="secondary-button" className="form-stack inline-grant">
+                <input type="hidden" name="operation" value="send" />
+              </ActionForm>
+              <a href="/api/staff/export/low-stock" className="secondary-button" download>
+                Download it now
+              </a>
+            </div>
+            {report.lastSent && <p className="muted">Last checked on {report.lastSent}.</p>}
           </div>
           <div className="panel" id="synonyms" tabIndex={-1}>
             <h2>Search words that mean the same</h2>
@@ -743,7 +778,7 @@ export default async function StoreSettings({
             <h2>Connected services</h2>
             <p>
               <span className={`staff-state ${paymentsEnabled() ? "active" : "inactive"}`}>
-                Razorpay {paymentsEnabled() ? "connected" : "not set up: cash on delivery only"}
+                {paymentsEnabled() ? "Online payment on (Razorpay)" : "Online payment off: cash on delivery only"}
               </span>
             </p>
             <p>

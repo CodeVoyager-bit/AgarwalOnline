@@ -16,7 +16,6 @@ import {
   InventoryReservation,
   DeliverySlot,
 } from "../../src/lib/commerce/models";
-import { Family } from "../../src/lib/family/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
 import { POLICY_VERSION } from "../../src/lib/legal/version";
 const uri = "mongodb://127.0.0.1:27028/ags_test_e2e?replicaSet=ags-local";
@@ -767,68 +766,4 @@ test("a family: start it, add a child, and a partner joins with the one-time lin
   await page.getByRole("button", { name: /Buy the kit/ }).click();
   await expect(page).toHaveURL(/\/checkout\?for=/);
   await expect(page.getByLabel("Who is it for?").locator("option:checked")).toHaveText(/Aarav/);
-});
-
-test("a family tab: asked for, opened by the owner, an order on it, paid at the desk", async ({ page, browser }) => {
-  const holder = (await User.findOne({ email: "tabholder@e2e.test" }))!;
-  await Family.create({ name: "Khata family", ownerId: holder._id, adults: [holder._id], inviteToken: "e2e-khata-invite-token00" });
-  const area = (await ServiceArea.findOne({ key: "fictional-e2e" }))!;
-  await Address.create({ customerId: holder._id, name: "Tab Holder", phone: "9000000093", line: "Fictional lane 2", pin: "999999", areaId: area._id, isDefault: true });
-  await page.goto("/login");
-  await emailSignIn(page, "tabholder@e2e.test");
-  await page.waitForURL((url) => url.pathname !== "/login");
-  await page.goto("/account/family");
-  await page.getByRole("button", { name: "Ask the store for a tab" }).click();
-  await expect(page.getByText("You asked for a tab.")).toBeVisible();
-
-  // the owner opens it with a ₹500 limit
-  const office = await browser.newContext({ baseURL: "http://127.0.0.1:3002", viewport: page.viewportSize()! });
-  const desk = await office.newPage();
-  try {
-    await desk.goto("/login");
-    await emailSignIn(desk, "owner@e2e.test");
-    await desk.waitForURL((url) => url.pathname !== "/login");
-    await desk.goto("/admin/tabs?status=requested");
-    await desk.getByRole("link", { name: /Khata family/ }).click();
-    await desk.getByLabel("Tab limit").fill("500");
-    await desk.getByRole("button", { name: "Open the tab" }).click();
-    await desk.getByRole("button", { name: /^Yes, / }).click();
-    // the open tab's controls replace the request's
-    await expect(desk.getByRole("button", { name: "Pause the tab" })).toBeVisible();
-
-    // the family puts an order on it: nothing to pay at checkout
-    await page.goto("/products/everyday-basmati-rice");
-    await page.getByRole("button", { name: "Add to basket" }).click();
-    await expect(page.locator("main").getByText("1 in basket")).toBeVisible();
-    // shown at once, saved just after: wait for the save before leaving the page
-    await expect(page.locator("main .product-quantity").first()).toHaveAttribute("aria-busy", "false");
-    await page.goto("/checkout");
-    await page.getByRole("radio", { name: "Thu, 1 Jan · 4:00 PM – 7:00 PM" }).check();
-    await page.getByRole("radio", { name: /Add to family tab/ }).check();
-    await expect(page.getByRole("heading", { name: "Total on the tab: ₹139" })).toBeVisible();
-    // every way to pay asks for the one Terms tick, worded for the tab
-    await expect(page.getByRole("checkbox")).toHaveCount(1);
-    await expect(page.getByText("I confirm this order on the family tab and agree to the")).toBeVisible();
-    await page.getByRole("checkbox").check();
-    await page.getByRole("button", { name: "Put this order on the family tab" }).click();
-    await expect(page).toHaveURL(/\/account\/orders\/[a-f0-9]+/);
-    await expect(page.getByText("On your family tab, settled with the store monthly")).toBeVisible();
-    await page.goto("/account/family");
-    await expect(page.locator("#tab")).toContainText("₹139");
-    await shot(page, "family-tab");
-
-    // the desk records the UPI payment, and nothing is owed
-    await desk.reload();
-    await desk.getByLabel("Amount received").fill("139");
-    await desk.getByLabel("Paid by").selectOption("upi");
-    await desk.getByLabel(/^Reference/).fill("412345678901");
-    await desk.getByRole("button", { name: "Record payment" }).click();
-    await desk.getByRole("button", { name: /^Yes, / }).click();
-    // paid in full: the payment is listed and the form to take more is gone
-    await expect(desk.getByText("UPI 412345678901")).toBeVisible();
-    await expect(desk.getByRole("button", { name: "Record payment" })).toHaveCount(0);
-    await shot(desk, "family-tab-admin");
-  } finally {
-    await office.close();
-  }
 });

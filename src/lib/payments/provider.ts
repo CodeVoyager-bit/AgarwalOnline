@@ -48,8 +48,16 @@ export function paymentConfig() {
     throw Error("Production requires Razorpay live credentials");
   return config;
 }
+/**
+ * Whether shoppers can pay online. The owners take cash on delivery only (2026-10-15), so it needs
+ * ONLINE_PAYMENTS=on as well as the Razorpay keys: keys left in the deployment don't switch it on.
+ * Checkout, placing an order, the assistant and the shop's own words all follow this one switch.
+ * The policies don't: since 2026-10-16.1 they describe cash on delivery only, so switching this on
+ * means putting the Razorpay text back in privacy/terms/refunds (git history) and bumping POLICY_VERSION.
+ */
 export function paymentsEnabled() {
   return Boolean(
+    process.env.ONLINE_PAYMENTS === "on" &&
     process.env.RAZORPAY_KEY_ID &&
     process.env.RAZORPAY_KEY_SECRET &&
     process.env.RAZORPAY_WEBHOOK_SECRET,

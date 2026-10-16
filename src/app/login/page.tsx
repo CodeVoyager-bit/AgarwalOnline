@@ -5,7 +5,7 @@ import { GoogleButton, googleErrorMessage } from "@/components/google-button";
 import { googleEnabled } from "@/lib/auth/better-auth";
 import { returnPath } from "@/lib/return-path";
 import { PolicyNotice } from "@/components/policy-notice";
-export const metadata = { title: "Sign in", description: "Sign in with your mobile number or email to order from Agarwal General Stores.", robots: { index: false } };
+export const metadata = { title: "Sign in", description: "Sign in with your mobile number or email to order from Agarwal Online.", robots: { index: false } };
 
 export default async function Login({
   searchParams,
@@ -23,7 +23,7 @@ export default async function Login({
   const existingEmail = error === "account_not_linked";
   return (
     <section className="auth-card">
-      <span className="eyebrow">{mr ? "तुमचे अग्रवाल खाते" : "YOUR AGARWAL ACCOUNT"}</span>
+      <span className="eyebrow">{mr ? "तुमचे अग्रवाल ऑनलाइन खाते" : "YOUR AGARWAL ONLINE ACCOUNT"}</span>
       <h1>{mr ? "पुन्हा स्वागत आहे." : "Good to see you."}</h1>
       <p>{mr ? "मोबाईल क्रमांक किंवा ईमेल आणि पासवर्डने साइन इन करा. दुकानाचे कर्मचारीही येथूनच साइन इन करतात." : "Sign in with your mobile number or email and your password. Store staff sign in here too."}</p>
       {googleError && (

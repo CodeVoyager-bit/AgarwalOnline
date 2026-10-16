@@ -43,6 +43,8 @@ export type CatalogItem = {
   gstRatePercent?: number;
   variants: {
     id: string;
+    /** The shop's stock code; search engines read it from the product page. */
+    sku?: string;
     label: string;
     pricePaise: number;
     mrpPaise: number;
@@ -78,6 +80,22 @@ export async function catalog(
 export async function catalogForSchools(input: { q?: string; category?: string } = {}) {
   return catalogFor("schools", { q: input.q, category: input.category });
 }
+/** The shop's aisles in display order: menus, the aisle tiles and browsing follow it; unlisted aisles come after, by name. */
+const AISLE_ORDER = [
+  "pens",
+  "pencils",
+  "long-books",
+  "notebooks",
+  "diaries",
+  // toys and games (Ratna's catalogue, 2026-10-16)
+  "games-puzzles",
+  "learning-toys",
+  "building-sets",
+  "outdoor-play",
+  "pretend-play",
+  "baby-toddler",
+];
+const aisleRank = (slug: string) => (AISLE_ORDER.indexOf(slug) + 1 || 99);
 /** Far more than the shop lists today. */
 const SHELF_LIMIT = 2000;
 /** A search returns its best matches, up to this many. */
@@ -265,6 +283,7 @@ async function catalogFor(
         reviewCount: reviews?.reviewCount ?? 0,
         variants: (shelf.variants.get(String(p._id)) ?? []).map((v) => ({
           id: String(v._id),
+          sku: v.sku,
           label: v.label,
           pricePaise: v.pricePaise,
           mrpPaise: v.mrpPaise,
@@ -290,15 +309,17 @@ async function catalogFor(
         b.variants[0].pricePaise / b.variants[0].mrpPaise -
         (1 - a.variants[0].pricePaise / a.variants[0].mrpPaise),
     );
-  // a search keeps its best-match order; browsing leads with the stationery aisles
-  if (filters.sort === "featured" && !query) {
-    const preferred = ["stationery", "paper", "office", "art-craft"];
-    result.sort((a, b) => {
-      const aRank = preferred.indexOf(a.categorySlug);
-      const bRank = preferred.indexOf(b.categorySlug);
-      return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
-    });
-  }
+  // a search keeps its best-match order; browsing goes aisle by aisle, bestsellers first, then by
+  // name with numbers read as numbers: one brand's books sit together, 72 pages before 172. Import
+  // order used to show through (172, 72, 280, 380).
+  if (filters.sort === "featured" && !query)
+    result.sort(
+      (a, b) =>
+        aisleRank(a.categorySlug) - aisleRank(b.categorySlug) ||
+        a.categorySlug.localeCompare(b.categorySlug) ||
+        Number(b.bestseller) - Number(a.bestseller) ||
+        a.name.en.localeCompare(b.name.en, "en", { numeric: true }),
+    );
   return result;
 }
 /** Memoised per request: the page and its metadata both ask. */
@@ -319,19 +340,6 @@ async function readCategories() {
   const rows = await Category.find({})
     .sort({ parentId: 1, "name.en": 1 })
     .limit(200);
-  const preferred = [
-    "stationery",
-    "paper",
-    "school",
-    "art-craft",
-    "gift-sets",
-    "gift-wrap",
-    "cards",
-    "decor",
-    "toys",
-    "party",
-    "office",
-  ];
   return rows.map((row) => ({
     id: String(row._id),
     slug: row.slug,
@@ -339,10 +347,5 @@ async function readCategories() {
     mr: row.name.mr,
     symbol: row.symbol ?? "",
     parentId: row.parentId ? String(row.parentId) : undefined,
-  })).sort((a, b) => {
-    const aRank = preferred.indexOf(a.slug);
-    const bRank = preferred.indexOf(b.slug);
-    const byPriority = (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
-    return byPriority || a.en.localeCompare(b.en);
-  });
+  })).sort((a, b) => aisleRank(a.slug) - aisleRank(b.slug) || a.en.localeCompare(b.en));
 }

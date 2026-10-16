@@ -5,6 +5,7 @@ import { connectDB } from "../db/connect";
 import {
   AuditLog,
   Category,
+  InventoryItem,
   Product,
   ProductVariant,
   User,
@@ -307,4 +308,37 @@ export async function setSchoolPrice(actorId: string, input: unknown) {
       { session },
     );
   });
+}
+
+/** When a pack counts as running low: fewer than this can be sold. A blank box goes back to the shop default. */
+export async function setAlertLevel(actorId: string, input: unknown) {
+  await authorize(actorId, "inventory:adjust");
+  const data = z
+    .object({ variantId: objectId, alertBelow: optionalField(z.coerce.number().int().min(0).max(100000)) })
+    .parse(input);
+  const item = await InventoryItem.findOne({ variantId: data.variantId });
+  if (!item) throw Error("Pack not found.");
+  const before = item.alertBelow ?? null;
+  const after = data.alertBelow ?? null;
+  if (before === after) return;
+  await InventoryItem.updateOne({ _id: item._id }, after === null ? { $unset: { alertBelow: 1 } } : { $set: { alertBelow: after } });
+  await AuditLog.create({ actorId, action: "inventory.alert-level", target: data.variantId, details: { before, after } });
+}
+
+/**
+ * What the shop paid for one pack, for the owners' profit figures. Only an owner sets or sees it;
+ * a blank box clears it.
+ */
+export async function setPackCost(actorId: string, input: unknown) {
+  await authorize(actorId, "settings:write");
+  const data = z
+    .object({ variantId: objectId, costPaise: optionalField(z.coerce.number().int().min(0).max(10_000_000)) })
+    .parse(input);
+  const variant = await ProductVariant.findById(data.variantId).select("+costPaise");
+  if (!variant) throw Error("Pack not found.");
+  const before = variant.costPaise ?? null;
+  const after = data.costPaise ?? null;
+  if (before === after) return;
+  await ProductVariant.updateOne({ _id: variant._id }, after === null ? { $unset: { costPaise: 1 } } : { $set: { costPaise: after } });
+  await AuditLog.create({ actorId, action: "variant.cost", target: data.variantId, details: { before, after } });
 }

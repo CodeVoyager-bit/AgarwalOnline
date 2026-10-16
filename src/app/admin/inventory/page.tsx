@@ -16,11 +16,12 @@ import { CatalogAdminNav } from "@/components/catalog-admin-nav";
 import { requirePage } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
 import { governanceAction } from "@/lib/governance/actions";
+import { catalogManagementAction } from "@/lib/catalog/manage-actions";
+import { formatPrice } from "@/lib/display";
 import { InventoryMovement } from "@/lib/commerce/models";
 import { InventoryItem, Product, ProductVariant } from "@/lib/db/models";
+import { DEFAULT_ALERT_BELOW, isLow } from "@/lib/inventory/low-stock";
 export const metadata = { title: "Stock", robots: { index: false } };
-
-const LOW = 10;
 
 export default async function InventoryPage({
   searchParams,
@@ -33,7 +34,8 @@ export default async function InventoryPage({
   const params = await searchParams;
   const [products, variants, inventory, movements] = await Promise.all([
     Product.find({}).sort({ "name.en": 1 }).limit(500),
-    ProductVariant.find({}).sort({ sku: 1 }).limit(2000),
+    // purchase prices are read for owners only
+    ProductVariant.find({}).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }).limit(2000),
     InventoryItem.find({}).limit(2000),
     InventoryMovement.find({}).sort({ at: -1 }).limit(50).populate("variantId", "sku label"),
   ]);
@@ -42,13 +44,16 @@ export default async function InventoryPage({
     const stock = inventory.find((item) => String(item.variantId) === String(variant._id));
     const onHand = stock?.onHand ?? 0;
     const reserved = stock?.reserved ?? 0;
-    return { variant, product, onHand, reserved, available: Math.max(0, onHand - reserved) };
+    const available = Math.max(0, onHand - reserved);
+    const ownAlert = stock?.alertBelow as number | undefined;
+    return { variant, product, onHand, reserved, available, ownAlert, alertBelow: ownAlert ?? DEFAULT_ALERT_BELOW };
   });
   const q = params.q?.trim().toLowerCase();
   const shown = rows.filter(
     (row) =>
       (!q || [row.product?.name.en ?? "", row.variant.sku, row.variant.label].some((text) => text.toLowerCase().includes(q))) &&
-      (params.stock !== "low" || (row.available > 0 && row.available <= LOW)) &&
+      // the same "running low" as the overview, the menu badge and the emailed report: sold out included
+      (params.stock !== "low" || isLow(row.available, row.alertBelow)) &&
       (params.stock !== "out" || row.available === 0),
   );
   const page = shown.slice(0, rowsShown(params.show));
@@ -68,6 +73,11 @@ export default async function InventoryPage({
         eyebrow="Run the store"
         title="Stock"
         lead="How many of each pack you have, how many are held for open orders, and every change."
+        aside={
+          <a className="secondary-button" href="/api/staff/export/low-stock" download>
+            Low-stock report (Excel)
+          </a>
+        }
       />
       <CatalogAdminNav />
       {adjusting && (
@@ -89,7 +99,7 @@ export default async function InventoryPage({
           <ActionForm
             action={governanceAction}
             submit="Record the change"
-            confirmMessage="This changes how many shoppers can buy and is written to the audit trail. Large changes wait for a second owner."
+            confirmMessage={isOwner ? "This changes how many shoppers can buy and is written to the audit trail." : "This changes how many shoppers can buy and is written to the audit trail. Large changes wait for an owner."}
           >
             <input type="hidden" name="operation" value="stock" />
             <input type="hidden" name="variantId" value={String(adjusting.variant._id)} />
@@ -105,6 +115,22 @@ export default async function InventoryPage({
               </label>
             </div>
           </ActionForm>
+          <ActionForm action={catalogManagementAction} submit="Save alert" buttonClassName="secondary-button">
+            <input type="hidden" name="operation" value="alert" />
+            <input type="hidden" name="variantId" value={String(adjusting.variant._id)} />
+            <label>
+              Warn me when fewer than this can be sold{" "}
+              <small>0 turns the warning off; blank uses the shop default of {DEFAULT_ALERT_BELOW}</small>
+              <input
+                name="alertBelow"
+                inputMode="numeric"
+                pattern="[0-9]{1,6}"
+                defaultValue={adjusting.ownAlert ?? ""}
+                placeholder={String(DEFAULT_ALERT_BELOW)}
+                autoComplete="off"
+              />
+            </label>
+          </ActionForm>
         </div>
       )}
       <details className="panel create-staff" id="stock-sheet" open={params.sheet === "1"}>
@@ -113,7 +139,7 @@ export default async function InventoryPage({
       </details>
       <details className="panel create-staff" id="new-pack" open={params.new === "pack"}>
         <summary>Add a pack size</summary>
-        <p className="muted">A new pack puts a new price in the shop, so an owner approves it like a price change.</p>
+        <p className="muted">{isOwner ? "It goes on sale as soon as you add it." : "A new pack puts a new price in the shop, so an owner approves it like a price change."}</p>
         <ActionForm action={governanceAction} submit="Add pack size">
           <input type="hidden" name="operation" value="variant" />
           <div className="staff-form-grid">
@@ -171,6 +197,12 @@ export default async function InventoryPage({
                 <MoneyInput name="schoolPriceRupees" required={false} />
               </label>
             )}
+            {isOwner && (
+              <label>
+                Purchase price (₹) <small>Optional; only owners see it</small>
+                <MoneyInput name="costRupees" required={false} />
+              </label>
+            )}
           </div>
         </ActionForm>
       </details>
@@ -183,7 +215,7 @@ export default async function InventoryPage({
           Show
           <select name="stock" defaultValue={params.stock ?? ""}>
             <option value="">Every pack</option>
-            <option value="low">Running low ({LOW} or fewer)</option>
+            <option value="low">Running low or sold out</option>
             <option value="out">Sold out</option>
           </select>
         </label>
@@ -204,6 +236,8 @@ export default async function InventoryPage({
       <DataTable
         caption="Stock for every pack: on the shelf, held for orders and available to sell"
         rows={page}
+        exportName="Stock"
+        exportRows={shown}
         rowKey={(row) => String(row.variant._id)}
         columns={[
           {
@@ -225,15 +259,26 @@ export default async function InventoryPage({
           {
             header: "Can be sold",
             numeric: true,
-            cell: ({ available }) =>
+            cell: ({ available, alertBelow }) =>
               available === 0 ? (
                 <StatusPill tone="bad">Sold out</StatusPill>
-              ) : available <= LOW ? (
+              ) : isLow(available, alertBelow) ? (
                 <StatusPill tone="warn">{available} left</StatusPill>
               ) : (
                 available
               ),
           },
+          { header: "Alert below", numeric: true, phone: "hide", cell: ({ alertBelow }) => (alertBelow === 0 ? "Off" : alertBelow) },
+          ...(isOwner
+            ? [
+                {
+                  header: "Bought at",
+                  numeric: true,
+                  phone: "hide" as const,
+                  cell: ({ variant }: (typeof rows)[number]) => (variant.costPaise != null ? formatPrice(variant.costPaise) : "—"),
+                },
+              ]
+            : []),
           {
             header: "Action",
             cell: ({ variant, product }) => (
@@ -261,6 +306,7 @@ export default async function InventoryPage({
       </div>
       <DataTable
         caption="Every recorded stock change with time, pack, kind and quantity"
+        exportName="Stock changes"
         rows={movements}
         rowKey={(movement) => String(movement._id)}
         columns={[

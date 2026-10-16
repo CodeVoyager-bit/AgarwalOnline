@@ -8,10 +8,10 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Agarwal General Stores",
+    name: "Agarwal Online",
     short_name: "Agarwal",
     description:
-      "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in Nagothane.",
+      "Stationery, school supplies, toys and games from Agarwal Online, delivered same day in Nagothane.",
     start_url: "/",
     scope: "/",
     display: "standalone",

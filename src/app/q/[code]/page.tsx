@@ -37,7 +37,7 @@ export default async function SharedQuotation({ params }: { params: Promise<{ co
         lead={
           latest
             ? `Version ${latest.version} · ${quoteMoney(latest.totalPaise)} with GST · valid until ${quoteDate(latest.validUntil)}`
-            : "Agarwal General Stores, Nagothane"
+            : "Agarwal Online, Nagothane"
         }
         aside={<StatusPill tone={status.tone}>{status.label}</StatusPill>}
       />

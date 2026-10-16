@@ -53,7 +53,7 @@ export function PayButton({
         order_id: data.id,
         amount: data.amount,
         currency: data.currency,
-        name: "AGARWAL GENERAL STORES",
+        name: "AGARWAL ONLINE",
         theme: { color: "#1e3a8a" },
         modal: { ondismiss: () => setBusy(false) },
         handler: async (result) => {

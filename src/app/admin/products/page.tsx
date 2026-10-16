@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PackageOpen, Plus } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { Category, InventoryItem, Product, ProductVariant } from "@/lib/db/models";
+import { isLow } from "@/lib/inventory/low-stock";
 import { productImages } from "@/lib/catalog/images";
 import { formatPrice } from "@/lib/display";
 import { CatalogAdminNav } from "@/components/catalog-admin-nav";
@@ -15,7 +16,6 @@ import { StatusPill } from "@/components/status-pill";
 import { AisleIcon } from "@/components/aisle-icon";
 export const metadata = { title: "Catalog", robots: { index: false } };
 
-const LOW = 10;
 const STATUSES = [
   ["published", "Live in the shop"],
   ["pending", "Waiting for approval"],
@@ -41,12 +41,15 @@ export default async function Products({
   const available = new Map(
     stock.map((item) => [String(item.variantId), Math.max(0, item.onHand - item.reserved)]),
   );
+  const alertBelow = new Map(stock.map((item) => [String(item.variantId), item.alertBelow as number | undefined]));
   const rows = products.map((product) => {
     const packs = variants.filter((variant) => String(variant.productId) === String(product._id));
     return {
       product,
       packs,
       available: packs.reduce((sum, pack) => sum + (available.get(String(pack._id)) ?? 0), 0),
+      // running low when any of its packs is, by that pack's own alert level
+      low: packs.some((pack) => isLow(available.get(String(pack._id)) ?? 0, alertBelow.get(String(pack._id)))),
       category: categories.find((category) => String(category._id) === String(product.categoryId)),
     };
   });
@@ -59,7 +62,7 @@ export default async function Products({
         )) &&
       (!params.category || row.category?.slug === params.category) &&
       (!params.status || row.product.status === params.status) &&
-      (params.stock !== "low" || (row.available > 0 && row.available <= LOW)) &&
+      (params.stock !== "low" || row.low) &&
       (params.stock !== "out" || row.available === 0) &&
       (!params.audience ||
         (params.audience === "schools" && row.product.showToSchools === true) ||
@@ -101,7 +104,7 @@ export default async function Products({
           Stock
           <select name="stock" defaultValue={params.stock ?? ""}>
             <option value="">Any stock</option>
-            <option value="low">Running low ({LOW} or fewer)</option>
+            <option value="low">Running low or sold out</option>
             <option value="out">Sold out</option>
           </select>
         </label>
@@ -142,6 +145,8 @@ export default async function Products({
       <DataTable
         caption="Products with price, stock and status"
         rows={page}
+        exportName="Products"
+        exportRows={shown}
         rowKey={(row) => String(row.product._id)}
         columns={[
           {
@@ -191,10 +196,10 @@ export default async function Products({
           {
             header: "In stock",
             numeric: true,
-            cell: ({ available: count }) =>
+            cell: ({ available: count, low }) =>
               count === 0 ? (
                 <StatusPill tone="bad">Sold out</StatusPill>
-              ) : count <= LOW ? (
+              ) : low ? (
                 <StatusPill tone="warn">{count} left</StatusPill>
               ) : (
                 count

@@ -26,9 +26,13 @@ export default async function NewProductPage() {
       <PageHeading
         eyebrow="Run the store"
         title="Add a product"
-        lead="Describe the product, add its photos and its first pack. It goes live once an owner approves it."
+        lead={
+          isOwner
+            ? "Describe the product, add its photos and its first pack. It goes live as soon as you add it."
+            : "Describe the product, add its photos and its first pack. It goes live once an owner approves it."
+        }
       />
-      <ActionForm action={governanceAction} submit="Send for approval" className="form-stack panel editor-panel">
+      <ActionForm action={governanceAction} submit={isOwner ? "Add product" : "Send for approval"} className="form-stack panel editor-panel">
         <input type="hidden" name="operation" value="product" />
         <fieldset className="form-section">
           <legend>Name and description</legend>
@@ -123,6 +127,12 @@ export default async function NewProductPage() {
               <label>
                 School price before GST (₹) <small>Optional: what schools see as the expected price</small>
                 <MoneyInput name="schoolPriceRupees" required={false} />
+              </label>
+            )}
+            {isOwner && (
+              <label>
+                Purchase price (₹) <small>Optional; only owners see it, for profit</small>
+                <MoneyInput name="costRupees" required={false} />
               </label>
             )}
           </div>

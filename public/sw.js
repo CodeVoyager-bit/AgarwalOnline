@@ -1,5 +1,5 @@
 /*
- * Agarwal General Stores: just enough service worker for the installed app.
+ * Agarwal Online: just enough service worker for the installed app.
  * Pages always come from the network, because prices, stock, the basket and sign-in must be live;
  * nothing the shop shows is ever cached here. Only when there is no connection at all does a
  * page give way to the small offline notice saved at install.
@@ -55,7 +55,7 @@ self.addEventListener("push", (event) => {
     // not ours, or unreadable: still say something, as browsers require
   }
   event.waitUntil(
-    self.registration.showNotification(message.title || "Agarwal General Stores", {
+    self.registration.showNotification(message.title || "Agarwal Online", {
       body: message.body || "You have a new update.",
       icon: "/icons/icon-192.png",
       // the small monochrome mark in an Android status bar

@@ -23,7 +23,7 @@ test("the footer links every policy, and each page's contents point at its secti
     const response = await page.goto(policy.href);
     expect(response?.status(), policy.href).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: policy.title.en })).toBeVisible();
-    await expect(page).toHaveTitle(`${policy.title.en} | Agarwal General Stores`);
+    await expect(page).toHaveTitle(`${policy.title.en} | Agarwal Online`);
     const targets = await page
       .locator(".legal-toc a")
       .evaluateAll((links) => links.map((link) => link.getAttribute("href")!.slice(1)));

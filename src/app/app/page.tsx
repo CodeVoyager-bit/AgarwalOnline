@@ -3,7 +3,7 @@ import { InstallApp } from "@/components/install-app";
 
 export const metadata = {
   title: "Get the app",
-  description: "Put Agarwal General Stores on your phone's home screen: install the app on Android or iPhone.",
+  description: "Put Agarwal Online on your phone's home screen: install the app on Android or iPhone.",
 };
 
 /** Built by Bubblewrap from this site (README, "Android app"); it opens agarwalonline.in full-screen. */
@@ -14,7 +14,7 @@ export default async function GetTheApp() {
   return (
     <section className="auth-card utility-card app-card">
       <span className="eyebrow">{mr ? "ॲप मिळवा" : "GET THE APP"}</span>
-      <h1>{mr ? "Agarwal तुमच्या होम स्क्रीनवर." : "Agarwal on your home screen."}</h1>
+      <h1>{mr ? "अग्रवाल ऑनलाइन तुमच्या होम स्क्रीनवर." : "Agarwal Online on your home screen."}</h1>
       <p>
         {mr
           ? "एका टॅपमध्ये दुकान उघडते. हेच दुकान आहे, त्यामुळे तुमची बास्केट, ऑर्डर आणि खाते सगळे तिथेच असते."

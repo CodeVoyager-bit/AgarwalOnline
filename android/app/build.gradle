@@ -24,7 +24,7 @@ def twaManifest = [
     applicationId: 'in.agarwalonline.app',
     hostName: 'agarwalonline.in', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
-    name: 'Agarwal General Stores', // The application name.
+    name: 'Agarwal Online', // The application name.
     launcherName: 'Agarwal', // The name shown on the Android Launcher.
     themeColor: '#0F172A', // The color used for the status bar.
     themeColorDark: '#0F172A', // The color used for the dark status bar.

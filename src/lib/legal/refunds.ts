@@ -10,13 +10,7 @@ export const refundsDoc: LegalBuilder = {
         id: "cancel-by-you",
         title: "Cancelling an order yourself",
         blocks: [
-          {
-            list: [
-              "**Cash on delivery and family tab:** cancel from your order page until the store confirms the order.",
-              "**Paid online:** these can't be cancelled from the site. Ask in [Talk to the store](/account/support). Until the order leaves with a delivery partner, the store can cancel it and refund you in full.",
-              "We don't charge anything for cancelling.",
-            ],
-          },
+          "Cancel from your order page until the store confirms the order. We don't charge anything for cancelling.",
         ],
       },
       {
@@ -30,7 +24,7 @@ export const refundsDoc: LegalBuilder = {
         id: "failed-delivery",
         title: "If delivery doesn't happen",
         blocks: [
-          "If no one can receive the order, we try again or bring it back to the shop. If it can't be delivered, the order is cancelled: nothing is due for cash on delivery or on the family tab, and online payments are refunded.",
+          "If no one can receive the order, we try again or bring it back to the shop. If it can't be delivered, the order is cancelled and nothing is due.",
         ],
       },
       {
@@ -53,11 +47,8 @@ export const refundsDoc: LegalBuilder = {
         blocks: [
           {
             rows: [
-              ["Paid online", "Back to the card, UPI or account you paid with, through Razorpay. Banks usually take 5–7 working days to show it."],
-              ["Cash on delivery", "In cash or by bank transfer. The reference is noted on your order."],
-              ["Family tab", "Taken off the tab. If the tab was already paid, the amount stays as credit on the tab."],
-              ["Items not packed", "Taken off the bill for cash on delivery; refunded for online payments, and taken off the family tab."],
-              ["Payment after the hold", "If an online payment arrives after the 15-minute hold, the order is released and the payment refunded in full."],
+              ["Money you paid", "In cash or by bank transfer. The reference is noted on your order."],
+              ["Items not packed", "Taken off your bill, so you never pay for them."],
             ],
           },
           "A refund is started once a cancellation is confirmed, or once a returned item has reached the store and been checked.",
@@ -80,13 +71,7 @@ export const refundsDoc: LegalBuilder = {
         id: "cancel-by-you",
         title: "तुम्ही स्वतः ऑर्डर रद्द करणे",
         blocks: [
-          {
-            list: [
-              "**कॅश ऑन डिलिव्हरी आणि कुटुंब टॅब:** दुकान ऑर्डर पक्की करेपर्यंत तुमच्या ऑर्डरच्या पानावरून रद्द करा.",
-              "**ऑनलाइन पैसे भरलेल्या ऑर्डर:** या साइटवरून रद्द करता येत नाहीत. [दुकानाशी बोला](/account/support) मध्ये विचारा. ऑर्डर डिलिव्हरी भागीदारासोबत निघेपर्यंत दुकान ती रद्द करून पूर्ण पैसे परत करू शकते.",
-              "रद्द करण्यासाठी आम्ही कोणतेही शुल्क घेत नाही.",
-            ],
-          },
+          "दुकान ऑर्डर पक्की करेपर्यंत तुमच्या ऑर्डरच्या पानावरून रद्द करा. रद्द करण्यासाठी आम्ही कोणतेही शुल्क घेत नाही.",
         ],
       },
       {
@@ -100,7 +85,7 @@ export const refundsDoc: LegalBuilder = {
         id: "failed-delivery",
         title: "वितरण होऊ शकले नाही तर",
         blocks: [
-          "ऑर्डर घ्यायला कोणी नसल्यास, आम्ही पुन्हा प्रयत्न करतो किंवा ती दुकानात परत आणतो. ती पोहोचवता न आल्यास ऑर्डर रद्द होते: कॅश ऑन डिलिव्हरी किंवा कुटुंब टॅबसाठी काहीही देणे नसते, आणि ऑनलाइन भरलेले पैसे परत केले जातात.",
+          "ऑर्डर घ्यायला कोणी नसल्यास, आम्ही पुन्हा प्रयत्न करतो किंवा ती दुकानात परत आणतो. ती पोहोचवता न आल्यास ऑर्डर रद्द होते आणि काहीही देणे नसते.",
         ],
       },
       {
@@ -123,11 +108,8 @@ export const refundsDoc: LegalBuilder = {
         blocks: [
           {
             rows: [
-              ["ऑनलाइन भरलेले", "Razorpay मार्फत, तुम्ही ज्या कार्ड, UPI किंवा खात्यातून भरले त्यातच परत. बँकांना ते दिसायला सहसा 5–7 कामकाजाचे दिवस लागतात."],
-              ["कॅश ऑन डिलिव्हरी", "रोख किंवा बँक ट्रान्सफरने. त्याचा संदर्भ तुमच्या ऑर्डरवर नोंदवला जातो."],
-              ["कुटुंब टॅब", "टॅबमधून कमी केले जाते. टॅब आधीच भरलेला असल्यास, ती रक्कम टॅबवर जमा राहते."],
-              ["पॅक न झालेल्या वस्तू", "कॅश ऑन डिलिव्हरीसाठी बिलातून काढल्या जातात; ऑनलाइन पेमेंटसाठी पैसे परत केले जातात, आणि कुटुंब टॅबमधून कमी केल्या जातात."],
-              ["राखीव वेळेनंतर आलेले पेमेंट", "ऑनलाइन पेमेंट 15 मिनिटांच्या राखीव वेळेनंतर आल्यास, ऑर्डर सोडली जाते आणि पूर्ण पैसे परत केले जातात."],
+              ["तुम्ही भरलेले पैसे", "रोख किंवा बँक ट्रान्सफरने. त्याचा संदर्भ तुमच्या ऑर्डरवर नोंदवला जातो."],
+              ["पॅक न झालेल्या वस्तू", "तुमच्या बिलातून काढल्या जातात, त्यामुळे त्यांचे पैसे तुम्ही कधीच भरत नाही."],
             ],
           },
           "ऑर्डर रद्द झाल्याची खात्री झाल्यावर, किंवा परत केलेली वस्तू दुकानात पोहोचून तपासल्यावर पैसे परत करण्यास सुरुवात होते.",

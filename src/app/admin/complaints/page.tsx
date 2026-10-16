@@ -207,6 +207,7 @@ export default async function Complaints({ searchParams }: { searchParams: Promi
       </p>
       <DataTable
         caption="Complaints with their order, status, return and when they came in"
+        exportName="Complaints"
         rows={complaints}
         rowKey={(c) => String(c._id)}
         columns={[

@@ -10,7 +10,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { liveAreaNames } from "@/lib/commerce/areas";
 import { AdaptiveShell } from "@/components/adaptive-shell";
 import { currentLocale } from "@/lib/i18n";
-import { catalogCategories } from "@/lib/catalog/queries";
+import { catalog, catalogCategories } from "@/lib/catalog/queries";
 import { currentUser } from "@/lib/auth/session";
 import { staffHome, staffRoleOf } from "@/lib/auth/permissions";
 import { cartFor } from "@/lib/commerce/service";
@@ -55,17 +55,17 @@ export function generateMetadata(): Metadata {
     // resolves the relative canonical and share-image links pages set
     metadataBase: new URL(getEnv().APP_ORIGIN),
     title: {
-      default: "Agarwal General Stores | Stationery & gifts delivered same day in Nagothane",
-      template: "%s | Agarwal General Stores",
+      default: "Agarwal Online | Stationery, toys & games in Nagothane",
+      template: "%s | Agarwal Online",
     },
     description:
-      "Stationery, school supplies, gifts and party essentials from Agarwal General Stores, delivered same day in and around Nagothane.",
+      "Pens, notebooks and school stationery from Cello, Classmate, Sulabh and Nataraj, and toys, board games and learning toys from Ratna's, at Agarwal Online, delivered same day in and around Nagothane.",
     // the app's name and look once it is added to an iPhone's home screen (Chrome reads app/manifest.ts)
     appleWebApp: { capable: true, title: "Agarwal", statusBarStyle: "default" },
     // the WhatsApp/Facebook link preview; product pages swap in their own photo
     openGraph: {
       type: "website",
-      siteName: "Agarwal General Stores",
+      siteName: "Agarwal Online",
       locale: "en_IN",
       images: ["/icons/icon-512.png"],
     },
@@ -78,19 +78,27 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/** The shopper's stored basket, and the server's clock just before it was read: a save confirmed after that isn't in it. */
+async function storedBasket(userId?: string) {
+  const at = Date.now();
+  const lines = userId ? await cartFor(userId) : await (await import("@/lib/commerce/guest-cart")).guestCartLines();
+  return { at, lines };
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [locale, categories, user, areas] = await Promise.all([
+  const [locale, categories, user, areas, products] = await Promise.all([
     currentLocale(),
     catalogCategories(),
     currentUser(),
     liveAreaNames(),
+    catalog(),
   ]);
+  // "Offers" and "Deals" only when something really sells below MRP (from the cached shelf, no extra read)
+  const onOffer = products.some((product) => product.variants.some((v) => v.pricePaise < v.mrpPaise));
   const staffRole = staffRoleOf(user?.roles ?? []);
-  const basket = user
-    ? await cartFor(user.id)
-    : await (await import("@/lib/commerce/guest-cart")).guestCartLines();
+  const { at: basketAt, lines: basket } = await storedBasket(user?.id);
   return (
     <html
       lang={locale}
@@ -118,6 +126,7 @@ export default async function RootLayout({
         <KeyboardAware />
         <ServiceWorker account={user && pushPublicKey() ? user.id : null} />
         <BasketProvider
+          at={basketAt}
           lines={Object.fromEntries(
             basket.map((line) => [
               line.variantId,
@@ -129,12 +138,13 @@ export default async function RootLayout({
             staffRole={staffRole}
             staffUser={user && staffRole ? { name: user.name, phone: user.phone, email: user.email } : null}
             locale={locale}
-            header={<Header locale={locale} categories={categories} />}
+            header={<Header locale={locale} categories={categories} offers={onOffer} />}
             footer={
               <SiteFooter
                 locale={locale}
                 categories={categories}
                 areas={areas}
+                offers={onOffer}
                 signedIn={Boolean(user)}
                 workspace={user ? staffHome(user.roles) : null}
               />

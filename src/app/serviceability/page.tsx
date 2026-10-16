@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db/connect";
 import { ServiceArea } from "@/lib/db/models";
 import { currentLocale } from "@/lib/i18n";
 import { liveAreaNames } from "@/lib/commerce/areas";
-export const metadata = { title: "Check your delivery area", description: "Enter your PIN code to see whether Agarwal General Stores delivers to you in and around Nagothane." };
+export const metadata = { title: "Check your delivery area", description: "Enter your PIN code to see whether Agarwal Online delivers to you in and around Nagothane." };
 export const dynamic = "force-dynamic";
 export default async function Serviceability({
   searchParams,

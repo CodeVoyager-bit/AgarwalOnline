@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { InventoryItem, Product, ProductVariant, User } from "../../src/lib/db/models";
-import { Address, Order } from "../../src/lib/commerce/models";
+import { Address, Order, SystemSetting } from "../../src/lib/commerce/models";
 import { WishlistItem } from "../../src/lib/engagement/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
 
@@ -166,16 +166,27 @@ test("hearts show what the shopper saved, after a reload too", async ({ browser 
 });
 
 test("staff: a packing slip and the bill from the order page", async ({ browser }, info) => {
+  // the shop's name on both comes from Store settings → Business and tax details
+  await SystemSetting.updateOne(
+    { key: "tax-details" },
+    { $set: { value: { legalName: "Agarwal Online Test Shop", address: "Main Road, Nagothane", stateCode: "27", phone: "9876543210" } } },
+    { upsert: true },
+  );
   const page = await signedIn(browser, "owner", info.project.use);
   await page.goto(`/admin/orders/${order.id}`);
   await page.locator("main").getByRole("link", { name: "Packing slip" }).click();
   await expect(page).toHaveURL(`/admin/orders/${order.id}/slip`);
   const slip = page.locator("article.packing-slip");
   await expect(slip.getByRole("heading", { level: 1 })).toHaveText(order.number);
+  await expect(slip.locator(".slip-shop")).toHaveText("Agarwal Online Test Shop · packing slip");
   await expect(slip.getByRole("heading", { name: "Deliver to" })).toBeVisible();
   await expect(slip.locator(".slip-lines tbody tr")).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: "Print packing slip" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open the bill" })).toHaveAttribute("href", `/api/invoices/${order.id}`);
+  const bill = await (await page.request.get(`/api/invoices/${order.id}`)).text();
+  expect(bill).toContain("<h1>Agarwal Online Test Shop</h1>");
+  expect(bill).toContain("Main Road, Nagothane · Phone 9876543210");
+  await SystemSetting.deleteOne({ key: "tax-details" });
   await shot(page, "packing-slip");
   // the printed page is the slip alone
   await page.emulateMedia({ media: "print" });
@@ -228,7 +239,8 @@ test("staff: stock from a spreadsheet", async ({ browser }, info) => {
   const sheet = await page.request.get("/api/staff/stock-sheet");
   expect(sheet.ok()).toBe(true);
   expect(sheet.headers()["content-disposition"]).toMatch(/attachment; filename="stock-\d{4}-\d{2}-\d{2}\.csv"/);
-  expect((await sheet.text()).split("\r\n")[0]).toBe("sku,product,pack,on_shelf,count,change,reason");
+  // an owner's sheet also carries the alert level and the purchase price, to change in bulk
+  expect((await sheet.text()).split("\r\n")[0]).toBe("sku,product,pack,on_shelf,count,change,reason,alert_below,purchase_price");
 
   const pack = (await ProductVariant.findOne({ sku: "LOAD-MORE-1" }))!;
   const before = (await InventoryItem.findOne({ variantId: pack._id }))!.onHand as number;

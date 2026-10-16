@@ -68,7 +68,9 @@ export function StockImport() {
         <li>
           <span>
             For each pack that changed, fill in <strong>count</strong> (how many are on the shelf now) <em>or</em>{" "}
-            <strong>change</strong> (12 to add, -3 to take off). Leave the rest empty.
+            <strong>change</strong> (12 to add, -3 to take off). Leave the rest empty. You can also change{" "}
+            <strong>alert_below</strong> (warn when fewer than this can be sold) and, for owners,{" "}
+            <strong>purchase_price</strong> (₹ paid for one pack).
           </span>
         </li>
         <li className="stock-import-upload">

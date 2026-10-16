@@ -123,6 +123,7 @@ export default async function AuditPage({
       </FilterBar>
       <DataTable
         caption="Audit entries, newest first: when, who, what happened and to which record"
+        exportName="Audit log"
         rows={events}
         rowKey={(event) => String(event._id)}
         columns={[

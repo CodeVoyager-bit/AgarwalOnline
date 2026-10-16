@@ -12,7 +12,6 @@ export type StaffNavKey =
   | "feedback"
   | "reviews"
   | "cod"
-  | "tabs"
   | "refunds"
   | "offers"
   | "analytics"
@@ -74,7 +73,6 @@ export const STAFF_NAV: StaffNavGroup[] = [
     key: "money",
     items: [
       { key: "cod", href: "/admin/cod", permission: "cod:reconcile" },
-      { key: "tabs", href: "/admin/tabs", permission: "cod:reconcile" },
       { key: "refunds", href: "/super-admin/refunds", permission: "refund:write" },
       { key: "offers", href: "/super-admin/promotions", permission: "promotion:write" },
       { key: "analytics", href: "/admin/analytics", permission: "analytics:read" },

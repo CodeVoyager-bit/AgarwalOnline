@@ -154,13 +154,10 @@ export async function removeChild(userId: string, childInput: unknown) {
   if (!result.matchedCount) throw Error("This child is not in your family.");
 }
 
-/**
- * Orders the family sees: its current adults' orders, and every order put on its tab, which the
- * family still owes for after the adult who placed it has left.
- */
+/** Orders the family sees: its current adults' orders. */
 const familyOrders = (family: { _id: unknown; adults: unknown[] }) => ({
   familyId: family._id,
-  $or: [{ customerId: { $in: family.adults } }, { paymentMethod: "tab" }],
+  customerId: { $in: family.adults },
 });
 
 type SpendRow = {

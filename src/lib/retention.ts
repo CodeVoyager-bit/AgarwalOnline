@@ -71,9 +71,11 @@ export async function runRetention() {
     mongoose.connection
       .collection("authVerifications")
       .deleteMany({ expiresAt: { $lte: now } }),
+    // better-auth's sign-in attempt rows (keyed by IP address) have no expiresAt, only lastRequest in
+    // ms; the longest window is a minute, so a day-old row counts for nothing
     mongoose.connection
       .collection("authRateLimits")
-      .deleteMany({ expiresAt: { $lte: now } }),
+      .deleteMany({ lastRequest: { $lte: now.getTime() - 86400 * 1000 } }),
   ]);
   const result = {
     evidence: evidence.deletedCount,

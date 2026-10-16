@@ -180,7 +180,7 @@ const orderSchema = new Schema(
       ],
       default: "unassigned",
     },
-    // "tab": on the family's monthly khata, settled with the store later
+    // "tab" was the family khata, removed 2026-10-16; kept so an older order still saves
     paymentMethod: { type: String, enum: ["cod", "razorpay", "tab"], required: true },
     codStatus: {
       type: String,

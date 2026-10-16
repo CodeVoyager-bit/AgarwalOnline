@@ -8,8 +8,6 @@ import type { MutationState } from "../commerce/actions";
 import { plainMessage } from "../form-errors";
 import { log } from "../logger";
 import { saveKit, setKitStatus } from "./kits";
-import { decideTab, recordTabPayment, voidTabPayment } from "./tab";
-import { formWithPaise } from "../display";
 
 function errorMessage(e: unknown) {
   if (e instanceof z.ZodError) return plainMessage(e);
@@ -48,31 +46,5 @@ export async function kitAction(_state: MutationState, form: FormData): Promise<
   revalidatePath("/admin/kits");
   revalidatePath("/account/family");
   if (next) redirect(next);
-  return { success };
-}
-
-/** Family tabs: staff who handle cash record payments; the owner opens, limits, pauses, closes and voids. */
-export async function tabAction(_state: MutationState, form: FormData): Promise<MutationState> {
-  let success = "Saved.";
-  try {
-    const intent = form.get("intent");
-    const fields = formWithPaise(form);
-    if (intent === "payment") {
-      const user = await requirePermission("cod:reconcile");
-      const remaining = await recordTabPayment(user.id, fields);
-      success = remaining > 0 ? `Payment recorded. ₹${remaining / 100} is still owed.` : "Payment recorded. Nothing is owed now.";
-    } else if (intent === "void") {
-      const user = await requirePermission("tab:approve");
-      await voidTabPayment(user.id, fields);
-      success = "Payment voided. The family was told.";
-    } else {
-      const user = await requirePermission("tab:approve");
-      await decideTab(user.id, fields);
-      success = "Saved. The family was told.";
-    }
-  } catch (e) {
-    return { error: errorMessage(e).replace("school kits", "family tabs") };
-  }
-  revalidatePath("/admin/tabs");
   return { success };
 }

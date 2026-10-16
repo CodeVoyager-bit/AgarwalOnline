@@ -82,7 +82,7 @@ test("Add product: several photos, put in order, go live with the product", asyn
   await main.getByLabel("Selling price (₹)").fill("99");
   await main.getByLabel(/^MRP/).fill("120");
   await main.getByLabel("Opening stock").fill("20");
-  await main.getByRole("button", { name: "Send for approval" }).click();
+  await main.getByRole("button", { name: "Add product" }).click();
   await expect(main.getByText("Product added. It is in the shop now.")).toBeVisible({ timeout: 30_000 });
   // the panel starts empty again for the next product
   await expect(photos.getByRole("listitem")).toHaveCount(0);

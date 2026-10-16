@@ -6,6 +6,7 @@ import { PageHeading } from "@/components/page-heading";
 import { CatalogAdminNav } from "@/components/catalog-admin-nav";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { requirePage } from "@/lib/auth/session";
 import { catalogManagementAction } from "@/lib/catalog/manage-actions";
 import { Category, Product } from "@/lib/db/models";
@@ -59,16 +60,21 @@ function CategoryFields({ category, all }: { category?: CategoryDoc; all: Catego
 export default async function CategoriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; q?: string }>;
 }) {
   await requirePage("catalog:write");
-  const { edit } = await searchParams;
+  const { edit, q = "" } = await searchParams;
+  const term = q.trim().toLowerCase().slice(0, 80);
   const [categories, counts] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
     Product.aggregate<{ _id: unknown; count: number }>([{ $group: { _id: "$categoryId", count: { $sum: 1 } } }]),
   ]);
   const countFor = (id: unknown) => counts.find((row) => String(row._id) === String(id))?.count ?? 0;
   const editing = edit && mongoose.isValidObjectId(edit) ? categories.find((item) => String(item._id) === edit) : undefined;
+  const shown = term
+    ? categories.filter((item) => [item.name.en, item.name.mr, item.slug].some((text) => text.toLowerCase().includes(term)))
+    : categories;
+  const nested = categories.some((item) => item.parentId);
   return (
     <section className="page-container">
       <PageHeading
@@ -102,37 +108,46 @@ export default async function CategoriesPage({
           <CategoryFields all={categories} />
         </ActionForm>
       </details>
+      <FilterBar label="Find categories" submitLabel="Find" clearHref={term ? "/admin/categories" : undefined}>
+        <label>
+          Name or web address
+          <input name="q" defaultValue={q} maxLength={80} placeholder="Pens or पेन" />
+        </label>
+      </FilterBar>
+      <p className="results-line" role="status">
+        <span>
+          <strong>{shown.length}</strong> {shown.length === 1 ? "category" : "categories"}
+          {term ? ` matching “${q.trim()}”` : ", A to Z"}
+        </span>
+      </p>
       <DataTable
         caption="Categories with their Marathi name, web address and number of products"
-        rows={categories}
+        exportName="Categories"
+        rows={shown}
         rowKey={(category) => String(category._id)}
         columns={[
           {
             header: "Category",
+            text: (category) => category.name.en,
             cell: (category) => (
-              <span className="product-cell">
-                <span>
-                  <strong>{category.name.en}</strong>
-                  <small lang="mr">{category.name.mr}</small>
-                </span>
-              </span>
+              <>
+                <Link href={`/admin/categories?edit=${category._id}#edit`}>{category.name.en}</Link>
+                <small>
+                  <span lang="mr">{category.name.mr}</span> · /catalog?category={category.slug}
+                </small>
+              </>
             ),
           },
-          { header: "Web address", cell: (category) => <code>/catalog?category={category.slug}</code> },
-          {
-            header: "Inside",
-            cell: (category) =>
-              categories.find((item) => String(item._id) === String(category.parentId))?.name.en ?? "—",
-          },
+          ...(nested
+            ? [
+                {
+                  header: "Inside",
+                  cell: (category: (typeof categories)[number]) =>
+                    categories.find((item) => String(item._id) === String(category.parentId))?.name.en ?? "—",
+                },
+              ]
+            : []),
           { header: "Products", numeric: true, cell: (category) => countFor(category._id) },
-          {
-            header: "Action",
-            cell: (category) => (
-              <Link href={`/admin/categories?edit=${category._id}#edit`} aria-label={`Edit ${category.name.en}`}>
-                Edit
-              </Link>
-            ),
-          },
         ]}
         empty={
           <EmptyState icon={FolderTree} title="No categories yet" body="Add the first category above so products have somewhere to live." heading="h3" />

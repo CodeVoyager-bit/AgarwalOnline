@@ -1,5 +1,5 @@
 "use client";
-import { useId, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,7 +14,6 @@ import {
   LayoutDashboard,
   MessageSquareHeart,
   MessageSquareWarning,
-  NotebookPen,
   ReceiptIndianRupee,
   School,
   Settings,
@@ -40,7 +39,6 @@ export const NAV_ICONS: Record<StaffNavKey, LucideIcon> = {
   feedback: MessageSquareHeart,
   reviews: Star,
   cod: Banknote,
-  tabs: NotebookPen,
   refunds: ReceiptIndianRupee,
   offers: TicketPercent,
   analytics: ChartNoAxesCombined,
@@ -109,8 +107,17 @@ export function StaffNav({
   }
   const foldable = variant === "sidebar" && groups.length > 1;
   const toggle = (key: StaffGroupKey, folded: boolean) => writeFolds(JSON.stringify({ ...folds, [key]: !folded }));
+  // the menu is taller than a laptop screen: bring the page you're on into view (the owner's pages sit at the bottom)
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const link = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !link || variant !== "sidebar") return;
+    const [box, row] = [nav.getBoundingClientRect(), link.getBoundingClientRect()];
+    if (row.top < box.top || row.bottom > box.bottom) nav.scrollTop += row.top - box.top - nav.clientHeight / 3;
+  }, [pathname, variant]);
   return (
-    <nav aria-label={text.navLabel} className={`workspace-nav${variant === "sheet" ? " is-sheet" : ""}`}>
+    <nav ref={navRef} aria-label={text.navLabel} className={`workspace-nav${variant === "sheet" ? " is-sheet" : ""}`}>
       {groups.map((group) => {
         const label = text.groups[group.key];
         const here = group.items.some((item) => isActiveHref(item, pathname));

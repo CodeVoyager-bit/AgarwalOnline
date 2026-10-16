@@ -43,7 +43,7 @@ export function CatalogFilterPanel({
             name="q"
             defaultValue={params.q}
             maxLength={100}
-            placeholder={locale === "mr" ? "वही, पेन, फाईल…" : "Notebook, pen, file…"}
+            placeholder={locale === "mr" ? "वही, पेन, खेळ…" : "Notebook, pen, puzzle…"}
           />
         </label>
         {params.category && <input type="hidden" name="category" value={params.category} />}

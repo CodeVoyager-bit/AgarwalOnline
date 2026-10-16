@@ -8,10 +8,12 @@ export function ProductGallery({
   images,
   name,
   category,
+  mr = false,
 }: {
   images: string[];
   name: string;
   category: string;
+  mr?: boolean;
 }) {
   const [selected, setSelected] = useState(0);
   const active = images[selected];
@@ -23,8 +25,9 @@ export function ProductGallery({
         ) : (
           <AisleIcon slug={category} />
         )}
-        {active && <small className="photo-note">Representative product photography</small>}
       </div>
+      {/* under the photo, not on it: on a phone the photo fills the box and the note covered the pack */}
+      {active && <small className="photo-note">{mr ? "उत्पादनाचा प्रातिनिधिक फोटो" : "Representative product photography"}</small>}
       {images.length > 1 && (
         <div className="gallery-thumbs" aria-label="Product images">
           {images.map((image, index) => (
