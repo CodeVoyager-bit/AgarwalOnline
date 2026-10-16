@@ -81,7 +81,20 @@ export async function catalogForSchools(input: { q?: string; category?: string }
   return catalogFor("schools", { q: input.q, category: input.category });
 }
 /** The shop's aisles in display order: menus, the aisle tiles and browsing follow it; unlisted aisles come after, by name. */
-const AISLE_ORDER = ["pens", "pencils", "long-books", "notebooks", "diaries"];
+const AISLE_ORDER = [
+  "pens",
+  "pencils",
+  "long-books",
+  "notebooks",
+  "diaries",
+  // toys and games (Ratna's catalogue, 2026-10-16)
+  "games-puzzles",
+  "learning-toys",
+  "building-sets",
+  "outdoor-play",
+  "pretend-play",
+  "baby-toddler",
+];
 const aisleRank = (slug: string) => (AISLE_ORDER.indexOf(slug) + 1 || 99);
 /** Far more than the shop lists today. */
 const SHELF_LIMIT = 2000;
@@ -296,9 +309,17 @@ async function catalogFor(
         b.variants[0].pricePaise / b.variants[0].mrpPaise -
         (1 - a.variants[0].pricePaise / a.variants[0].mrpPaise),
     );
-  // a search keeps its best-match order; browsing goes aisle by aisle
+  // a search keeps its best-match order; browsing goes aisle by aisle, bestsellers first, then by
+  // name with numbers read as numbers: one brand's books sit together, 72 pages before 172. Import
+  // order used to show through (172, 72, 280, 380).
   if (filters.sort === "featured" && !query)
-    result.sort((a, b) => aisleRank(a.categorySlug) - aisleRank(b.categorySlug));
+    result.sort(
+      (a, b) =>
+        aisleRank(a.categorySlug) - aisleRank(b.categorySlug) ||
+        a.categorySlug.localeCompare(b.categorySlug) ||
+        Number(b.bestseller) - Number(a.bestseller) ||
+        a.name.en.localeCompare(b.name.en, "en", { numeric: true }),
+    );
   return result;
 }
 /** Memoised per request: the page and its metadata both ask. */

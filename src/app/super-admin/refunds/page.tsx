@@ -88,16 +88,10 @@ export default async function RefundsPage({
                   confirmMessage={
                     refund.mode === "manual"
                       ? "This marks the refund as paid to the customer. It cannot be undone."
-                      : refund.mode === "tab"
-                        ? "This takes the amount off what the family owes on its tab. It cannot be undone."
-                        : "This sends the refund to Razorpay, which pays the customer. It cannot be undone."
+                      : "This sends the refund to Razorpay, which pays the customer. It cannot be undone."
                   }
                   submit={
-                    refund.mode === "manual"
-                      ? "Mark refund paid"
-                      : refund.mode === "tab"
-                        ? "Credit the family tab"
-                        : "Send to Razorpay"
+                    refund.mode === "manual" ? "Mark refund paid" : "Send to Razorpay"
                   }
                 >
                   <input type="hidden" name="operation" value="process" />

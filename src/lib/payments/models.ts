@@ -62,7 +62,7 @@ const refundSchema = new Schema(
     externalReference: String,
     amountPaise: { type: Number, required: true, min: 1 },
     reason: { type: String, required: true },
-    // "tab": taken off what the family owes on its tab, never paid out as well
+    // "tab" was the family khata, removed 2026-10-16; kept so an older refund still saves
     mode: { type: String, enum: ["razorpay", "manual", "tab"], required: true },
     status: {
       type: String,

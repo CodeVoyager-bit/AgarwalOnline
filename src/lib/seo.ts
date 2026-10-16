@@ -1,7 +1,7 @@
 import type { CatalogItem } from "./catalog/queries";
 import type { TaxProfile } from "./tax/gst";
 
-const STORE = "Agarwal General Stores";
+const STORE = "Agarwal Online";
 
 /** schema.org data as a script body; `<` escaped so a product name can never close the script tag. */
 export const jsonLd = (data: unknown) => JSON.stringify(data).replace(/</g, "\\u003c");

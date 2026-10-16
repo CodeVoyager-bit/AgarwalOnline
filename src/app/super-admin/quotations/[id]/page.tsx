@@ -128,7 +128,7 @@ export default async function QuotationDesk({ params }: { params: Promise<{ id: 
       />
       {!seller.configured && (
         <p className="notice" role="status">
-          Your business and tax details aren’t filled in yet, so the quotation shows a placeholder name and no GSTIN.{" "}
+          Your business and tax details aren’t saved yet, so the quotation shows no GSTIN and only “Nagothane, Raigad” as the address.{" "}
           <Link href="/super-admin#tax">Add them in Store settings</Link>.
         </p>
       )}
@@ -280,7 +280,7 @@ export default async function QuotationDesk({ params }: { params: Promise<{ id: 
           label="View-only link"
           url={shareUrl}
           hint={request.currentVersion ? "Opens the latest version sent." : "Shows the quotation once you send version 1."}
-          title={`Quotation ${request.number} from Agarwal General Stores`}
+          title={`Quotation ${request.number} from Agarwal Online`}
           copy="Copy link"
           copied="Copied"
         />

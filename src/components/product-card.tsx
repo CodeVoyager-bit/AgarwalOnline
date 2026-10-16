@@ -26,7 +26,7 @@ export async function ProductCard({
   const off = discountPercent(v.pricePaise, v.mrpPaise);
   return (
     <article className="product-card">
-      <WishlistButton productId={p.id} name={p.name[locale]} saved={isSaved} />
+      <WishlistButton productId={p.id} name={p.name[locale]} saved={isSaved} mr={locale === "mr"} />
       <Link href={`/products/${p.slug}?lang=${locale}`} className="product-link">
         <div className={`product-art${image ? "" : " quiet"}`}>
           {image ? (
@@ -42,7 +42,7 @@ export async function ProductCard({
             <AisleIcon slug={p.categorySlug} />
           )}
           {off > 0 && <span className="discount">−{off}%</span>}
-          {!v.available && <span className="stock-badge">Sold out</span>}
+          {!v.available && <span className="stock-badge">{locale === "mr" ? "संपले" : "Sold out"}</span>}
         </div>
         {/* the shopper's chosen language only; the product page shows both names */}
         <h3 lang={locale}>{p.name[locale]}</h3>
@@ -62,7 +62,7 @@ export async function ProductCard({
           <strong>{formatPrice(v.pricePaise)}</strong>
           {off > 0 && <del>{formatPrice(v.mrpPaise)}</del>}
         </div>
-        <QuickAdd variantId={v.id} pricePaise={v.pricePaise} available={v.available} max={v.maxQuantity} name={p.name.en} />
+        <QuickAdd variantId={v.id} pricePaise={v.pricePaise} available={v.available} max={v.maxQuantity} name={p.name[locale]} mr={locale === "mr"} />
       </div>
     </article>
   );

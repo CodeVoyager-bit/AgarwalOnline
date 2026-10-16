@@ -1279,11 +1279,6 @@ export async function completeDelivery(actorId: string, input: unknown) {
         session,
       );
     }
-    if (current.paymentMethod === "tab") {
-      // "paid" here means charged to the family's tab; the family settles the tab with the store
-      current.paymentStatus = "paid";
-      await timeline(current._id, actorId, "payment", "pending", "paid", session);
-    }
     current.deliveryStatus = "delivered";
     await current.save({ session });
     await timeline(

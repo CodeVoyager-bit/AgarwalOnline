@@ -112,7 +112,8 @@ export default async function Addresses({
           {!addresses.length && <div className="panel empty-state"><MapPinPlus size={40} strokeWidth={1.5} className="empty-icon" aria-hidden="true" /><h2>No saved addresses</h2><p>Add your first delivery address using the form.</p></div>}
         </div>
         <div className="panel">
-          <h2>Add an address</h2>
+          {/* the heading says what the card can do: no delivery areas open means no new addresses */}
+          <h2>{areas.length ? "Add an address" : "New addresses paused"}</h2>
           {areas.length ? (
             <ActionForm action={addressAction} submit="Save address">
               <input type="hidden" name="operation" value="create" />

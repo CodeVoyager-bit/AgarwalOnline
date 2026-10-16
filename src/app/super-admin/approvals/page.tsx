@@ -41,16 +41,15 @@ export default async function Approvals({
 }: {
   searchParams: Promise<{ view?: string; review?: string }>;
 }) {
-  const user = await requirePage("approval:review");
+  await requirePage("approval:review");
   // changes approved for a later time go live when their time comes, without waiting for the daily job
   await publishScheduled();
   const params = await searchParams;
   const view = (params.view && params.view in VIEWS ? params.view : "waiting") as View;
-  const [categories, requests, counts, owners] = await Promise.all([
+  const [categories, requests, counts] = await Promise.all([
     Category.find({}).select("name"),
     ApprovalRequest.find(VIEWS[view].match).sort({ createdAt: view === "waiting" ? 1 : -1 }).limit(200),
     Promise.all((Object.keys(VIEWS) as View[]).map((key) => ApprovalRequest.countDocuments(VIEWS[key].match))),
-    User.countDocuments({ roles: "super-admin", active: true }),
   ]);
   const reviewing =
     params.review && mongoose.isValidObjectId(params.review)
@@ -89,17 +88,12 @@ export default async function Approvals({
   };
   const href = (extra: Record<string, string>) =>
     `/super-admin/approvals?${new URLSearchParams({ ...(view !== "waiting" ? { view } : {}), ...extra })}`;
-  const ownRequest = reviewing && String(reviewing.requesterId) === user.id;
   return (
     <section className="page-container">
       <PageHeading
         eyebrow="Owner"
         title="Approvals"
-        lead={
-          owners > 1
-            ? "New products, new packs, price changes and large stock changes wait here until another owner approves them."
-            : "You are the only owner, so your own changes apply at once. Changes your staff ask for wait here for you."
-        }
+        lead="Your own changes apply at once. New products, packs, prices and large stock changes your staff ask for wait here for you."
         aside={<span className="live-chip">{counts[0]} waiting</span>}
       />
       {reviewing && (
@@ -142,7 +136,7 @@ export default async function Approvals({
               />
             </div>
           </div>
-          {reviewing.state === "pending" && (!ownRequest || owners === 1) ? (
+          {reviewing.state === "pending" ? (
             <ActionForm
               action={governanceAction}
               submit="Record decision"
@@ -168,8 +162,6 @@ export default async function Approvals({
                 <input name="scheduledAt" type="datetime-local" />
               </label>
             </ActionForm>
-          ) : reviewing.state === "pending" ? (
-            <p className="notice">You asked for this change, so another owner has to review it.</p>
           ) : null}
           {reviewing.state === "pending" && (
             <ActionForm

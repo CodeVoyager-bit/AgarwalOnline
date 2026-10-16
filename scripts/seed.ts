@@ -81,7 +81,7 @@ for (const [index, p] of seedProducts.entries()) {
         ],
         specifications: [
           { label: { en: "Pack size", mr: "पॅक आकार" }, value: { en: p.pack, mr: p.pack } },
-          { label: { en: "Seller", mr: "विक्रेता" }, value: { en: "Agarwal General Stores", mr: "अग्रवाल जनरल स्टोअर्स" } },
+          { label: { en: "Seller", mr: "विक्रेता" }, value: { en: "Agarwal Online", mr: "अग्रवाल ऑनलाइन" } },
         ],
       },
     },
@@ -273,7 +273,8 @@ if (demoAccounts && customer && deliveryPartner && demoArea && firstVariants.len
             : active
               ? "confirmed"
               : "completed",
-          paymentStatus: cancelled ? "pending" : "paid",
+          // cash is only paid once it's collected: an open cash-on-delivery order is still unpaid
+          paymentStatus: cancelled || (active && index % 3) ? "pending" : "paid",
           fulfilmentStatus: cancelled
             ? "unassigned"
             : active
@@ -285,7 +286,7 @@ if (demoAccounts && customer && deliveryPartner && demoArea && firstVariants.len
               ? "assigned"
               : "delivered",
           paymentMethod: index % 3 ? "cod" : "razorpay",
-          codStatus: index % 3 && !cancelled ? "reconciled" : "uncollected",
+          codStatus: index % 3 && !cancelled && !active ? "reconciled" : "uncollected",
           assignedTo: cancelled ? undefined : deliveryPartner._id,
           createdAt,
           updatedAt: new Date(createdAt.getTime() + 6 * 3600 * 1000),

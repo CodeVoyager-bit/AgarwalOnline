@@ -1,3 +1,4 @@
+import { paymentsEnabled } from "@/lib/payments/provider";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -259,13 +260,16 @@ export default async function Account({
               required
             />
           </label>
-          <label>
-            {mr ? "पसंतीची पेमेंट पद्धत" : "Preferred payment"}
-            <select name="preferredPaymentMethod" defaultValue={profile?.preferredPaymentMethod ?? "cod"}>
-              <option value="cod">{mr ? "वितरणावेळी रोख" : "Cash on Delivery"}</option>
-              <option value="razorpay">{mr ? "ऑनलाइन पेमेंट" : "Pay online"}</option>
-            </select>
-          </label>
+          {/* only worth asking when there is a choice: the shop takes cash on delivery unless online payment is on */}
+          {paymentsEnabled() && (
+            <label>
+              {mr ? "पसंतीची पेमेंट पद्धत" : "Preferred payment"}
+              <select name="preferredPaymentMethod" defaultValue={profile?.preferredPaymentMethod ?? "cod"}>
+                <option value="cod">{mr ? "वितरणावेळी रोख" : "Cash on Delivery"}</option>
+                <option value="razorpay">{mr ? "ऑनलाइन पेमेंट" : "Pay online"}</option>
+              </select>
+            </label>
+          )}
           <label>
             {mr ? "वस्तू उपलब्ध नसल्यास" : "If an item is unavailable"}
             <select name="substitutionPreference" defaultValue={profile?.substitutionPreference ?? "contact"}>
@@ -275,7 +279,10 @@ export default async function Account({
             </select>
           </label>
           <p className="muted">
-            {mr ? "मोबाईल क्रमांक बदलण्यासाठी नवीन OTP पडताळणी आवश्यक आहे." : "Phone-number changes require a new OTP-verified account recovery flow."}
+            {/* there is no self-service number change; the store does it */}
+            {mr ? "मोबाईल क्रमांक बदलण्यासाठी " : "To change your mobile number, message us in "}
+            <Link href="/account/support">{mr ? "दुकानाशी बोला" : "Talk to the store"}</Link>
+            {mr ? " मध्ये कळवा." : "."}
           </p>
         </ActionForm>
       </details>

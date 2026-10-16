@@ -27,27 +27,10 @@ const familySchema = new Schema(
     // one link lets one person in; joining replaces it
     inviteToken: { type: String, required: true },
     children: [childSchema],
-    /**
-     * The khata. Only the limit is money kept here: what the family owes is always worked out
-     * from its tab orders, tab refunds and payments. Checkouts and payments write
-     * `lastChargeAt` / `lastPaymentAt` first, which serialises them on this document.
-     */
-    tab: {
-      status: { type: String, enum: ["requested", "active", "paused", "closed"] },
-      limitPaise: { type: Number, min: 0, max: 10_000_000, validate: Number.isSafeInteger },
-      requestedAt: Date,
-      decidedAt: Date,
-      decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
-      lastChargeAt: Date,
-      lastPaymentAt: Date,
-      // the last "YYYY-MM" a statement went out for
-      statementMonth: String,
-    },
   },
   { timestamps: true, strict: "throw" },
 );
 familySchema.index({ adults: 1 }, { unique: true });
-familySchema.index({ "tab.status": 1, updatedAt: -1 });
 familySchema.index({ inviteToken: 1 }, { unique: true });
 
 /** What counts as spent: not cancelled, and not a delivery that failed or came back. */
@@ -88,24 +71,3 @@ kitSchema.index({ school: 1, className: 1, year: 1 }, { unique: true, collation:
 kitSchema.index({ status: 1, year: -1 });
 
 export const SchoolKit = mongoose.models.SchoolKit || mongoose.model("SchoolKit", kitSchema);
-
-/** Money paid towards a family's tab, recorded by the store. A wrong entry is voided, never deleted. */
-const tabPaymentSchema = new Schema(
-  {
-    familyId: { type: Schema.Types.ObjectId, ref: "Family", required: true },
-    amountPaise: { type: Number, min: 1, required: true, validate: Number.isSafeInteger },
-    method: { type: String, enum: ["cash", "upi"], required: true },
-    reference: { type: String, trim: true, maxlength: 80, default: "" },
-    // one form, one payment, however many times it is sent
-    idempotencyKey: { type: String, required: true },
-    recordedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    voidedAt: Date,
-    voidedBy: { type: Schema.Types.ObjectId, ref: "User" },
-    voidReason: String,
-  },
-  { timestamps: true, strict: "throw" },
-);
-tabPaymentSchema.index({ idempotencyKey: 1 }, { unique: true });
-tabPaymentSchema.index({ familyId: 1, createdAt: -1 });
-
-export const TabPayment = mongoose.models.TabPayment || mongoose.model("TabPayment", tabPaymentSchema);

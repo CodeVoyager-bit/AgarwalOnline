@@ -53,7 +53,7 @@ export const shippingDoc: LegalBuilder = {
         id: "charges",
         title: "Delivery charges",
         blocks: [
-          `Each area has its delivery charge, shown above. Delivery is free when the items in your basket add up to ${price(f.freeThresholdPaise)} or more. The exact charge is shown at checkout before you confirm.`,
+          `${f.areas.length ? "Each area has its delivery charge, shown above." : "Each area has its own delivery charge."} Delivery is free when the items in your basket add up to ${price(f.freeThresholdPaise)} or more. The exact charge is shown at checkout before you confirm.`,
         ],
       },
       {
@@ -114,7 +114,7 @@ export const shippingDoc: LegalBuilder = {
         id: "charges",
         title: "वितरण शुल्क",
         blocks: [
-          `प्रत्येक क्षेत्राचे वितरण शुल्क वर दाखवले आहे. तुमच्या बास्केटमधील वस्तूंची एकूण किंमत ${price(f.freeThresholdPaise)} किंवा अधिक असल्यास वितरण मोफत. नेमके शुल्क चेकआउटवर, पक्की करण्यापूर्वी दाखवले जाते.`,
+          `${f.areas.length ? "प्रत्येक क्षेत्राचे वितरण शुल्क वर दाखवले आहे." : "प्रत्येक क्षेत्राचे वितरण शुल्क वेगळे असते."} तुमच्या बास्केटमधील वस्तूंची एकूण किंमत ${price(f.freeThresholdPaise)} किंवा अधिक असल्यास वितरण मोफत. नेमके शुल्क चेकआउटवर, पक्की करण्यापूर्वी दाखवले जाते.`,
         ],
       },
       {

@@ -196,7 +196,7 @@ describe.skipIf(!uri)("Google sign-in keeps a customer's data", () => {
     const [mail] = sentMail;
     expect(mail.to).toBe("confirm.me@gmail.test");
     expect(mail.from).toBe("Agarwal General Stores <orders@example.test>");
-    expect(mail.subject).toBe("Confirm your email for Agarwal General Stores");
+    expect(mail.subject).toBe("Confirm your email for Agarwal Online");
     const link = mail.text.match(/https?:\/\/\S+/)![0];
     expect(link.startsWith(`${origin}/api/auth/verify-email?token=`)).toBe(true);
     expect(mail.html).toContain("Confirm my email");

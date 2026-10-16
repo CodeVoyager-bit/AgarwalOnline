@@ -4,6 +4,7 @@ import { connectDB } from "../db/connect";
 import { InventoryItem, Product, ProductVariant, User } from "../db/models";
 import { Order } from "../commerce/models";
 import { Refund } from "../payments/models";
+import { LOW_STOCK } from "../inventory/low-stock";
 
 const dateInput = z.object({
   from: z.iso.date().optional(),
@@ -60,7 +61,8 @@ export async function analytics(actorId: string, input: unknown) {
     { orders: number; revenuePaise: number }
   >();
   for (const order of orders) {
-    for (const item of order.items) {
+    // a cancelled order sold nothing: top products agree with the profit table
+    for (const item of order.orderStatus === "cancelled" ? [] : order.items) {
       const key = String(item.variantId);
       const current = productTotals.get(key) ?? {
         name: item.name,
@@ -106,9 +108,7 @@ export async function analytics(actorId: string, input: unknown) {
   const partnerNames = new Map(
     partners.map((partner) => [String(partner._id), partner.name]),
   );
-  const inventory = await InventoryItem.find({
-    $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 10] },
-  })
+  const inventory = await InventoryItem.find(LOW_STOCK)
     .sort({ onHand: 1 })
     .limit(30);
   const variants = await ProductVariant.find({
@@ -165,5 +165,65 @@ export async function analytics(actorId: string, input: unknown) {
         available: item.onHand - item.reserved,
       };
     }),
+  };
+}
+
+/**
+ * Profit for the owners: what each pack sold for in the dates chosen, against its purchase price.
+ * Orders that weren't cancelled count; offer discounts come off the total. Delivery charges are
+ * left out, as they pay for the delivery.
+ * ponytail: uses today's purchase price for past sales; snapshot it on the order if prices swing a lot.
+ */
+export async function profitReport(actorId: string, input: unknown) {
+  await connectDB();
+  const actor = await User.findOne({ _id: actorId, active: true });
+  if (!actor) throw Error("UNAUTHENTICATED");
+  assertPermission(actor.roles as Role[], "settings:write");
+  const parsed = dateInput.catch({}).parse(input);
+  const end = parsed.to ? new Date(`${parsed.to}T23:59:59.999+05:30`) : new Date();
+  const start = parsed.from ? new Date(`${parsed.from}T00:00:00+05:30`) : new Date(end.getTime() - 29 * 86400 * 1000);
+  const orders = await Order.find({ createdAt: { $gte: start, $lte: end }, orderStatus: { $ne: "cancelled" } })
+    .select("items promotionDiscountPaise")
+    .lean()
+    .limit(10000);
+  const sold = new Map<string, { name: string; label: string; quantity: number; revenuePaise: number }>();
+  for (const order of orders)
+    for (const item of order.items) {
+      const key = String(item.variantId);
+      const row = sold.get(key) ?? { name: item.name, label: item.label, quantity: 0, revenuePaise: 0 };
+      row.quantity += item.quantity;
+      row.revenuePaise += item.linePaise;
+      sold.set(key, row);
+    }
+  const costs = new Map(
+    (await ProductVariant.find({ _id: { $in: [...sold.keys()] } }).select("+costPaise").lean<{ _id: unknown; costPaise?: number }[]>()).map(
+      (variant) => [String(variant._id), variant.costPaise],
+    ),
+  );
+  const rows = [...sold.entries()]
+    .map(([id, row]) => {
+      const unitCost = costs.get(id);
+      const costPaise = unitCost != null ? unitCost * row.quantity : null;
+      return { id, ...row, costPaise, profitPaise: costPaise != null ? row.revenuePaise - costPaise : null };
+    })
+    .sort((a, b) => (b.profitPaise ?? -Infinity) - (a.profitPaise ?? -Infinity) || b.revenuePaise - a.revenuePaise);
+  const priced = rows.filter((row) => row.costPaise != null);
+  const discountPaise = orders.reduce((sum, order) => sum + (order.promotionDiscountPaise ?? 0), 0);
+  const revenuePaise = rows.reduce((sum, row) => sum + row.revenuePaise, 0);
+  const pricedRevenuePaise = priced.reduce((sum, row) => sum + row.revenuePaise, 0);
+  const costPaise = priced.reduce((sum, row) => sum + (row.costPaise ?? 0), 0);
+  // discounts are shared out over the priced sales by their share of takings
+  const pricedDiscount = revenuePaise ? Math.round((discountPaise * pricedRevenuePaise) / revenuePaise) : 0;
+  const profitPaise = pricedRevenuePaise - pricedDiscount - costPaise;
+  return {
+    rows,
+    totals: {
+      revenuePaise,
+      discountPaise,
+      costPaise,
+      profitPaise,
+      margin: pricedRevenuePaise ? profitPaise / pricedRevenuePaise : 0,
+      unpriced: rows.length - priced.length,
+    },
   };
 }

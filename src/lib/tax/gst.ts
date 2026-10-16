@@ -130,7 +130,7 @@ export const taxProfileSchema = z
   });
 export type TaxProfile = z.infer<typeof taxProfileSchema>;
 export const DEFAULT_TAX_PROFILE: TaxProfile = {
-  legalName: "Agarwal General Stores",
+  legalName: "Agarwal Online",
   address: "Nagothane, Raigad",
   stateCode: SHOP_STATE,
 };

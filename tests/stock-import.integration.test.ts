@@ -61,12 +61,30 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
 
   it("downloads every pack with what's on the shelf and empty columns to fill", async () => {
     const rows = parseCsv(await stockSheet(admin));
-    expect(rows[0]).toEqual(["sku", "product", "pack", "on_shelf", "count", "change", "reason"]);
+    expect(rows[0]).toEqual(["sku", "product", "pack", "on_shelf", "count", "change", "reason", "alert_below"]);
     expect(rows.slice(1)).toEqual([
-      ["NB-100", "Notebook", "100 pages", "20", "", "", ""],
-      ["NB-200", "Notebook", "200 pages", "5", "", "", ""],
-      ["NB-400", "Notebook", "400 pages", "0", "", "", ""],
+      ["NB-100", "Notebook", "100 pages", "20", "", "", "", ""],
+      ["NB-200", "Notebook", "200 pages", "5", "", "", "", ""],
+      ["NB-400", "Notebook", "400 pages", "0", "", "", "", ""],
     ]);
+    // only an owner's sheet has purchase prices
+    expect(parseCsv(await stockSheet(owner))[0]).toContain("purchase_price");
+  });
+
+  it("sets alert levels for staff and purchase prices for owners only", async () => {
+    const withMore = (...rows: string[]) => ["sku,count,change,reason,alert_below,purchase_price", ...rows].join("\n");
+    const staffPlan = await planStockImport(admin, withMore("NB-100,,,,15,", "NB-200,,,,,6.50"));
+    expect(staffPlan.rows.map((row) => row.outcome)).toEqual(["apply", "error"]);
+    expect(staffPlan.rows[1].message).toContain("Only an owner");
+    await applyStockImport(owner, withMore("NB-100,25,,Counted,15,6.50", "NB-200,,,,,₹12"));
+    expect(await onHand("NB-100")).toBe(25);
+    const one = await ProductVariant.findOne({ sku: "NB-100" }).select("+costPaise");
+    expect(one.costPaise).toBe(650);
+    expect((await InventoryItem.findOne({ variantId: one._id })).alertBelow).toBe(15);
+    expect((await ProductVariant.findOne({ sku: "NB-200" }).select("+costPaise")).costPaise).toBe(1200);
+    // the owner's own sheet, uploaded back unchanged, changes nothing
+    const again = await planStockImport(owner, await stockSheet(owner));
+    expect(again.rows.every((row) => row.outcome === "same")).toBe(true);
   });
 
   it("says what each row will do without changing anything", async () => {
@@ -141,7 +159,7 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
     expect((await planStockImport(admin, text)).rows[0]).toMatchObject({ outcome: "same", after: 12 });
   });
 
-  it("lets the only owner's big changes through at once", async () => {
+  it("lets an owner's big changes through at once", async () => {
     await applyStockImport(owner, sheet("NB-200,,150,Supplier delivery"));
     expect(await onHand("NB-200")).toBe(155);
   });

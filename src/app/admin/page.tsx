@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatusPill } from "@/components/status-pill";
 import { FILTERS, OWNER_FILTERS, type OrderFilter as Filter } from "@/lib/admin/order-filters";
 import { loadQueues } from "@/lib/admin/work-queues";
+import { LOW_STOCK } from "@/lib/inventory/low-stock";
 export const metadata = { title: "Overview & orders", robots: { index: false } };
 
 /** "waiting 3 h": how long the oldest item in a queue has been there. */
@@ -89,8 +90,8 @@ export default async function Admin({
     takings(todayStart, now),
     takings(yesterdayStart, todayStart),
     InventoryItem.aggregate<{ _id: unknown; available: number; label: string; name: string }>([
+      { $match: LOW_STOCK },
       { $addFields: { available: { $subtract: ["$onHand", "$reserved"] } } },
-      { $match: { available: { $lte: 10 } } },
       { $sort: { available: 1 } },
       { $limit: 6 },
       { $lookup: { from: "productvariants", localField: "variantId", foreignField: "_id", as: "variant" } },
@@ -99,7 +100,7 @@ export default async function Admin({
       { $unwind: "$product" },
       { $project: { available: 1, label: "$variant.label", name: "$product.name.en" } },
     ]),
-    InventoryItem.countDocuments({ $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 10] } }),
+    InventoryItem.countDocuments(LOW_STOCK),
     CODCollection.find({ reconciledAt: null }).select("collectedPaise"),
     loadQueues(user.roles, now),
     slotGaps(now),
@@ -259,6 +260,7 @@ export default async function Admin({
             bare
             rowsOnPhone
             caption="Orders with customer, delivery window, status and total"
+            exportName="Orders"
             rows={orders}
             rowKey={(order) => String(order._id)}
             columns={[

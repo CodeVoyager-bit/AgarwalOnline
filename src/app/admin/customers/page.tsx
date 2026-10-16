@@ -67,6 +67,7 @@ export default async function CustomersPage({
       </p>
       <DataTable
         caption="Customers with order counts, paid value, saved addresses and their latest order"
+        exportName="Customers"
         rows={customers}
         rowKey={(customer) => String(customer._id)}
         columns={[

@@ -56,7 +56,7 @@ const NOTICES: Record<Locale, Record<NoticeKind, (vars: Vars) => string>> = {
     child: () =>
       `We use a child’s name, school and class only to find their school kit and tell you when it’s ready. Adults in your family can see them. See our ${PRIVACY.en}.`,
     family: () =>
-      `Adults you invite will see the family’s orders and invoices (except ones marked private), the children and the tab. See our [Terms & Conditions](/p/terms-and-conditions#family) and ${PRIVACY.en}.`,
+      `Adults you invite will see the family’s orders and invoices (except ones marked private) and the children. See our [Terms & Conditions](/p/terms-and-conditions#family) and ${PRIVACY.en}.`,
     push: () => `Notifications reach you through your browser’s push service, encrypted. Turn them off any time. See our ${PRIVACY.en}.`,
   },
   mr: {
@@ -86,7 +86,7 @@ const NOTICES: Record<Locale, Record<NoticeKind, (vars: Vars) => string>> = {
     child: () =>
       `मुलाचे नाव, शाळा आणि इयत्ता आम्ही फक्त त्याचे शालेय किट शोधण्यासाठी आणि ते तयार झाल्यावर तुम्हाला कळवण्यासाठी वापरतो. तुमच्या कुटुंबातील प्रौढांना हा तपशील दिसतो. आमचे ${PRIVACY.mr} पाहा.`,
     family: () =>
-      `तुम्ही बोलावलेल्या प्रौढांना कुटुंबाच्या ऑर्डर व बिले (खाजगी ठेवलेल्या सोडून), मुले आणि टॅब दिसतील. आमच्या [अटी व शर्ती](/p/terms-and-conditions#family) आणि ${PRIVACY.mr} पाहा.`,
+      `तुम्ही बोलावलेल्या प्रौढांना कुटुंबाच्या ऑर्डर व बिले (खाजगी ठेवलेल्या सोडून) आणि मुले दिसतील. आमच्या [अटी व शर्ती](/p/terms-and-conditions#family) आणि ${PRIVACY.mr} पाहा.`,
     push: () => `सूचना तुमच्या ब्राउझरच्या पुश सेवेतून एन्क्रिप्ट करून येतात. त्या कधीही बंद करा. आमचे ${PRIVACY.mr} पाहा.`,
   },
 };

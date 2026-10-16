@@ -19,6 +19,8 @@ type HubInput = {
   gapAreas: string[];
   business: { legalName: string; gstin?: string | null; stateName?: string; grievanceName?: string | null };
   stockThreshold: number;
+  /** The hour the low-stock email goes out, like "9 PM"; null when it's off. */
+  stockReport?: string | null;
   synonymGroups: number;
   services: { payments: boolean; photos: boolean; sms: boolean };
   /** IST date, YYYY-MM-DD. */
@@ -112,9 +114,21 @@ export function settingsHub(input: HubInput): HubCard[] {
       title: "Approval checks",
       href: "#stock-approval",
       edit: "Change limit",
-      lines: [`Stock changes of ${plural(input.stockThreshold, "unit")} or more wait for a second owner`],
+      lines: [`Staff stock changes of ${plural(input.stockThreshold, "unit")} or more wait for an owner`],
       warnings: [],
     },
+    ...(input.stockReport !== undefined
+      ? [
+          {
+            id: "stock-report",
+            title: "Low-stock email",
+            href: "#stock-report" as const,
+            edit: "Change time",
+            lines: [input.stockReport ? `Every day at ${input.stockReport}, when something is running low` : "Off"],
+            warnings: [],
+          },
+        ]
+      : []),
     {
       id: "synonyms",
       title: "Search words",
@@ -133,7 +147,7 @@ export function settingsHub(input: HubInput): HubCard[] {
       href: "#services",
       edit: "See status",
       lines: [
-        input.services.payments ? "Online payment connected" : "Online payment not set up: cash on delivery only",
+        input.services.payments ? "Online payment on" : "Online payment off: cash on delivery only",
         input.services.sms ? "SMS connected" : "SMS: test codes only",
         input.services.photos ? "Photo storage connected" : "Photos stored locally",
       ],

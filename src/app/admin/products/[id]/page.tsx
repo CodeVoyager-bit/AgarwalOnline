@@ -19,6 +19,7 @@ import { ApprovalRequest } from "@/lib/governance/models";
 import { hasPermission } from "@/lib/auth/permissions";
 import { isShopperVisible } from "@/lib/catalog/visibility";
 import { GST_RATES } from "@/lib/tax/gst";
+import { DEFAULT_ALERT_BELOW, isLow } from "@/lib/inventory/low-stock";
 export const metadata = { title: "Edit product", robots: { index: false } };
 
 const STATUS_NAMES: Record<string, string> = {
@@ -39,7 +40,8 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   if (!product) notFound();
   const [categories, packs] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
-    ProductVariant.find({ productId: product._id }).sort({ sku: 1 }),
+    // purchase prices are read for owners only
+    ProductVariant.find({ productId: product._id }).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }),
   ]);
   const [stock, waiting] = await Promise.all([
     InventoryItem.find({ variantId: { $in: packs.map((pack) => pack._id) } }),
@@ -288,13 +290,22 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
                       <p className="pack-stock">
                         {left === 0 ? (
                           <StatusPill tone="bad">Sold out</StatusPill>
-                        ) : left <= 10 ? (
+                        ) : isLow(left, item?.alertBelow) ? (
                           <StatusPill tone="warn">{left} left</StatusPill>
                         ) : (
                           <span>{left} in stock</span>
                         )}
                         <Link href={`/admin/inventory?adjust=${pack._id}#adjust`}>Adjust stock</Link>
                       </p>
+                      {isOwner && (
+                        <p className="pack-school-price muted">
+                          {pack.costPaise != null
+                            ? `Bought at ${formatPrice(pack.costPaise)} · ${formatPrice(pack.pricePaise - pack.costPaise)} profit a pack (${
+                                pack.pricePaise ? Math.round(((pack.pricePaise - pack.costPaise) / pack.pricePaise) * 100) : 0
+                              }%)`
+                            : "No purchase price yet: add one to see the profit"}
+                        </p>
+                      )}
                       <details>
                         <summary>Change the price</summary>
                         <ActionForm action={governanceAction} submit="Change price">
@@ -309,9 +320,44 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
                             <MoneyInput name="mrpRupees" defaultValue={pack.mrpPaise / 100} />
                           </label>
                           <p className="muted">
-                            An owner approves price changes before shoppers see them. If you are the only owner,
-                            yours apply at once.
+                            {isOwner ? "Shoppers see the new price at once." : "An owner approves price changes before shoppers see them."}
                           </p>
+                        </ActionForm>
+                      </details>
+                      {isOwner && (
+                        <details>
+                          <summary>Purchase price</summary>
+                          <ActionForm action={catalogManagementAction} submit="Save purchase price">
+                            <input type="hidden" name="operation" value="cost" />
+                            <input type="hidden" name="variantId" value={String(pack._id)} />
+                            <label>
+                              What you paid for one pack (₹) <small>Only owners see this. Leave blank to clear it.</small>
+                              <MoneyInput
+                                name="costRupees"
+                                defaultValue={pack.costPaise != null ? pack.costPaise / 100 : undefined}
+                                required={false}
+                              />
+                            </label>
+                          </ActionForm>
+                        </details>
+                      )}
+                      <details>
+                        <summary>Stock alert{` (below ${item?.alertBelow ?? DEFAULT_ALERT_BELOW})`}</summary>
+                        <ActionForm action={catalogManagementAction} submit="Save alert">
+                          <input type="hidden" name="operation" value="alert" />
+                          <input type="hidden" name="variantId" value={String(pack._id)} />
+                          <label>
+                            Warn me when fewer than this can be sold{" "}
+                            <small>0 turns the warning off; blank uses the shop default of {DEFAULT_ALERT_BELOW}</small>
+                            <input
+                              name="alertBelow"
+                              inputMode="numeric"
+                              pattern="[0-9]{1,6}"
+                              defaultValue={item?.alertBelow ?? ""}
+                              placeholder={String(DEFAULT_ALERT_BELOW)}
+                              autoComplete="off"
+                            />
+                          </label>
                         </ActionForm>
                       </details>
                       {isOwner && (

@@ -25,7 +25,7 @@ describe.skipIf(!uri)("The shop's business and tax details", () => {
   });
 
   it("uses the defaults until the owner saves them, then the saved details", async () => {
-    expect(await taxProfile()).toMatchObject({ legalName: "Agarwal General Stores", stateCode: "27", configured: false });
+    expect(await taxProfile()).toMatchObject({ legalName: "Agarwal Online", stateCode: "27", configured: false });
     await saveTaxProfile(owner, {
       legalName: "Agarwal General Stores",
       gstin: "27aapfu0939f1zv",

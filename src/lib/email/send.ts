@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { getEnv } from "../env";
 import { log } from "../logger";
 
-export type Mail = { to: string; subject: string; html: string; text: string };
+export type Mail = { to: string; subject: string; html: string; text: string; attachments?: { filename: string; content: Buffer }[] };
 
 /** Accounts made by phone sign-up carry this placeholder until they add a real email. */
 export const isPlaceholderEmail = (email: string | null | undefined) =>
@@ -23,7 +23,7 @@ export async function sendEmail(mail: Mail) {
   const env = getEnv();
   if (!env.SMTP_USER || !env.SMTP_PASS || !env.EMAIL_FROM) {
     if (env.NODE_ENV === "production") throw new Error("Email service is not configured.");
-    log("info", "email.dev-outbox", { to: mail.to, subject: mail.subject, text: mail.text });
+    log("info", "email.dev-outbox", { to: mail.to, subject: mail.subject, text: mail.text, attachments: mail.attachments?.map((file) => file.filename) });
     return;
   }
   // one connection per email: serverless functions don't live long enough to keep a pool open

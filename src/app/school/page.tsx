@@ -112,7 +112,7 @@ export default async function SchoolHome({
       <section className="page-container">
         <PageHeading
           eyebrow="For schools"
-          title="Agarwal for schools"
+          title="Agarwal Online for schools"
           lead="Schools shop here at school prices and ask for a quotation at checkout. As the owner you can shop for any school."
         />
         <EmptyState
@@ -136,7 +136,7 @@ export default async function SchoolHome({
       <section className="page-container">
         <PageHeading
           eyebrow="For schools"
-          title="Agarwal for schools"
+          title="Agarwal Online for schools"
           lead="Schools that buy from the store in bulk shop here at school prices. At checkout they ask for a quotation instead of paying."
         />
         <EmptyState

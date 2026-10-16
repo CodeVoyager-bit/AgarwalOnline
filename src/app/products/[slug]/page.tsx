@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const photo = orderedPhotos(p)[0] ?? productImages[p.slug];
   return {
     title: `${p.name.en} – ${formatPrice(v.pricePaise)}`,
-    description: `${p.name.en} (${v.label}) from Agarwal General Stores, delivered across Nagothane and nearby areas. ${p.description.en}`.slice(0, 300),
+    description: `${p.name.en} (${v.label}) from Agarwal Online, delivered across Nagothane and nearby areas. ${p.description.en}`.slice(0, 300),
     // ?lang= and the cookie only change the language; search engines should list one address
     alternates: { canonical: `/products/${p.slug}` },
     ...(photo ? { openGraph: { images: [photo] } } : {}),
@@ -131,6 +131,7 @@ export default async function ProductPage({
           images={photos}
           name={p.name.en}
           category={p.categorySlug}
+          mr={mr}
         />
         <div className="product-info">
           <div className="product-title-row">
@@ -138,7 +139,7 @@ export default async function ProductPage({
             {user ? (
               <SaveToBoard productId={p.id} variantId={p.variants[0].id} saved={Boolean(saved)} boards={boardChoices} mr={mr} />
             ) : (
-              <WishlistButton productId={p.id} name={p.name[locale]} saved={Boolean(saved)} />
+              <WishlistButton productId={p.id} name={p.name[locale]} saved={Boolean(saved)} mr={mr} />
             )}
           </div>
           <h1 lang={locale}>{p.name[locale]}</h1>
@@ -148,11 +149,21 @@ export default async function ProductPage({
           <div className="product-assurance-row">
             <span>
               <Star size={14} aria-hidden="true" />
-              {averageRating ? `${averageRating.toFixed(1)} · ${p.reviewCount} verified ${p.reviewCount === 1 ? "review" : "reviews"}` : "New in store"}
+              {averageRating
+                ? mr
+                  ? `${averageRating.toFixed(1)} · ${p.reviewCount} खात्रीशीर पुनरावलोकने`
+                  : `${averageRating.toFixed(1)} · ${p.reviewCount} verified ${p.reviewCount === 1 ? "review" : "reviews"}`
+                : mr
+                  ? "दुकानात नवीन"
+                  : "New in store"}
             </span>
-            <span>
-              <Truck size={14} aria-hidden="true" /> Delivery {deliveryDay}
-            </span>
+            {/* no delivery promise for something that can't be ordered */}
+            {p.variants.some((v) => v.available > 0) && (
+              <span>
+                <Truck size={14} aria-hidden="true" />{" "}
+                {mr ? `डिलिव्हरी ${deliveryDay === "today" ? "आज" : "उद्या"}` : `Delivery ${deliveryDay}`}
+              </span>
+            )}
           </div>
           <p className="description">{p.description[locale]}</p>
           {p.variants.length > 1 && (
@@ -177,8 +188,12 @@ export default async function ProductPage({
                     </span>
                     <small className="muted">
                       {v.available > 0
-                        ? `${v.available} available · up to ${v.maxQuantity} per order`
-                        : "Currently out of stock"}
+                        ? mr
+                          ? `${v.available} उपलब्ध · एका ऑर्डरमध्ये जास्तीत जास्त ${v.maxQuantity}`
+                          : `${v.available} available · up to ${v.maxQuantity} per order`
+                        : mr
+                          ? "सध्या स्टॉकमध्ये नाही"
+                          : "Currently out of stock"}
                     </small>
                   </div>
                   {/* tapping again adds one more; it used to set the basket to the typed number */}
@@ -192,14 +207,14 @@ export default async function ProductPage({
                       mr={mr}
                     />
                   ) : (
-                    <span className="status-pill">Sold out</span>
+                    <span className="status-pill">{mr ? "संपले" : "Sold out"}</span>
                   )}
                 </div>
               );
             })}
           </div>
           <p className="notice product-delivery-note">
-            Live stock and delivery charges are confirmed at checkout.
+            {mr ? "स्टॉक आणि डिलिव्हरी शुल्क चेकआउटला निश्चित होतात." : "Live stock and delivery charges are confirmed at checkout."}
           </p>
           {user && (
             <AddToList
@@ -301,8 +316,8 @@ export default async function ProductPage({
         <section className="section">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">You may also like</span>
-              <h2>More from your store</h2>
+              <span className="eyebrow">{mr ? "तुम्हाला हेही आवडेल" : "You may also like"}</span>
+              <h2>{mr ? "तुमच्या दुकानातील आणखी वस्तू" : "More from your store"}</h2>
             </div>
           </div>
           <div className="product-grid">

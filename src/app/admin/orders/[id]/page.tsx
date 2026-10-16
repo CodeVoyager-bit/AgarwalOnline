@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { dayLabel } from "@/lib/commerce/slots";
 import { notFound } from "next/navigation";
 import { formatPrice, methodLabel, noBreakTimes } from "@/lib/display";
 import { StatusStrip } from "@/components/status-pill";
@@ -283,7 +284,7 @@ export default async function ManageOrder({
       <PageHeading
         eyebrow="Order"
         title={o.number}
-        lead={noBreakTimes(`${o.address.name} · ${o.deliveryDate} · ${o.deliveryWindow}`)}
+        lead={noBreakTimes(`${o.address.name} · ${o.deliveryDate ? dayLabel(o.deliveryDate) : ""} · ${o.deliveryWindow}`)}
         aside={
           <div className="split-actions order-print">
             <Link href={`/admin/orders/${id}/slip`} className="secondary-button compact-button">
@@ -432,7 +433,7 @@ export default async function ManageOrder({
                   .
                 </>
               ) : (
-                "No Terms record: this order was placed before checkout saved one."
+                "This order is from before checkout recorded which Terms the customer agreed to."
               )}
             </p>
             {/* payments stay out: the shortfall on an online payment is only noted here, and read
@@ -863,7 +864,7 @@ export default async function ManageOrder({
             </p>
             {o.address.instructions && <p className="muted">“{o.address.instructions}”</p>}
             <p>
-              Delivery {o.deliveryDate} · {noBreakTimes(o.deliveryWindow)}
+              Delivery {o.deliveryDate ? dayLabel(o.deliveryDate) : ""} · {noBreakTimes(o.deliveryWindow)}
             </p>
           </div>
           {cash && (

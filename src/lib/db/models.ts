@@ -155,6 +155,11 @@ const variantSchema = new Schema(
     active: { type: Boolean, default: true },
     /** The expected price schools see, before GST. Missing means "price on quotation". */
     schoolPricePaise: { type: Number, min: 1, validate: Number.isSafeInteger },
+    /**
+     * What the shop paid for one pack: owners only, for profit. Never read unless asked for with
+     * "+costPaise", so no page, list or shopper's browser gets it by accident.
+     */
+    costPaise: { type: Number, min: 0, validate: Number.isSafeInteger, select: false },
   },
   opts,
 );
@@ -175,6 +180,8 @@ const inventorySchema = new Schema(
       default: 0,
       validate: Number.isSafeInteger,
     },
+    /** Running low once fewer than this can be sold; missing means the shop default (low-stock.ts), 0 never warns. */
+    alertBelow: { type: Number, min: 0, max: 100000, validate: Number.isSafeInteger },
   },
   opts,
 );

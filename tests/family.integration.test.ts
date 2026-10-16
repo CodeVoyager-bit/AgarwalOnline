@@ -161,17 +161,16 @@ describe.skipIf(!uri)("Families", () => {
     await Refund.create({ orderId: refunded._id, requestedBy: owner, amountPaise: 3000, reason: "Pending", mode: "manual" });
     await place(owner, "2026-09-10T06:00:00Z", 9000, { familyId: undefined });
     await place(stranger, "2026-09-11T06:00:00Z", 9000); // left the family, or never in it
-    await place(stranger, "2026-09-12T06:00:00Z", 4000, { paymentMethod: "tab" }); // but what went on the tab stays owed and seen
     await place(owner, "2025-09-30T06:00:00Z", 9000); // older than twelve months
 
     const spend = await family.familySpend(await familyOfOwner(), new Date("2026-09-28T06:00:00Z"));
     expect(spend.months.map((m) => [m.month, m.totalPaise])).toEqual([
-      ["2026-09", 14000],
+      ["2026-09", 10000],
       ["2026-08", 15000],
     ]);
-    expect(spend.totalPaise).toBe(29000);
+    expect(spend.totalPaise).toBe(25000);
     expect(spend.people).toEqual([
-      { key: "everyone", name: null, totalPaise: 19000 },
+      { key: "everyone", name: null, totalPaise: 15000 },
       { key: owner, name: "Priya", totalPaise: 10000 },
     ]);
   });

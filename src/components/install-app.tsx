@@ -40,7 +40,7 @@ export function InstallApp({ mr, children }: { mr: boolean; children: ReactNode 
   if (state === "installed")
     return (
       <p role="status" className="success-message">
-        {mr ? "तुम्ही Agarwal ॲप वापरत आहात." : "You’re using the Agarwal app."}
+        {mr ? "तुम्ही अग्रवाल ऑनलाइन ॲप वापरत आहात." : "You’re using the Agarwal Online app."}
       </p>
     );
   return (

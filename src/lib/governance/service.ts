@@ -24,6 +24,8 @@ const PENDING_PHOTO_DAYS = 60;
 
 /** A school price is optional and set before GST; a blank box means "price on quotation". */
 const schoolPriceField = optionalField(z.coerce.number().int().min(1).max(10000000));
+/** What the shop paid for one pack: owners only, optional. */
+const costField = optionalField(z.coerce.number().int().min(0).max(10000000));
 async function authorize(id: string, permission: Permission) {
   await connectDB();
   const user = await User.findOne({ _id: objectId.parse(id), active: true });
@@ -60,6 +62,7 @@ export const productInput = z
     gstRatePercent: optionalField(gstRateField),
     hsnCode: optionalField(hsnField),
     schoolPricePaise: schoolPriceField,
+    costPaise: costField,
     // in order, the first is the cover; requests made before photos could be added have none
     images: photoList.default([]),
   })
@@ -85,25 +88,23 @@ export const variantInput = z
     maxQuantity: z.coerce.number().int().min(1).max(100),
     stock: z.coerce.number().int().min(0).max(100000),
     schoolPricePaise: schoolPriceField,
+    costPaise: costField,
   })
   .refine((value) => value.pricePaise <= value.mrpPaise, {
     message: "Price must not exceed MRP.",
   });
 
 /**
- * A shop run by one owner has nobody else to approve that owner's changes, so they apply at
- * once (still recorded as a request the owner approved). With two or more owners, a second
- * owner looks first, as before.
+ * An owner's own changes apply at once (still recorded as a request the owner approved): the
+ * owners asked not to wait for each other. Changes staff ask for still wait for an owner.
  */
-async function soleOwner(actorId: string, session?: mongoose.ClientSession) {
+async function isOwner(actorId: string, session?: mongoose.ClientSession) {
   const actor = await User.findById(actorId).select("roles").session(session ?? null);
-  if (!actor?.roles.includes("super-admin")) return false;
-  const owners = await User.countDocuments({ roles: "super-admin", active: true }).session(session ?? null);
-  return owners === 1;
+  return Boolean(actor?.roles.includes("super-admin"));
 }
-const SOLE_OWNER_NOTE = "Applied at once: you are the only owner.";
+const OWNER_NOTE = "Applied at once: made by an owner.";
 
-/** Records a new request. For a lone owner it is approved and published in the same step; returns whether it is live. */
+/** Records a new request. An owner's is approved and published in the same step; returns whether it is live. */
 async function openRequest(
   fields: { kind: string; targetId: unknown; before?: unknown; after: unknown; reason?: string },
   actorId: string,
@@ -114,14 +115,14 @@ async function openRequest(
     [{ requestId: request._id, actorId, previous: "draft", next: "pending", comment: fields.reason }],
     { session },
   );
-  if (!(await soleOwner(actorId, session))) return false;
+  if (!(await isOwner(actorId, session))) return false;
   request.state = "approved";
   request.reviewerId = actorId;
   request.reviewedAt = new Date();
-  request.reason = SOLE_OWNER_NOTE;
+  request.reason = OWNER_NOTE;
   await request.save({ session });
   await ApprovalHistory.create(
-    [{ requestId: request._id, actorId, previous: "pending", next: "approved", comment: SOLE_OWNER_NOTE }],
+    [{ requestId: request._id, actorId, previous: "pending", next: "approved", comment: OWNER_NOTE }],
     { session },
   );
   await publish(request, actorId, session);
@@ -156,16 +157,18 @@ async function assertFree(fields: { slug?: string; sku?: string }, session: mong
   }
 }
 
-/** Only an owner prices for schools, so only an owner can put a school price on a new pack. */
-function assertSchoolPriceAllowed(actor: { roles: unknown }, schoolPricePaise?: number) {
+/** Only an owner prices for schools or knows purchase prices, so only an owner can put them on a new pack. */
+function assertSchoolPriceAllowed(actor: { roles: unknown }, schoolPricePaise?: number, costPaise?: number) {
   if (schoolPricePaise != null && !hasPermission(actor.roles as Role[], "settings:write"))
     throw Error("Only an owner can set a school price. Leave it blank; the owner can add it later.");
+  if (costPaise != null && !hasPermission(actor.roles as Role[], "settings:write"))
+    throw Error("Only an owner can set a purchase price. Leave it blank; the owner can add it later.");
 }
 
 export async function submitProduct(actorId: string, input: unknown) {
   const actor = await authorize(actorId, "approval:request");
   const data = productInput.parse(input);
-  assertSchoolPriceAllowed(actor, data.schoolPricePaise);
+  assertSchoolPriceAllowed(actor, data.schoolPricePaise, data.costPaise);
   if (!(await Category.exists({ _id: data.categoryId })))
     throw Error("Select a category.");
   let live = false;
@@ -190,7 +193,7 @@ export async function submitProduct(actorId: string, input: unknown) {
 export async function submitVariant(actorId: string, input: unknown) {
   const actor = await authorize(actorId, "approval:request");
   const data = variantInput.parse(input);
-  assertSchoolPriceAllowed(actor, data.schoolPricePaise);
+  assertSchoolPriceAllowed(actor, data.schoolPricePaise, data.costPaise);
   let live = false;
   await mongoose.connection.transaction(async (session) => {
     if (!(await Product.exists({ _id: data.productId }).session(session)))
@@ -255,7 +258,7 @@ async function applyStock(
     { session },
   );
 }
-/** Small changes apply at once; large ones wait for an owner (or apply at once for a lone owner). */
+/** Small changes apply at once; large ones wait for an owner (an owner's own apply at once). */
 export async function adjustStock(actorId: string, input: unknown) {
   await authorize(actorId, "inventory:adjust");
   const data = z
@@ -335,6 +338,7 @@ async function createPack(
         mrpPaise: data.mrpPaise,
         ...("maxQuantity" in data ? { maxQuantity: data.maxQuantity } : {}),
         ...(data.schoolPricePaise != null ? { schoolPricePaise: data.schoolPricePaise } : {}),
+        ...(data.costPaise != null ? { costPaise: data.costPaise } : {}),
       },
     ],
     { session },
@@ -472,8 +476,6 @@ export async function reviewApproval(actorId: string, input: unknown) {
       state: "pending",
     }).session(session);
     if (!request) throw Error("This request has already been reviewed.");
-    if (String(request.requesterId) === actorId && !(await soleOwner(actorId, session)))
-      throw Error("You cannot approve or reject your own request.");
     request.state = data.decision;
     request.reviewerId = actorId;
     request.reviewedAt = new Date();

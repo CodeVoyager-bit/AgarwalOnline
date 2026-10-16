@@ -3,8 +3,10 @@ import { connectDB } from "../db/connect";
 import { InventoryItem, Product, ProductVariant, User } from "../db/models";
 import { SystemSetting } from "../commerce/models";
 import { objectId } from "../commerce/service";
-import { assertPermission, type Role } from "../auth/permissions";
+import { assertPermission, hasPermission, type Role } from "../auth/permissions";
 import { adjustStock } from "../governance/service";
+import { setAlertLevel, setPackCost } from "../catalog/manage";
+import { paiseFromRupees } from "../display";
 import { headerPositions, parseCsv, toCsv } from "./csv";
 
 /** The most rows one sheet may change, and the largest file read. */
@@ -22,32 +24,52 @@ export type ImportRow = {
   after?: number;
   reason?: string;
   variantId?: string;
+  /** New stock alert level, when the row changes it. */
+  alertBelow?: number;
+  /** New purchase price, when an owner's row changes it. */
+  costPaise?: number;
   /** apply: changes at once · approval: big enough to wait for an owner · same: nothing to change · error: see message */
   outcome: "apply" | "approval" | "same" | "error";
   message?: string;
 };
 export type ImportPlan = { rows: ImportRow[]; problem?: string };
 
+/** Checks the person may change stock; says whether they're an owner (who alone sees purchase prices). */
 async function actor(actorId: string) {
   await connectDB();
   const user = await User.findOne({ _id: objectId.parse(actorId), active: true }).select("roles");
   if (!user) throw Error("UNAUTHENTICATED");
   assertPermission(user.roles as Role[], "inventory:adjust");
+  return { owner: hasPermission(user.roles as Role[], "settings:write") };
 }
 
 /** The current stock as a sheet to fill in: a Count (what's on the shelf now) or a Change for each pack. */
 export async function stockSheet(actorId: string) {
-  await actor(actorId);
+  const { owner } = await actor(actorId);
   const [variants, products, stock] = await Promise.all([
-    ProductVariant.find({}).sort({ sku: 1 }).select("sku label productId active").lean<{ _id: unknown; sku: string; label: string; productId: unknown; active?: boolean }[]>(),
+    ProductVariant.find({})
+      .sort({ sku: 1 })
+      .select(`sku label productId active${owner ? " +costPaise" : ""}`)
+      .lean<{ _id: unknown; sku: string; label: string; productId: unknown; active?: boolean; costPaise?: number }[]>(),
     Product.find({}).select("name").lean<{ _id: unknown; name: { en: string } }[]>(),
-    InventoryItem.find({}).select("variantId onHand").lean<{ variantId: unknown; onHand: number }[]>(),
+    InventoryItem.find({}).select("variantId onHand alertBelow").lean<{ variantId: unknown; onHand: number; alertBelow?: number }[]>(),
   ]);
   const productName = new Map(products.map((p) => [String(p._id), p.name.en]));
-  const onHand = new Map(stock.map((s) => [String(s.variantId), s.onHand]));
+  const byPack = new Map(stock.map((s) => [String(s.variantId), s]));
+  // alert_below and, for owners, purchase_price come filled in: change them where needed
   return toCsv([
-    ["sku", "product", "pack", "on_shelf", "count", "change", "reason"],
-    ...variants.map((v) => [v.sku, productName.get(String(v.productId)) ?? "", v.label, onHand.get(String(v._id)) ?? 0, "", "", ""]),
+    ["sku", "product", "pack", "on_shelf", "count", "change", "reason", "alert_below", ...(owner ? ["purchase_price"] : [])],
+    ...variants.map((v) => [
+      v.sku,
+      productName.get(String(v.productId)) ?? "",
+      v.label,
+      byPack.get(String(v._id))?.onHand ?? 0,
+      "",
+      "",
+      "",
+      byPack.get(String(v._id))?.alertBelow ?? "",
+      ...(owner ? [v.costPaise != null ? (v.costPaise / 100).toFixed(2) : ""] : []),
+    ]),
   ]);
 }
 
@@ -58,13 +80,13 @@ const whole = (text: string) => (/^[+-]?\d+$/.test(text.trim()) ? Number(text.tr
  * row would do, which changes are big enough to wait for an owner, and which rows can't be used.
  */
 export async function planStockImport(actorId: string, text: string, sharedReason = ""): Promise<ImportPlan> {
-  await actor(actorId);
+  const { owner } = await actor(actorId);
   if (text.length > MAX_BYTES) return { rows: [], problem: "That file is too big. Keep it under 200 KB (about 2,000 rows)." };
   const table = parseCsv(text);
   if (table.length < 2) return { rows: [], problem: "The sheet has no rows under its header." };
   const columns = headerPositions(table[0]);
   if (columns.sku === undefined) return { rows: [], problem: "The first row needs a “sku” column." };
-  if (columns.count === undefined && columns.change === undefined)
+  if (columns.count === undefined && columns.change === undefined && columns.alert === undefined && columns.cost === undefined)
     return { rows: [], problem: "The first row needs a “count” or a “change” column." };
   const body = table.slice(1);
   if (body.length > MAX_ROWS) return { rows: [], problem: `One sheet can change up to ${MAX_ROWS} packs. Split it into smaller sheets.` };
@@ -74,12 +96,15 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
     // SKUs match whatever their case in the sheet
     ProductVariant.find({ sku: { $in: skus } })
       .collation({ locale: "en", strength: 2 })
-      .select("sku label productId").lean<{ _id: unknown; sku: string; label: string; productId: unknown }[]>(),
+      .select(`sku label productId${owner ? " +costPaise" : ""}`)
+      .lean<{ _id: unknown; sku: string; label: string; productId: unknown; costPaise?: number }[]>(),
     SystemSetting.findOne({ key: "large-stock-threshold" }).lean<{ value?: unknown }>(),
   ]);
   const [products, stock] = await Promise.all([
     Product.find({ _id: { $in: variants.map((v) => v.productId) } }).select("name").lean<{ _id: unknown; name: { en: string } }[]>(),
-    InventoryItem.find({ variantId: { $in: variants.map((v) => v._id) } }).select("variantId onHand").lean<{ variantId: unknown; onHand: number }[]>(),
+    InventoryItem.find({ variantId: { $in: variants.map((v) => v._id) } })
+      .select("variantId onHand alertBelow")
+      .lean<{ variantId: unknown; onHand: number; alertBelow?: number }[]>(),
   ]);
   const threshold = z.number().int().min(1).catch(100).parse(setting?.value ?? 100);
   const bySku = new Map(variants.map((v) => [v.sku.toLowerCase(), v]));
@@ -91,17 +116,39 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
     const countText = columns.count === undefined ? "" : (cells[columns.count] ?? "").trim();
     const changeText = columns.change === undefined ? "" : (cells[columns.change] ?? "").trim();
     const reason = ((columns.reason === undefined ? "" : (cells[columns.reason] ?? "").trim()) || sharedReason.trim()).slice(0, 500);
+    const alertText = columns.alert === undefined ? "" : (cells[columns.alert] ?? "").trim();
+    const costText = columns.cost === undefined ? "" : (cells[columns.cost] ?? "").trim();
     if (!sku) return { line, sku, outcome: "error", message: "No SKU." };
-    if (!countText && !changeText) return { line, sku, outcome: "same", message: "Nothing filled in." };
+    if (!countText && !changeText && !alertText && !costText) return { line, sku, outcome: "same", message: "Nothing filled in." };
     const variant = bySku.get(sku.toLowerCase());
     if (!variant) return { line, sku, outcome: "error", message: "No pack has this SKU." };
     const key = String(variant._id);
     if (seen.has(key)) return { line, sku, outcome: "error", message: "This SKU is already on an earlier row." };
     seen.add(key);
     const name = products.find((p) => String(p._id) === String(variant.productId))?.name.en;
-    const onHand = stock.find((s) => String(s.variantId) === key)?.onHand;
+    const record = stock.find((s) => String(s.variantId) === key);
+    const onHand = record?.onHand;
     const base = { line, sku: variant.sku, name, label: variant.label, variantId: key, onHand, reason };
     if (onHand === undefined) return { ...base, outcome: "error", message: "This pack has no stock record." };
+    // the alert level and purchase price ride along with the row's stock change, or stand alone
+    const alert = alertText ? whole(alertText) : undefined;
+    if (alert !== undefined && (!Number.isFinite(alert) || alert < 0 || alert > 100000))
+      return { ...base, outcome: "error", message: "Alert below must be a whole number, 0 or more." };
+    if (costText && !owner) return { ...base, outcome: "error", message: "Only an owner can set purchase prices. Delete the purchase_price column." };
+    const cost = costText ? paiseFromRupees(costText.replace(/[₹,\s]/g, "")) : undefined;
+    if (cost !== undefined && (!Number.isFinite(cost) || cost < 0 || cost > 10_000_000))
+      return { ...base, outcome: "error", message: "Purchase price must be an amount in rupees, like 6.50." };
+    const extras = {
+      ...(alert !== undefined && alert !== record?.alertBelow ? { alertBelow: alert } : {}),
+      ...(cost !== undefined && cost !== variant.costPaise ? { costPaise: cost } : {}),
+    };
+    const also = [
+      extras.alertBelow !== undefined && `alert below ${extras.alertBelow}`,
+      extras.costPaise !== undefined && `purchase price ₹${(extras.costPaise / 100).toFixed(2)}`,
+    ].filter(Boolean);
+    const note = also.length ? `Also sets ${also.join(" and ")}.` : undefined;
+    if (!countText && !changeText)
+      return also.length ? { ...base, ...extras, outcome: "apply", message: `Sets ${also.join(" and ")}.` } : { ...base, outcome: "same", message: "Already set." };
     if (countText && changeText) return { ...base, outcome: "error", message: "Fill Count or Change, not both." };
     const count = countText ? whole(countText) : NaN;
     const change = changeText ? whole(changeText) : NaN;
@@ -110,9 +157,12 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
     const delta = countText ? count - onHand : change;
     if (Math.abs(delta) > 100000) return { ...base, outcome: "error", message: "That change is too large." };
     if (onHand + delta < 0) return { ...base, delta, outcome: "error", message: `Only ${onHand} on the shelf; it can’t go below 0.` };
-    if (delta === 0) return { ...base, delta, after: onHand, outcome: "same", message: "Already this many." };
+    if (delta === 0)
+      return also.length
+        ? { ...base, ...extras, delta, after: onHand, outcome: "apply", message: `Already this many. Sets ${also.join(" and ")}.` }
+        : { ...base, delta, after: onHand, outcome: "same", message: "Already this many." };
     if (reason.length < 5) return { ...base, delta, after: onHand + delta, outcome: "error", message: "Add a reason (5 letters or more), in the row or above the file." };
-    return { ...base, delta, after: onHand + delta, outcome: Math.abs(delta) >= threshold ? "approval" : "apply" };
+    return { ...base, ...extras, delta, after: onHand + delta, outcome: Math.abs(delta) >= threshold && !owner ? "approval" : "apply", message: note };
   });
   return { rows };
 }
@@ -132,7 +182,9 @@ export async function applyStockImport(actorId: string, text: string, sharedReas
     if (row.outcome === "error") result.failed.push({ line: row.line, sku: row.sku, message: row.message ?? "Can’t be used." });
     if (row.outcome !== "apply" && row.outcome !== "approval") continue;
     try {
-      const { outcome } = await adjustStock(actorId, { variantId: row.variantId, delta: row.delta, reason: row.reason });
+      if (row.alertBelow !== undefined) await setAlertLevel(actorId, { variantId: row.variantId, alertBelow: row.alertBelow });
+      if (row.costPaise !== undefined) await setPackCost(actorId, { variantId: row.variantId, costPaise: row.costPaise });
+      const { outcome } = row.delta ? await adjustStock(actorId, { variantId: row.variantId, delta: row.delta, reason: row.reason }) : { outcome: "applied" };
       if (outcome === "applied") result.applied += 1;
       else result.waiting += 1;
     } catch (error) {

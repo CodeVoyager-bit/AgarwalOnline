@@ -1,4 +1,4 @@
-import { CalendarClock, MapPin, PlugZap, ReceiptText, ShieldCheck, Truck, WholeWord, TriangleAlert } from "lucide-react";
+import { CalendarClock, MailWarning, MapPin, PlugZap, ReceiptText, ShieldCheck, Truck, WholeWord, TriangleAlert } from "lucide-react";
 import { HighlightLink } from "@/components/hash-target";
 import type { HubCard } from "@/lib/admin/settings-summary";
 
@@ -8,6 +8,7 @@ const ICONS = {
   areas: MapPin,
   tax: ReceiptText,
   "stock-approval": ShieldCheck,
+  "stock-report": MailWarning,
   synonyms: WholeWord,
   services: PlugZap,
 } as const;

@@ -293,6 +293,7 @@ function BotBubble({
                   available={item.available}
                   max={item.maxQuantity}
                   name={item.name}
+                  mr={locale === "mr"}
                 />
               </li>
             ))}

@@ -25,7 +25,7 @@ export default async function FamilyInvite({ params }: { params: Promise<{ token
       <div className="panel family-invite-card">
         <Avatars names={[ownerName]} />
         <h1>{t(`${ownerName} invited you to “${family.name}”`, `${ownerName} यांनी तुम्हाला “${family.name}” मध्ये बोलावले आहे`)}</h1>
-        <p className="muted">{t("Families on Agarwal keep their shopping in one place.", "Agarwal वरील कुटुंबे त्यांची खरेदी एकाच ठिकाणी ठेवतात.")}</p>
+        <p className="muted">{t("Families on Agarwal Online keep their shopping in one place.", "अग्रवाल ऑनलाइनवरील कुटुंबे त्यांची खरेदी एकाच ठिकाणी ठेवतात.")}</p>
         <h2>{t("What joining shares", "सामील झाल्यावर काय दिसते")}</h2>
         <ul className="family-perks">
           <li>

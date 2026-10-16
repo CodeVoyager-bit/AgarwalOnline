@@ -182,7 +182,7 @@ export default async function OrderDetail({
                 {step.state === "done" && <CheckCircle2 size={16} aria-hidden="true" />}
               </span>
               <strong>{step.label}</strong>
-              {step.at && <small>{formatIst(step.at, SHORT)}</small>}
+              {step.at && <small>{noBreakTimes(formatIst(step.at, SHORT))}</small>}
             </li>
           ))}
         </ol>
@@ -235,7 +235,7 @@ export default async function OrderDetail({
                       {picture?.href ? <Link href={picture.href}>{line.name}</Link> : <span>{line.name}</span>}
                       <small>
                         {line.label}
-                        {line.quantity > 0 && ` · ${line.quantity} × ${formatPrice(line.pricePaise)}`}
+                        {line.quantity > 0 && ` · ${line.quantity}\u00a0×\u00a0${formatPrice(line.pricePaise)}`}
                       </small>
                       {lineNotes(line, o.paymentMethod === "cod").map((note) => (
                         <small className="line-note" key={note}>
@@ -407,7 +407,8 @@ export default async function OrderDetail({
             </ActionForm>
           </section>
 
-          {o.orderStatus === "placed" && o.paymentMethod !== "razorpay" && (
+          {/* the same rule cancelOrder() enforces: before the shop starts packing */}
+          {o.orderStatus === "placed" && o.fulfilmentStatus === "unassigned" && o.paymentMethod !== "razorpay" && (
             <section className="panel order-card order-cancel" aria-labelledby="cancel-title">
               <h2 id="cancel-title">Changed your mind?</h2>
               <p className="muted">You can cancel until the shop confirms your order.</p>

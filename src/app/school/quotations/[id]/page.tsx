@@ -196,7 +196,7 @@ export default async function SchoolQuotation({
             label="View-only link"
             url={shareUrl}
             hint="If the link reaches the wrong person, ask the store for a new one; the old one then stops working."
-            title={`Quotation ${request.number} from Agarwal General Stores`}
+            title={`Quotation ${request.number} from Agarwal Online`}
             copy="Copy link"
             copied="Copied"
           />

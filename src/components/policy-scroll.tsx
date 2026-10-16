@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import { centreCurrent } from "./centre-current";
 
 /**
  * Two things a policy page can't do by itself:
@@ -9,12 +10,7 @@ import { useEffect } from "react";
  */
 export function PolicyScroll() {
   useEffect(() => {
-    const rail = document.querySelector<HTMLElement>(".policy-switcher");
-    const current = rail?.querySelector<HTMLElement>("[aria-current]");
-    // the rail's own scroll only, so the page itself doesn't move
-    if (rail && current)
-      rail.scrollLeft +=
-        current.getBoundingClientRect().left - rail.getBoundingClientRect().left - (rail.clientWidth - current.offsetWidth) / 2;
+    centreCurrent(".policy-switcher");
     const id = decodeURIComponent(window.location.hash.slice(1));
     if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, []);

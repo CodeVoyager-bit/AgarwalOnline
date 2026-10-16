@@ -40,7 +40,7 @@ export const termsDoc: LegalBuilder = {
           {
             list: [
               "Products on the site are an invitation to order. Your order is an offer to buy, and a contract is made when the store confirms it.",
-              "Prices are in Indian rupees. Prices and stock are checked again when you confirm, and the price at that moment is the one on your order. Delivery charges are shown before you confirm.",
+              "Prices are in Indian rupees and include all taxes. Prices and stock are checked again when you confirm, and the price at that moment is the one on your order. Delivery charges are shown before you confirm.",
               "Each item may have a limit per order.",
               "If an item is listed at a clearly wrong price, or stock runs out, we may cancel that item or the order and refund anything you paid.",
               "Photos are for illustration. Packaging and colours may differ slightly.",
@@ -52,21 +52,14 @@ export const termsDoc: LegalBuilder = {
         id: "unavailable",
         title: "When an item isn't available",
         blocks: [
-          "In [Your account](/account) you choose what we do if an item is unavailable. A replacement is charged at the price of the item you ordered, never more. Items we couldn't pack are taken off your bill for cash on delivery, or refunded for online payments and the family tab.",
+          "In [Your account](/account) you choose what we do if an item is unavailable. A replacement is charged at the price of the item you ordered, never more. Items we couldn't pack are taken off your bill.",
         ],
       },
       {
         id: "payment",
         title: "Payment",
         blocks: [
-          {
-            list: [
-              "**Cash on delivery:** pay the delivery partner the exact amount shown on your order. It may not be available in every area or above a set amount; see [Shipping & Delivery](/p/shipping-and-delivery).",
-              "**Online payment**, when it is switched on, is handled by Razorpay. Your items are held for 15 minutes while you pay. If payment doesn't finish in time the order is released, and a payment that arrives late is refunded in full.",
-              "**Family tab:** if your family has an open tab, you can put an order on it and pay later; see [Family accounts and the family tab](#family).",
-              "We never see or store your card or UPI details.",
-            ],
-          },
+          "We take **cash on delivery** only: pay the delivery partner the exact amount shown on your order. It may not be available in every area or above a set amount; see [Shipping & Delivery](/p/shipping-and-delivery).",
         ],
       },
       {
@@ -80,7 +73,7 @@ export const termsDoc: LegalBuilder = {
         id: "cancellations",
         title: "Cancellations, returns and refunds",
         blocks: [
-          "You can cancel a cash-on-delivery or family-tab order until the store confirms it. Problems with a delivered order are reported from [Complaints & returns](/account/complaints). The full rules are on [Refunds & Cancellations](/p/refunds-and-cancellations).",
+          "You can cancel an order until the store confirms it. Problems with a delivered order are reported from [Complaints & returns](/account/complaints). The full rules are on [Refunds & Cancellations](/p/refunds-and-cancellations).",
         ],
       },
       {
@@ -114,23 +107,13 @@ export const termsDoc: LegalBuilder = {
       },
       {
         id: "family",
-        title: "Family accounts and the family tab",
+        title: "Family accounts",
         blocks: [
           {
             list: [
               "A family's owner creates it and invites other adults with a link; each link lets one person in. A family can have up to 6 adults and 8 children, and each person can be in one family.",
               "The owner can remove adults and reset the invite link. Any adult can add, change or remove children. The owner can leave only by removing the others and deleting the family.",
               "Adults in the family see its orders and invoices, except orders marked private at checkout.",
-            ],
-          },
-          "**The family tab** lets the family order now and pay later:",
-          {
-            list: [
-              "The owner asks for a tab. The store decides, sets the limit (up to ₹1,00,000), and may change the limit, pause, resume or close the tab.",
-              "Any adult in the family can put an order on an open tab, as long as it fits within the available limit.",
-              "On the 1st of each month the family is told what went on the tab and what it owes. Everything charged before that month is due by the 10th; after that the tab can't be used until it is paid.",
-              "Pay at the store or to the delivery partner, in cash or by UPI. The store records each payment; a payment recorded by mistake is voided with a reason, and the family is told.",
-              "There is no interest and no late fee. Pausing or closing a tab doesn't cancel what is owed: the family, and its owner in particular, remains responsible for paying it.",
             ],
           },
         ],
@@ -219,7 +202,7 @@ export const termsDoc: LegalBuilder = {
           {
             list: [
               "साइटवरील उत्पादने हे ऑर्डर देण्याचे आमंत्रण आहे. तुमची ऑर्डर ही खरेदीची ऑफर आहे, आणि दुकान ती पक्की करते तेव्हा करार होतो.",
-              "किमती भारतीय रुपयांत आहेत. तुम्ही ऑर्डर पक्की करताना किमती आणि साठा पुन्हा तपासला जातो, आणि त्या क्षणाची किंमत तुमच्या ऑर्डरवर राहते. वितरण शुल्क पक्की करण्यापूर्वी दाखवले जाते.",
+              "किमती भारतीय रुपयांत असून त्यात सर्व कर समाविष्ट आहेत. तुम्ही ऑर्डर पक्की करताना किमती आणि साठा पुन्हा तपासला जातो, आणि त्या क्षणाची किंमत तुमच्या ऑर्डरवर राहते. वितरण शुल्क पक्की करण्यापूर्वी दाखवले जाते.",
               "प्रत्येक वस्तूवर एका ऑर्डरसाठी मर्यादा असू शकते.",
               "एखाद्या वस्तूची किंमत स्पष्टपणे चुकीची दाखवली गेल्यास, किंवा साठा संपल्यास, आम्ही ती वस्तू किंवा ऑर्डर रद्द करून तुम्ही दिलेले पैसे परत करू शकतो.",
               "फोटो फक्त कल्पना येण्यासाठी आहेत. पॅकिंग आणि रंग थोडे वेगळे असू शकतात.",
@@ -231,21 +214,14 @@ export const termsDoc: LegalBuilder = {
         id: "unavailable",
         title: "वस्तू उपलब्ध नसल्यास",
         blocks: [
-          "वस्तू उपलब्ध नसल्यास आम्ही काय करावे हे तुम्ही [तुमचे खाते](/account) मध्ये निवडता. बदली वस्तूसाठी तुम्ही ऑर्डर केलेल्या वस्तूचीच किंमत घेतली जाते, कधीही जास्त नाही. आम्ही पॅक करू न शकलेल्या वस्तू कॅश ऑन डिलिव्हरीच्या बिलातून काढल्या जातात, किंवा ऑनलाइन पेमेंट आणि कुटुंब टॅबसाठी त्यांचे पैसे परत केले जातात.",
+          "वस्तू उपलब्ध नसल्यास आम्ही काय करावे हे तुम्ही [तुमचे खाते](/account) मध्ये निवडता. बदली वस्तूसाठी तुम्ही ऑर्डर केलेल्या वस्तूचीच किंमत घेतली जाते, कधीही जास्त नाही. आम्ही पॅक करू न शकलेल्या वस्तू तुमच्या बिलातून काढल्या जातात.",
         ],
       },
       {
         id: "payment",
         title: "पेमेंट",
         blocks: [
-          {
-            list: [
-              "**कॅश ऑन डिलिव्हरी:** तुमच्या ऑर्डरवर दाखवलेली नेमकी रक्कम डिलिव्हरी भागीदाराला द्या. ती प्रत्येक क्षेत्रात किंवा ठरावीक रकमेपेक्षा जास्त ऑर्डरसाठी उपलब्ध नसू शकते; [शिपिंग व वितरण](/p/shipping-and-delivery) पाहा.",
-              "**ऑनलाइन पेमेंट** सुरू असल्यास ते Razorpay हाताळते. तुम्ही पैसे भरेपर्यंत तुमच्या वस्तू 15 मिनिटे राखून ठेवल्या जातात. वेळेत पेमेंट पूर्ण न झाल्यास ऑर्डर सोडली जाते, आणि उशिरा आलेले पेमेंट पूर्ण परत केले जाते.",
-              "**कुटुंब टॅब:** तुमच्या कुटुंबाचा टॅब सुरू असल्यास, तुम्ही ऑर्डर त्यावर घेऊन नंतर पैसे देऊ शकता; [कुटुंब खाते आणि कुटुंब टॅब](#family) पाहा.",
-              "तुमचे कार्ड किंवा UPI तपशील आम्ही कधीही पाहत नाही आणि साठवत नाही.",
-            ],
-          },
+          "आम्ही फक्त **कॅश ऑन डिलिव्हरी** घेतो: तुमच्या ऑर्डरवर दाखवलेली नेमकी रक्कम डिलिव्हरी भागीदाराला द्या. ती प्रत्येक क्षेत्रात किंवा ठरावीक रकमेपेक्षा जास्त ऑर्डरसाठी उपलब्ध नसू शकते; [शिपिंग व वितरण](/p/shipping-and-delivery) पाहा.",
         ],
       },
       {
@@ -259,7 +235,7 @@ export const termsDoc: LegalBuilder = {
         id: "cancellations",
         title: "रद्द करणे, परत करणे आणि पैसे परत",
         blocks: [
-          "दुकान ऑर्डर पक्की करेपर्यंत तुम्ही कॅश-ऑन-डिलिव्हरी किंवा कुटुंब टॅबवरील ऑर्डर रद्द करू शकता. मिळालेल्या ऑर्डरमधील अडचणी [तक्रारी आणि परतावा](/account/complaints) मधून कळवा. पूर्ण नियम [रद्द करणे व पैसे परत](/p/refunds-and-cancellations) वर आहेत.",
+          "दुकान ऑर्डर पक्की करेपर्यंत तुम्ही ऑर्डर रद्द करू शकता. मिळालेल्या ऑर्डरमधील अडचणी [तक्रारी आणि परतावा](/account/complaints) मधून कळवा. पूर्ण नियम [रद्द करणे व पैसे परत](/p/refunds-and-cancellations) वर आहेत.",
         ],
       },
       {
@@ -293,23 +269,13 @@ export const termsDoc: LegalBuilder = {
       },
       {
         id: "family",
-        title: "कुटुंब खाते आणि कुटुंब टॅब",
+        title: "कुटुंब खाते",
         blocks: [
           {
             list: [
               "कुटुंबाचा मालक ते तयार करतो आणि लिंकने इतर प्रौढांना बोलावतो; प्रत्येक लिंकने एकच व्यक्ती सामील होऊ शकते. एका कुटुंबात जास्तीत जास्त 6 प्रौढ आणि 8 मुले असू शकतात, आणि प्रत्येक व्यक्ती एकाच कुटुंबात असू शकते.",
               "मालक प्रौढांना काढू शकतो आणि आमंत्रण लिंक बदलू शकतो. कोणताही प्रौढ मुलांना जोडू, बदलू किंवा काढू शकतो. मालक इतरांना काढून आणि कुटुंब हटवूनच बाहेर पडू शकतो.",
               "कुटुंबातील प्रौढांना कुटुंबाच्या ऑर्डर आणि बिले दिसतात, चेकआउटवर खाजगी ठेवलेल्या ऑर्डर सोडून.",
-            ],
-          },
-          "**कुटुंब टॅब** मुळे कुटुंब आता ऑर्डर देऊन नंतर पैसे देऊ शकते:",
-          {
-            list: [
-              "मालक टॅबची मागणी करतो. दुकान निर्णय घेते, मर्यादा ठरवते (₹1,00,000 पर्यंत), आणि मर्यादा बदलू, टॅब थांबवू, पुन्हा सुरू करू किंवा बंद करू शकते.",
-              "उपलब्ध मर्यादेत बसत असल्यास, कुटुंबातील कोणताही प्रौढ सुरू असलेल्या टॅबवर ऑर्डर देऊ शकतो.",
-              "दर महिन्याच्या 1 तारखेला कुटुंबाला टॅबवर काय घेतले आणि किती देणे आहे ते कळवले जाते. त्या महिन्यापूर्वी घेतलेले सर्व 10 तारखेपर्यंत भरायचे असते; त्यानंतर ते भरेपर्यंत टॅब वापरता येत नाही.",
-              "दुकानात किंवा डिलिव्हरी भागीदाराकडे, रोख किंवा UPI ने पैसे भरा. दुकान प्रत्येक पेमेंटची नोंद करते; चुकून नोंदवलेले पेमेंट कारण देऊन रद्द केले जाते, आणि कुटुंबाला कळवले जाते.",
-              "कोणतेही व्याज किंवा विलंब शुल्क नाही. टॅब थांबवला किंवा बंद केला तरी देणे रद्द होत नाही: ते भरण्याची जबाबदारी कुटुंबाची, विशेषतः मालकाची, राहते.",
             ],
           },
         ],

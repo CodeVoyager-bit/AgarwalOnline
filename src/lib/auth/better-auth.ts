@@ -41,7 +41,7 @@ function buildAuth() {
   });
 
   return betterAuth({
-    appName: "AGARWAL GENERAL STORES",
+    appName: "AGARWAL ONLINE",
     baseURL: env.APP_ORIGIN,
     secret: env.BETTER_AUTH_SECRET ?? env.AUTH_SECRET,
     trustedOrigins: originVariants(env.APP_ORIGIN),

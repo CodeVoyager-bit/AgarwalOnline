@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CentreCurrent } from "@/components/centre-current";
 import { SearchX } from "lucide-react";
 import { catalog, catalogCategories } from "@/lib/catalog/queries";
 import { ProductCard } from "@/components/product-card";
@@ -20,7 +21,7 @@ export async function generateMetadata({
   if (category)
     return {
       title: `${category.en} online in Nagothane`,
-      description: `Shop ${category.en} from Agarwal General Stores with same-day delivery in and around Nagothane.`,
+      description: `Shop ${category.en} from Agarwal Online with same-day delivery in and around Nagothane.`,
       alternates: { canonical: `/catalog?category=${category.slug}` },
     };
   if (params.sort === "discount") return { title: "Today’s offers and discounts", alternates: { canonical: "/catalog" } };
@@ -55,7 +56,17 @@ export default async function Catalog({
     <section className="page-container">
       <div className="section-heading">
         <div>
-          <h1>{active ? active[locale] : locale === "mr" ? "सर्व उत्पादने" : "All products"}</h1>
+          <h1>
+            {active
+              ? active[locale]
+              : params.q
+                ? locale === "mr"
+                  ? `“${params.q.slice(0, 60)}” साठी निकाल`
+                  : `Results for “${params.q.slice(0, 60)}”`
+                : locale === "mr"
+                  ? "सर्व उत्पादने"
+                  : "All products"}
+          </h1>
         </div>
       </div>
       <nav className="catalog-chips" aria-label="Browse product categories">
@@ -77,6 +88,7 @@ export default async function Catalog({
           </Link>
         ))}
       </nav>
+      <CentreCurrent key={params.category ?? "all"} rail=".catalog-chips" />
       <CatalogFilterPanel locale={locale} params={params} />
       <div className="results-line">
         <p>

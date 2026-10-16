@@ -5,7 +5,7 @@ import type { Topic } from "./types";
 export const assistantCopy = {
   en: {
     launcher: "Ask the shop assistant",
-    title: "Agarwal assistant",
+    title: "Agarwal Online assistant",
     subtitle: "Ask in English or मराठी",
     close: "Close the assistant",
     startOver: "Start over",
@@ -59,7 +59,7 @@ export const assistantCopy = {
     found: "Here's what I found:",
     seeAll: "See all results",
     notFound: (q: string) => `I couldn't find “${q}”. Try another word, or ask the store.`,
-    tooShort: "Tell me a little more, like “blue pens” or “gift wrap”.",
+    tooShort: "Tell me a little more, like “blue pens” or “board games”.",
     thanks: "You're welcome! Anything else?",
     tooFast: "That's a lot of questions at once. Wait a moment and try again.",
     error: "I couldn't answer that just now. Try again, or talk to the store.",
@@ -69,7 +69,7 @@ export const assistantCopy = {
   },
   mr: {
     launcher: "दुकानाच्या सहाय्यकाला विचारा",
-    title: "अग्रवाल सहाय्यक",
+    title: "अग्रवाल ऑनलाइन सहाय्यक",
     subtitle: "मराठी किंवा English मध्ये विचारा",
     close: "सहाय्यक बंद करा",
     startOver: "पुन्हा सुरू करा",
@@ -123,7 +123,7 @@ export const assistantCopy = {
     found: "हे सापडले:",
     seeAll: "सर्व निकाल पाहा",
     notFound: (q: string) => `“${q}” सापडले नाही. दुसरा शब्द वापरून पाहा, किंवा दुकानाला विचारा.`,
-    tooShort: "थोडे अधिक सांगा, जसे “निळे पेन” किंवा “गिफ्ट रॅप”.",
+    tooShort: "थोडे अधिक सांगा, जसे “निळे पेन” किंवा “बोर्ड गेम”.",
     thanks: "आनंद झाला! आणखी काही?",
     tooFast: "एकाच वेळी खूप प्रश्न आले. थोडे थांबून पुन्हा प्रयत्न करा.",
     error: "आत्ता उत्तर देता आले नाही. पुन्हा प्रयत्न करा, किंवा दुकानाशी बोला.",

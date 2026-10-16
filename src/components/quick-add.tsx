@@ -23,12 +23,12 @@ function useBasketLine(variantId: string, pricePaise: number) {
       const form = new FormData();
       form.set("variantId", variantId);
       form.set("quantity", String(quantity));
-      const result = await quickAddAction({}, form).catch(() => ({
+      const result = await quickAddAction({}, form).catch((): { error: string; at?: number } => ({
         error: "Could not reach the store. Check your connection and try again.",
       }));
       startTransition(() => {
         setError(result.error);
-        if (!result.error) commit(line);
+        if (!result.error) commit(line, result.at ?? Date.now());
       });
     });
   }
@@ -42,12 +42,14 @@ export function QuickAdd({
   available,
   max,
   name,
+  mr = false,
 }: {
   variantId: string;
   pricePaise: number;
   available: number;
   max: number;
   name: string;
+  mr?: boolean;
 }) {
   const { qty, change, error } = useBasketLine(variantId, pricePaise);
   const limit = Math.min(max, available);
@@ -60,16 +62,26 @@ export function QuickAdd({
           className="add-button"
           disabled={available === 0}
           onClick={() => change(1)}
-          aria-label={available ? `Add ${name} to basket` : `${name} is out of stock`}
+          aria-label={
+            mr
+              ? available
+                ? `${name} बास्केटमध्ये जोडा`
+                : `${name} संपले आहे`
+              : available
+                ? `Add ${name} to basket`
+                : `${name} is out of stock`
+          }
         >
-          {available ? "Add" : "Sold out"}
+          {available ? (mr ? "जोडा" : "Add") : mr ? "संपले" : "Sold out"}
         </button>
       ) : (
-        <span className="qty-stepper compact" aria-label={`Quantity of ${name} in basket`}>
+        <span className="qty-stepper compact" aria-label={mr ? `बास्केटमधील ${name} ची संख्या` : `Quantity of ${name} in basket`}>
           <button
             type="button"
             onClick={() => change(qty - 1)}
-            aria-label={qty === 1 ? `Remove ${name} from basket` : "Decrease quantity"}
+            aria-label={
+              qty === 1 ? (mr ? `${name} बास्केटमधून काढा` : `Remove ${name} from basket`) : mr ? "संख्या कमी करा" : "Decrease quantity"
+            }
           >
             <Minus size={16} />
           </button>
@@ -78,7 +90,7 @@ export function QuickAdd({
             type="button"
             onClick={() => change(qty + 1)}
             disabled={qty >= limit}
-            aria-label="Increase quantity"
+            aria-label={mr ? "संख्या वाढवा" : "Increase quantity"}
           >
             <Plus size={16} />
           </button>

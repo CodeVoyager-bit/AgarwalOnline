@@ -118,7 +118,7 @@ export async function pushTest(userId: string) {
   await connectDB();
   return pushToPerson(
     userId,
-    { title: "Notifications are on", body: "Order and delivery updates from Agarwal General Stores will appear like this.", href: "/account/notifications", tag: "test" },
+    { title: "Notifications are on", body: "Order and delivery updates from Agarwal Online will appear like this.", href: "/account/notifications", tag: "test" },
     "high",
   );
 }

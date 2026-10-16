@@ -114,10 +114,6 @@ export function customerStage(order: OrderStatusFields, locale: "en" | "mr" = "e
 export function paymentLabel(order: OrderStatusFields, locale: "en" | "mr" = "en") {
   const mr = locale === "mr";
   const cancelled = order.orderStatus === "cancelled";
-  if (order.paymentMethod === "tab")
-    return cancelled
-      ? mr ? "काही देणे नाही – ऑर्डर रद्द झाली" : "Nothing to pay – this order was cancelled"
-      : mr ? "कुटुंब खात्यावर, दरमहा दुकानात भरा" : "On your family tab, settled with the store monthly";
   if (order.paymentMethod !== "razorpay") {
     if (cancelled) return mr ? "काही देणे नाही – ऑर्डर रद्द झाली" : "Nothing to pay – this order was cancelled";
     if (order.codStatus && order.codStatus !== "uncollected") return mr ? "रोख भरले" : "Paid in cash";
@@ -188,7 +184,7 @@ export function noBreakTimes(text: string) {
   return text.replace(/(\d) (AM|PM|am|pm)\b/g, "$1\u00a0$2");
 }
 
-/** How an order is paid, in words. Before the family tab, "not cash" could safely mean "paid online". */
+/** How an order is paid, in words. */
 export function methodLabel(method: string) {
-  return method === "cod" ? "Cash on delivery" : method === "tab" ? "Family tab" : "Paid online";
+  return method === "razorpay" ? "Paid online" : "Cash on delivery";
 }

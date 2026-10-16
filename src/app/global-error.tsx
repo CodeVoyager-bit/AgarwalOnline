@@ -34,10 +34,10 @@ export default function GlobalError({
           color: "#0f172a",
         }}
       >
-        <title>Agarwal General Stores</title>
+        <title>Agarwal Online</title>
         <main style={{ maxWidth: 420, textAlign: "center" }}>
           <p style={{ letterSpacing: "0.08em", fontSize: 12, fontWeight: 700, color: "#5b6170" }}>
-            AGARWAL GENERAL STORES
+            AGARWAL ONLINE
           </p>
           <h1 style={{ fontSize: 26, margin: "8px 0" }}>The store didn’t load.</h1>
           <p style={{ color: "#5b6170" }}>

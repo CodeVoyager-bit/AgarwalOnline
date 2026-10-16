@@ -53,6 +53,8 @@ const COLUMNS = {
   count: ["count", "counted", "new count", "stock count", "set to"],
   change: ["change", "add", "adjust", "adjustment", "+/-"],
   reason: ["reason", "note", "notes"],
+  alert: ["alert below", "alert", "alert level", "low stock alert"],
+  cost: ["purchase price", "cost", "cost price", "bought at"],
 } as const;
 export type Column = keyof typeof COLUMNS;
 

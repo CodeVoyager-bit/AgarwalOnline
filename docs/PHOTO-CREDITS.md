@@ -76,4 +76,7 @@ Product photos are the makers' own packshots (or, where the maker publishes none
 - 46 Apsara Platinum — [apsaraofficial.com](https://apsaraofficial.com/product/platinum-pencil/)
 - 47 DOMS X1 — [domsindia.com](https://domsindia.com/product/doms-x1-pencil-2/)
 
-No photo yet (icon shown until the shop uploads its own): rows 4, 5, 22, 23, 27–43.
+- 4 Cello Swift — [Amazon.ae](https://www.amazon.ae/CELLO-Swift-Ball-0-7Mm-Blister/dp/B08P5HGR4K)
+- 5 Cello Success Select — [Penhouse](https://www.penhouse.in/cello-success-select-blue-color-body-with-black-clip-fine-tip-click-type-ball-pen-sku-23569.html)
+
+Rows 22, 23 (Sulabh Orange), 27, 28 (rough books) and 29–43 (Agarwal brown cover) have no photo anywhere online, so they carry a drawn picture instead: the covers in the pack, fanned, and an open spread showing the book's real ruling. Drawn on 2026-10-14 by `.local/catalog-2026-10-14/render_notebooks.py`; replace them with photos of the shop's own stock when it has them.

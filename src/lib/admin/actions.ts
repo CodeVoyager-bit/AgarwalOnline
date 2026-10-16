@@ -14,6 +14,7 @@ import { formWithPaise, paiseFromRupees } from "../display";
 import { plainMessage } from "../form-errors";
 import { log } from "../logger";
 import { saveTaxProfile } from "../tax/profile";
+import { hourLabel, reportSettings, saveReportHour, sendLowStockReport } from "../inventory/low-stock";
 /** Messages these actions write for the owner; anything else is unexpected and stays generic. */
 const PLAIN = /^(PIN code|An area|Switch on|Choose|The delivery|That delivery|This (area|slot|weekly)|Pick at least|Orders it can take)/;
 function safe(e: unknown) {
@@ -484,6 +485,27 @@ export async function taxDetailsAction(
     revalidatePath("/super-admin");
     revalidatePath("/p/contact-and-grievance");
     return { success: "Business and tax details saved. Quotations sent from now on and the Contact page use them." };
+  } catch (e) {
+    return { error: safe(e) };
+  }
+}
+
+/** The owners' low-stock email: when it goes out each day (or off), or send it now. */
+export async function stockReportAction(_state: MutationState, form: FormData): Promise<MutationState> {
+  try {
+    const user = await requirePermission("settings:write");
+    if (form.get("operation") === "send") {
+      const { sent, low } = await sendLowStockReport({ force: true });
+      if (!sent) return { error: "Couldn’t send it: no owner has an email address that can receive mail, or the mailbox refused it. Try again later." };
+      return { success: `Sent to ${sent === 1 ? "1 owner" : `${sent} owners`}, with ${low === 1 ? "1 pack" : `${low} packs`} running low.` };
+    }
+    const raw = String(form.get("hour") ?? "");
+    const hour = raw === "off" ? null : z.coerce.number().int().min(0).max(23).parse(raw);
+    const before = (await reportSettings()).hour;
+    await saveReportHour(hour);
+    await AuditLog.create({ actorId: user.id, action: "stock-report.schedule", target: "low-stock-report", details: { before, after: hour } });
+    revalidatePath("/super-admin");
+    return { success: hour === null ? "The daily low-stock email is off." : `The low-stock email goes out every day at ${hourLabel(hour)}.` };
   } catch (e) {
     return { error: safe(e) };
   }

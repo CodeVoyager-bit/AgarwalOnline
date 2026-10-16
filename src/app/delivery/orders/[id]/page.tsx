@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { notFound } from "next/navigation";
+import { dayLabel } from "@/lib/commerce/slots";
 import { PageHeading } from "@/components/page-heading";
 import { requirePage } from "@/lib/auth/session";
 import { Order } from "@/lib/commerce/models";
@@ -33,6 +36,11 @@ export default async function DeliveryOrder({
   });
   return (
     <section className="page-container">
+      <nav className="breadcrumb" aria-label="Breadcrumb">
+        <Link href="/delivery">My deliveries</Link>
+        <ChevronRight size={14} aria-hidden="true" />
+        <span aria-current="page">{o.number}</span>
+      </nav>
       <PageHeading eyebrow="Assigned to you" title={o.number} />
       <div className="basket-layout">
         <div className="panel">
@@ -58,7 +66,7 @@ export default async function DeliveryOrder({
           </div>
           <PolicyNotice kind="rider" />
           <p style={{ marginTop: 20 }}>
-            {o.deliveryDate} · {noBreakTimes(o.deliveryWindow)}
+            {o.deliveryDate ? dayLabel(o.deliveryDate) : ""} · {noBreakTimes(o.deliveryWindow)}
           </p>
           {/* so the rider can answer "is everything there?" before asking for the code */}
           <h3>In the parcel</h3>
@@ -76,11 +84,7 @@ export default async function DeliveryOrder({
             ))}
           </ul>
           <h2>
-            {o.paymentMethod === "cod"
-              ? `Collect ₹${o.totalPaise / 100}`
-              : o.paymentMethod === "tab"
-                ? "Family tab · collect nothing"
-                : "Prepaid order"}
+            {o.paymentMethod === "cod" ? `Collect ₹${o.totalPaise / 100}` : "Prepaid order"}
           </h2>
           {o.paymentMethod === "cod" && o.originalTotalPaise != null && (
             <p className="muted">

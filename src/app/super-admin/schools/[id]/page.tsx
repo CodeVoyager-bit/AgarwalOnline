@@ -270,7 +270,7 @@ export default async function SchoolPage({
                 label="Link"
                 url={joinUrl}
                 hint="Anyone with it can ask; nobody gets in without your approval."
-                title={`Join ${school.name} at Agarwal General Stores`}
+                title={`Join ${school.name} at Agarwal Online`}
                 copy="Copy link"
                 copied="Copied"
               />

@@ -36,7 +36,7 @@ import { bestPromotion, returnOffer } from "../promotions/service";
 import { Promotion, PromotionRedemption } from "../promotions/models";
 import { isShopperVisible, shopperVisible } from "../catalog/visibility";
 import { resolveBasketLines } from "./basket-lines";
-import { chargeTab, orderFamily } from "../family/checkout";
+import { orderFamily } from "../family/checkout";
 export const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record.");
 export type { UnavailableLine } from "./basket-lines";
 export async function cartFor(customerId: string) {
@@ -95,7 +95,7 @@ export async function checkout(customerId: string, input: unknown) {
       addressId: objectId,
       slotId: objectId,
       idempotencyKey: z.string().uuid(),
-      method: z.enum(["cod", "razorpay", "tab"]),
+      method: z.enum(["cod", "razorpay"]),
       promotionCode: z.string().max(24).optional(),
       // the checkout box: agreeing to the Terms as they are now, not as an old open tab showed them
       termsVersion: z.literal(POLICY_VERSION, {
@@ -234,12 +234,6 @@ export async function checkout(customerId: string, input: unknown) {
       (data.method === "cod" && total > area.codLimitPaise)
     )
       throw Error("Order exceeds the Cash on Delivery limit.");
-    // the family tab: refused when private, closed, overdue or over the limit, checked under a lock
-    let tabFamily = null;
-    if (data.method === "tab") {
-      if (data.forId === "private") throw Error("Your family tab can’t pay for a private order.");
-      tabFamily = await chargeTab(customerId, total, session);
-    }
     const capacity = await DeliverySlot.updateOne(
       { _id: slot._id, $expr: { $lt: ["$reserved", "$capacity"] } },
       { $inc: { reserved: 1 } },
@@ -372,23 +366,13 @@ export async function checkout(customerId: string, input: unknown) {
         userId: customerId,
         type: "order",
         title: "Order placed",
-        body: `${order.number} is confirmed with the store and waiting for review.`,
+        // "confirmed" is the store's next step, not this one
+        body: `${order.number} is placed and waiting for the store to confirm it.`,
         href: `/account/orders/${order._id}`,
       },
       session,
     );
     await notifyNewOrder(order, session);
-    if (tabFamily && String(tabFamily.ownerId) !== customerId)
-      await notify(
-        {
-          userId: tabFamily.ownerId,
-          type: "family",
-          title: `${user.name.trim().split(/\s+/)[0]} put ₹${total / 100} on the family tab`,
-          body: `${order.number}. You can see every tab order on the Family page.`,
-          href: "/account/family#tab",
-        },
-        session,
-      );
     await CartLine.deleteMany({ customerId }, { session });
     resultId = String(order._id);
   });
@@ -403,8 +387,8 @@ export async function cancelOrder(customerId: string, idInput: unknown) {
       customerId,
       orderStatus: "placed",
       fulfilmentStatus: "unassigned",
-      // nothing has been paid on these yet; a tab order simply comes off the tab
-      paymentMethod: { $in: ["cod", "tab"] },
+      // nothing has been paid on these yet
+      paymentMethod: "cod",
     }).session(session);
     if (!order) throw Error("This order can no longer be cancelled.");
     order.orderStatus = "cancelled";

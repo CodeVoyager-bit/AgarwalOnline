@@ -101,10 +101,8 @@ describe.skipIf(!uri)("Catalog governance", () => {
     });
     return ProductVariant.findOne({});
   }
-  it("keeps products hidden until a different authorized reviewer approves", async () => {
-    // with two owners, one owner's request waits for the other
-    await User.create({ name: "Second owner", phone: "9000000083", roles: ["customer", "super-admin"] });
-    await submitProduct(reviewer, input());
+  it("keeps staff products hidden until an owner approves; an owner may decide their own", async () => {
+    await submitProduct(admin, input());
     const r = await ApprovalRequest.findOne({});
     expect(await Product.countDocuments()).toBe(0);
     await expect(
@@ -114,13 +112,7 @@ describe.skipIf(!uri)("Catalog governance", () => {
         comment: "",
       }),
     ).rejects.toThrow("FORBIDDEN");
-    await expect(
-      reviewApproval(reviewer, {
-        requestId: String(r._id),
-        decision: "approved",
-        comment: "",
-      }),
-    ).rejects.toThrow("own request");
+    // the member of staff who asked becomes an owner, and settles the request they made themselves
     await User.updateOne({ _id: admin }, { roles: ["customer", "super-admin"] });
     await reviewApproval(admin, {
       requestId: String(r._id),
@@ -201,8 +193,8 @@ describe.skipIf(!uri)("Catalog governance", () => {
       110,
     );
   });
-  it("lets an owner who runs the shop alone make changes at once, still on record", async () => {
-    // reviewer is the only owner here
+  it("lets an owner make changes at once, even with a second owner, still on record", async () => {
+    await User.create({ name: "Second owner", phone: "9000000083", roles: ["customer", "super-admin"] });
     const { live } = await submitProduct(reviewer, input());
     expect(live).toBe(true);
     expect(await Product.countDocuments({ status: "published" })).toBe(1);

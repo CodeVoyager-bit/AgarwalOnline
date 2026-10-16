@@ -45,7 +45,7 @@ type StaffCopy = {
 export const staffCopy: Record<Locale, StaffCopy> = {
   en: {
     workspace: "Store workspace",
-    home: "Agarwal General Stores, store workspace",
+    home: "Agarwal Online, store workspace",
     viewShop: "View shop",
     alerts: (n) => (n ? `${n} ${n === 1 ? "thing needs" : "things need"} you` : "Nothing needs you right now"),
     waiting: (n) => `${n} waiting`,
@@ -70,7 +70,6 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       feedback: "Ratings & feedback",
       reviews: "Reviews",
       cod: "Cash on delivery",
-      tabs: "Family tabs",
       refunds: "Refunds",
       offers: "Offers",
       analytics: "Analytics",
@@ -116,7 +115,7 @@ export const staffCopy: Record<Locale, StaffCopy> = {
   },
   mr: {
     workspace: "दुकानाचे काम",
-    home: "अग्रवाल जनरल स्टोअर्स, दुकानाचे काम",
+    home: "अग्रवाल ऑनलाइन, दुकानाचे काम",
     viewShop: "दुकान पाहा",
     alerts: (n) => (n ? `${n} कामे तुमची वाट पाहत आहेत` : "आत्ता काहीही बाकी नाही"),
     waiting: (n) => `${n} बाकी`,
@@ -141,7 +140,6 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       feedback: "रेटिंग व अभिप्राय",
       reviews: "परीक्षणे",
       cod: "कॅश ऑन डिलिव्हरी",
-      tabs: "कुटुंब खाते",
       refunds: "रिफंड",
       offers: "ऑफर",
       analytics: "आकडेवारी",

@@ -47,7 +47,7 @@ test.afterAll(async () => {
 
 async function openAssistant(page: Page) {
   await page.getByRole("button", { name: "Ask the shop assistant" }).click();
-  const chat = page.getByRole("dialog", { name: "Agarwal assistant" });
+  const chat = page.getByRole("dialog", { name: "Agarwal Online assistant" });
   await expect(chat).toBeVisible();
   return chat;
 }

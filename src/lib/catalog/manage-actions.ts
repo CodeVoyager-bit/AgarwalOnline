@@ -8,6 +8,8 @@ import {
   saveCategory,
   setProductAudience,
   setProductVisibility,
+  setAlertLevel,
+  setPackCost,
   setSchoolPrice,
   updateProductMetadata,
   updateVariant,
@@ -23,6 +25,8 @@ const SAVED = {
   pack: "Pack saved.",
   audience: "",
   "school-price": "School price saved.",
+  alert: "Alert level saved.",
+  cost: "Purchase price saved.",
 };
 /** After saving who sees a product, say plainly where it now shows. */
 function audienceSaved(customers: boolean, schools: boolean) {
@@ -37,10 +41,10 @@ export async function catalogManagementAction(
     const user = await requirePermission("catalog:write");
     // new pack sizes go through governanceAction (operation "variant"), like other price changes
     const operation = z
-      .enum(["category", "product", "visibility", "pack", "audience", "school-price"])
+      .enum(["category", "product", "visibility", "pack", "audience", "school-price", "alert", "cost"])
       .parse(form.get("operation"));
-    // only an owner prices for schools; the service checks again
-    if (operation === "school-price") await requirePermission("settings:write");
+    // only an owner prices for schools or sees purchase prices; the services check again
+    if (operation === "school-price" || operation === "cost") await requirePermission("settings:write");
     const raw = formWithPaise(form);
     if (operation === "category") await saveCategory(user.id, raw);
     else if (operation === "product")
@@ -57,6 +61,8 @@ export async function catalogManagementAction(
         showToSchools: form.get("showToSchools") === "on",
       });
     else if (operation === "school-price") await setSchoolPrice(user.id, raw);
+    else if (operation === "alert") await setAlertLevel(user.id, raw);
+    else if (operation === "cost") await setPackCost(user.id, raw);
     else await updateVariant(user.id, { ...raw, active: form.get("active") === "on" });
     revalidatePath("/admin/products", "layout");
     revalidatePath("/admin/categories");
@@ -76,7 +82,8 @@ export async function catalogManagementAction(
     if (error instanceof z.ZodError) return { error: plainMessage(error) };
     const message = error instanceof Error ? error.message : "";
     if (/^(A category|Parent|Category|Product|Pack not found|Price|Tick)/.test(message)) return { error: message };
-    if (message === "FORBIDDEN") return { error: "Only an owner can set school prices." };
+    if (message === "FORBIDDEN")
+      return { error: form.get("operation") === "alert" ? "Your account can’t change stock alerts." : "Only an owner can set school or purchase prices." };
     if (/duplicate key/i.test(message))
       return { error: "That web address or SKU is already in use. Pick another one." };
     log("error", "catalog.unexpected-error", { error });

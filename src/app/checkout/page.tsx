@@ -17,8 +17,6 @@ import { cookies } from "next/headers";
 import { codeProblem, quoteCart, shopOffers } from "@/lib/promotions/service";
 import { CouponPicker } from "@/components/coupon-picker";
 import { familyOf } from "@/lib/family/service";
-import { tabStanding } from "@/lib/family/checkout";
-import { formatPrice } from "@/lib/display";
 import { classLabel } from "@/lib/family/models";
 import { firstName } from "@/lib/lists/service";
 export const metadata = { title: "Checkout", robots: { index: false } };
@@ -97,22 +95,6 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
         })),
       ]
     : undefined;
-  // the family tab, when there is one: what is left on it, or why it can't take this order
-  const standing = family ? await tabStanding(user.id) : null;
-  const tab =
-    standing && standing.status !== "closed"
-      ? {
-          availablePaise: standing.availablePaise,
-          blocked:
-            standing.status === "requested"
-              ? "Your family tab is waiting for the store to open it."
-              : standing.status === "paused"
-                ? "Your family tab is paused. Talk to the store to reopen it."
-                : standing.overdue
-                  ? `${formatPrice(standing.duePaise)} from last month is due on your family tab. Pay it at the store or to the rider to use the tab again.`
-                  : undefined,
-        }
-      : undefined;
   const wanted = (await searchParams).for;
   const defaultFor = people?.some((person) => person.id === wanted) ? wanted : user.id;
   const promotionCode = (await cookies()).get("ags_promotion")?.value;
@@ -211,7 +193,6 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
           idempotencyKey={randomUUID()}
           people={people}
           defaultFor={defaultFor}
-          tab={tab}
         />
       )}
     </section>

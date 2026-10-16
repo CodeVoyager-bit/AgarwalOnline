@@ -12,7 +12,7 @@ describe("Install as an app", () => {
   const app = manifest();
 
   it("gives Chrome what it needs to offer Install", () => {
-    expect(app).toMatchObject({ name: "Agarwal General Stores", short_name: "Agarwal", start_url: "/", display: "standalone" });
+    expect(app).toMatchObject({ name: "Agarwal Online", short_name: "Agarwal", start_url: "/", display: "standalone" });
     const sizes = app.icons!.filter((icon) => icon.purpose === "any").map((icon) => icon.sizes);
     expect(sizes).toEqual(expect.arrayContaining(["192x192", "512x512"]));
     expect(app.icons!.some((icon) => icon.purpose === "maskable" && icon.sizes === "512x512")).toBe(true);

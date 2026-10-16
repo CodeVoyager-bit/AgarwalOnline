@@ -38,7 +38,8 @@ const config: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
+            // microphone for voice search (the browser still asks first); microphone=() made it fail every time
+            value: "camera=(), microphone=(self), geolocation=(self)",
           },
           {
             key: "Content-Security-Policy",
