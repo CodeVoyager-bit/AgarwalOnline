@@ -90,6 +90,8 @@ const AISLE_ORDER = [
   "diaries",
   "project-paper",
   "school-essentials",
+  "art-craft",
+  "office-supplies",
   // toys and games (Ratna's catalogue, 2026-10-16)
   "games-puzzles",
   "learning-toys",
@@ -97,6 +99,11 @@ const AISLE_ORDER = [
   "outdoor-play",
   "pretend-play",
   "baby-toddler",
+  // everyday things beside the stationery (the owner's photos, 2026-10-19)
+  "chocolates-sweets",
+  "pooja-needs",
+  "home-essentials",
+  "party-gifting",
 ];
 const aisleRank = (slug: string) => (AISLE_ORDER.indexOf(slug) + 1 || 99);
 /** Far more than the shop lists today. */
