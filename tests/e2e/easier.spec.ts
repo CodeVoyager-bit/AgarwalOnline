@@ -221,6 +221,44 @@ test("owner: Customize changes the bill and the shop front", async ({ browser },
   await page.context().close();
 });
 
+test("staff: the name on the bill, a re-issue, and the estimate (kaccha bill)", async ({ browser }, info) => {
+  const before = (await Order.findById(order.id).lean<{ deliveryStatus: string }>())!;
+  // an order on its way, so its bill isn't given yet
+  await Order.updateOne({ _id: order.id }, { $set: { deliveryStatus: "assigned" }, $unset: { bill: "" } });
+  const page = await signedIn(browser, "owner", info.project.use);
+  await page.goto(`/admin/orders/${order.id}`);
+  const card = page.locator("#bill");
+  const base = order.number.replace(/^[A-Z]+-/, "");
+  // the shop has no GSTIN, so there's no buyer's GSTIN to give either: it's a cash memo, made out as asked
+  await expect(card.getByLabel(/^Buyer.s GSTIN/)).toHaveCount(0);
+  await card.getByLabel(/^Name on the bill/).fill("Patil Traders");
+  await card.getByRole("button", { name: "Save bill details" }).click();
+  await expect(card.getByText("Bill details saved.")).toBeVisible();
+  const bill = await (await page.request.get(`/api/invoices/${order.id}`)).text();
+  expect(bill).toContain("Patil Traders");
+  expect(bill).toContain(base);
+  expect(bill.toLowerCase()).toContain("cash memo");
+  expect(bill).toContain("Not registered under GST");
+  // before delivery the kaccha bill is an estimate, and it says it isn't a bill
+  await expect(page.getByRole("link", { name: "Estimate (kaccha bill)" })).toHaveAttribute("href", `/api/invoices/${order.id}?kind=estimate`);
+  const estimate = await (await page.request.get(`/api/invoices/${order.id}?kind=estimate`)).text();
+  expect(estimate).toContain(`EST-${order.number}`);
+  expect(estimate.toLowerCase()).toContain("not a tax invoice");
+  // delivered: the bill is given, so a new name re-issues it under a new number, and there's no estimate any more
+  await Order.updateOne({ _id: order.id }, { $set: { deliveryStatus: "delivered", "bill.issuedAt": new Date() } });
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Estimate (kaccha bill)" })).toHaveCount(0);
+  await page.locator("#bill").getByLabel(/^Name on the bill/).fill("Patil Traders Pvt Ltd");
+  await page.locator("#bill").getByRole("button", { name: "Save bill details" }).click();
+  await expect(page.locator("#bill").getByText(/re-issued as bill/)).toBeVisible();
+  const revised = await (await page.request.get(`/api/invoices/${order.id}`)).text();
+  expect(revised).toContain(`${base}R1`);
+  expect(revised).toContain("replaces");
+  expect((await page.request.get(`/api/invoices/${order.id}?kind=estimate`)).status()).toBe(409);
+  await Order.updateOne({ _id: order.id }, { $set: { deliveryStatus: before.deliveryStatus }, $unset: { bill: "" } });
+  await page.context().close();
+});
+
 test("staff: the new-order sound hears of a new order", async ({ browser }, info) => {
   const page = await signedIn(browser, "owner", info.project.use);
   await page.goto("/admin");

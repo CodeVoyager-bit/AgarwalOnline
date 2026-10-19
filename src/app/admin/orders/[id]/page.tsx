@@ -896,17 +896,22 @@ export default async function ManageOrder({
                   Name on the bill <small>Blank: the delivery name, {o.address.name}</small>
                   <input name="name" defaultValue={o.bill?.name ?? ""} maxLength={80} placeholder={o.address.name} autoComplete="off" />
                 </label>
-                <label>
-                  Buyer’s GSTIN <small>Optional: a business that wants its GST number on the bill</small>
-                  <input
-                    name="gstin"
-                    defaultValue={o.bill?.gstin ?? ""}
-                    maxLength={15}
-                    autoCapitalize="characters"
-                    spellCheck={false}
-                    autoComplete="off"
-                  />
-                </label>
+                {/* a buyer's GSTIN only means something on a tax invoice, so it waits for the shop's own GSTIN */}
+                {shop.gstin ? (
+                  <label>
+                    Buyer’s GSTIN <small>Optional: a business that wants its GST number on the bill</small>
+                    <input
+                      name="gstin"
+                      defaultValue={o.bill?.gstin ?? ""}
+                      maxLength={15}
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                  </label>
+                ) : (
+                  <input type="hidden" name="gstin" value={o.bill?.gstin ?? ""} />
+                )}
                 {o.bill?.issuedAt && (
                   <p className="muted">The bill was already given: a change re-issues it under a new number that says which bill it replaces.</p>
                 )}
