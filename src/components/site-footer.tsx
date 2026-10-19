@@ -83,23 +83,6 @@ export async function SiteFooter({
             </p>
           )}
         </div>
-        <nav className="footer-shop" aria-label={mr ? "खरेदी" : "Shop"}>
-          <h2>{mr ? "खरेदी" : "Shop"}</h2>
-          <ul>
-            {categories.map((category) => (
-              <li key={category.slug}>
-                <Link href={`/catalog?category=${category.slug}`}>
-                  {category[locale]}
-                </Link>
-              </li>
-            ))}
-            {offers && (
-              <li>
-                <Link href="/catalog?sort=discount">{mr ? "खास ऑफर" : "Deals"}</Link>
-              </li>
-            )}
-          </ul>
-        </nav>
         <nav aria-label={mr ? "मदत" : "Help"}>
           <h2>{mr ? "मदत" : "Help"}</h2>
           <ul>
@@ -166,6 +149,23 @@ export async function SiteFooter({
           </ul>
           <LocaleToggle locale={locale} />
         </div>
+        <nav className="footer-shop" aria-label={mr ? "खरेदी" : "Shop"}>
+          <h2>{mr ? "खरेदी" : "Shop"}</h2>
+          <ul>
+            {categories.map((category) => (
+              <li key={category.slug}>
+                <Link href={`/catalog?category=${category.slug}`}>
+                  {category[locale]}
+                </Link>
+              </li>
+            ))}
+            {offers && (
+              <li>
+                <Link href="/catalog?sort=discount">{mr ? "खास ऑफर" : "Deals"}</Link>
+              </li>
+            )}
+          </ul>
+        </nav>
       </div>
       <div className="footer-base">
         <div className="footer-base-inner">

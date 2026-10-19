@@ -1561,7 +1561,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 /* ---------- Footer ---------- */
 .site-footer { margin-top: auto; border-top: 1px solid var(--line); background: var(--canvas); color: var(--ink-2); font-size: 0.9rem; }
 /* minmax(0, …): with text at 200% a long link ("Refunds & Cancellations") wraps instead of pushing the page sideways */
-.footer-inner { display: grid; grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)); gap: 32px; padding: 56px var(--gutter) 40px; }
+.footer-inner { display: grid; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: 32px; padding: 56px var(--gutter) 40px; }
 .footer-inner > * { min-width: 0; overflow-wrap: break-word; }
 .footer-brand .brand { margin-bottom: 12px; }
 .footer-brand p { max-width: 36ch; }
@@ -1572,6 +1572,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .site-footer li a { display: inline-block; padding: 2px 0; color: var(--ink-2); font-weight: 400; text-decoration: none; }
 .site-footer li a:hover { color: var(--accent); }
 .footer-store .locale-toggle { margin-top: 12px; }
+/* 20-odd aisles would make one column three times taller than the rest: they get their own band, several across */
+.footer-shop { grid-column: 1 / -1; padding-top: 28px; border-top: 1px solid var(--line); }
+.footer-shop ul { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 32px; }
 .footer-base { border-top: 1px solid var(--line); }
 .footer-base-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding: 16px var(--gutter); font-size: 0.8rem; color: var(--muted); }
 .footer-base p { margin: 0; }
@@ -1634,8 +1637,8 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 @media (max-width: 1023px) {
   .home .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home .product-grid > :nth-child(n + 10) { display: none; }
-  /* five footer columns don't fit: the brand takes the top row, the four link columns sit below */
-  .footer-inner { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* four footer columns don't fit: the brand takes the top row, the three link columns sit below */
+  .footer-inner { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .footer-brand { grid-column: 1 / -1; }
   .legal-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 32px; }
   /* tablets, landscape phones and phones: the tab rail scrolls inside itself: fade both edges so a cut-off tab reads as "more this way" */
