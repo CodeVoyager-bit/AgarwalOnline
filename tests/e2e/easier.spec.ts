@@ -178,7 +178,7 @@ test("staff: a packing slip and the bill from the order page", async ({ browser 
   await expect(page).toHaveURL(`/admin/orders/${order.id}/slip`);
   const slip = page.locator("article.packing-slip");
   await expect(slip.getByRole("heading", { level: 1 })).toHaveText(order.number);
-  await expect(slip.locator(".slip-shop")).toHaveText("Agarwal Online Test Shop · packing slip");
+  await expect(slip.locator(".slip-shop")).toHaveText("Agarwal Online Test Shop · Packing slip");
   await expect(slip.getByRole("heading", { name: "Deliver to" })).toBeVisible();
   await expect(slip.locator(".slip-lines tbody tr")).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: "Print packing slip" })).toBeVisible();
@@ -192,6 +192,32 @@ test("staff: a packing slip and the bill from the order page", async ({ browser 
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".slip-actions").first()).toBeHidden();
   await expect(page.locator("header.staff-header")).toBeHidden();
+  await page.context().close();
+});
+
+test("owner: Customize changes the bill and the shop front", async ({ browser }, info) => {
+  await SystemSetting.deleteMany({ key: /^shop-/ });
+  const page = await signedIn(browser, "owner", info.project.use);
+  // a link to a section opens it, folded or not (phones fold every section)
+  await page.goto("/super-admin/customize#bill");
+  const bill = page.locator("#bill");
+  await bill.getByLabel("Terms").fill("Exchange within 7 days with the bill.");
+  await bill.getByLabel("Paper size").selectOption("receipt");
+  await bill.getByRole("button", { name: "Save bill settings" }).click();
+  await expect(bill.getByText("Bill settings saved.")).toBeVisible();
+  const html = await (await page.request.get(`/api/invoices/${order.id}`)).text();
+  expect(html).toContain("Exchange within 7 days with the bill.");
+  expect(html).toContain("size:80mm auto");
+  await page.goto("/super-admin/customize#storefront");
+  const front = page.locator("#storefront");
+  await front.getByLabel("Show an announcement bar at the top of every shop page").check();
+  await front.getByRole("group", { name: /^Announcement For example/ }).getByLabel("English").fill("Closed on 1 November for Diwali");
+  await front.getByRole("button", { name: "Save shop front" }).click();
+  await expect(front.getByText("Shop front saved.")).toBeVisible();
+  await page.goto("/");
+  await expect(page.locator(".announcement-bar")).toHaveText("Closed on 1 November for Diwali");
+  await shot(page, "announcement");
+  await SystemSetting.deleteMany({ key: /^shop-/ });
   await page.context().close();
 });
 
