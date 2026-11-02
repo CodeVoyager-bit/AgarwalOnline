@@ -50,18 +50,30 @@ async function ordersFile(params: URLSearchParams) {
     {
       name: "Order lines",
       rows: [
-        ["Order", "Placed", "Product", "Pack", "Quantity", "Price (₹)", "Line total (₹)", "Order status"],
+        ["Order", "Placed", "Product", "Pack", "Provided by", "Quantity", "Price (₹)", "Line total (₹)", "Order status"],
         ...orders.flatMap((order) =>
-          order.items.map((item: { name: string; label: string; quantity: number; pricePaise: number; linePaise: number }) => [
+          order.items.map(
+            (item: {
+              name: string;
+              label: string;
+              quantity: number;
+              pricePaise: number;
+              linePaise: number;
+              providerName?: string;
+              providerTown?: string;
+            }) => [
             order.number,
             ist(order.createdAt),
             item.name,
             item.label,
+            // settling with other shops: blank for our own stock
+            item.providerName ? [item.providerName, item.providerTown].filter(Boolean).join(", ") : "",
             item.quantity,
             rupees(item.pricePaise),
             rupees(item.linePaise),
             order.orderStatus,
-          ]),
+          ],
+          ),
         ),
       ],
     },

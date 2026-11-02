@@ -43,6 +43,8 @@ export async function resolveBasketLines(raw: { id: string; variantId: unknown; 
       mrpPaise: v.mrpPaise as number,
       available: shelf.available.get(String(v._id)) ?? 0,
       maxQuantity: (v.maxQuantity ?? 10) as number,
+      // another shop that provides it, once approved: "Provided by …" under the line
+      provider: p.providerId ? shelf.providers.get(String(p.providerId)) : undefined,
     });
   }
   if (gone.length) {

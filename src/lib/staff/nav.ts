@@ -58,7 +58,7 @@ export const STAFF_NAV: StaffNavGroup[] = [
         href: "/admin/products",
         permission: "catalog:write",
         count: "lowStock",
-        also: ["/admin/categories", "/admin/inventory", "/admin/kits"],
+        also: ["/admin/categories", "/admin/inventory", "/admin/kits", "/admin/providers"],
       },
     ],
   },

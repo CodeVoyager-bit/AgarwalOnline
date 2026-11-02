@@ -394,6 +394,34 @@ test("mobile storefront stays within viewport and navigation is visible", async 
   });
 });
 
+test("the phone top bar stays on one line in both languages", async ({ page }) => {
+  const strip = page.locator(".top-strip");
+  const language = strip.getByRole("form", { name: "Language" });
+  const english = language.getByRole("button", { name: "English" });
+  const marathi = language.getByRole("button", { name: "मराठी" });
+  const onOneLine = async () => {
+    const line = await strip.locator("p").boundingBox();
+    const toggle = await language.boundingBox();
+    const bar = await strip.boundingBox();
+    // the switch sits beside the words, not on a row of its own under them
+    expect(toggle!.y).toBeLessThan(line!.y + line!.height);
+    expect(bar!.height).toBeLessThanOrEqual(48);
+  };
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/");
+    // "EN" on the bar; screen readers still hear "English"
+    await expect(english.locator(".locale-short")).toBeVisible();
+    await expect(english.locator(".locale-long")).toBeHidden();
+    await onOneLine();
+    await marathi.click();
+    await expect(marathi).toHaveAttribute("aria-pressed", "true");
+    await onOneLine();
+    await english.click();
+    await expect(english).toHaveAttribute("aria-pressed", "true");
+  }
+});
+
 test("core screens have no automated WCAG AA violations", async ({ page }) => {
   for (const path of ["/", "/catalog", "/login"]) {
     await page.goto(path);

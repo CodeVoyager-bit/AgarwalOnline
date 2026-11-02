@@ -8,7 +8,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { MetricList } from "@/components/metric-list";
-import { methodLabel } from "@/lib/display";
+import { formatPrice, methodLabel } from "@/lib/display";
 export const metadata = { title: "Analytics", robots: { index: false } };
 
 const money = (paise: number) =>
@@ -158,6 +158,12 @@ export default async function AnalyticsPage({
           title="Partner deliveries"
           rows={data.partners.map((item) => [item.name, item.deliveries])}
         />
+        {data.providers.length > 0 && (
+          <MetricList
+            title="Sales by provider"
+            rows={data.providers.map((shop) => [shop.name, shop.revenuePaise, formatPrice(shop.revenuePaise)])}
+          />
+        )}
       </div>
       <div className="panel">
         <div className="panel-heading">

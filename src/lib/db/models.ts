@@ -89,6 +89,8 @@ const productSchema = new Schema(
     brand: String,
     categoryId: ref("Category"),
     categorySlug: { type: String, required: true },
+    /** Another shop that supplies it ("Provided by …"); missing means our own stock. Agarwal still sells it. */
+    providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
     aliases: [String],
     image: String,
     images: [String],
@@ -122,6 +124,7 @@ const productSchema = new Schema(
 );
 productSchema.index({ categoryId: 1, status: 1 });
 productSchema.index({ status: 1, showToSchools: 1 });
+productSchema.index({ providerId: 1 }, { sparse: true });
 const variantSchema = new Schema(
   {
     productId: ref("Product"),

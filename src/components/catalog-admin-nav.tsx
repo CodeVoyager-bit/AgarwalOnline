@@ -8,6 +8,7 @@ const links = [
   ["/admin/categories", "Categories"],
   ["/admin/inventory", "Stock"],
   ["/admin/kits", "School kits"],
+  ["/admin/providers", "Providers"],
 ] as const;
 
 export function CatalogAdminNav() {

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { productImages } from "@/lib/catalog/images";
 import type { CatalogItem } from "@/lib/catalog/queries";
+import { ProviderLine } from "./provider-line";
 import { formatPrice } from "@/lib/display";
 import { AisleIcon } from "./aisle-icon";
 import { QuickAdd } from "./quick-add";
@@ -21,6 +22,7 @@ export function MiniProduct({ product }: { product: CatalogItem }) {
           )}
         </span>
         <span className="mini-product-name">{product.name.en}</span>
+        <ProviderLine provider={product.provider} />
         <small>{variant.label}</small>
       </Link>
       <div className="mini-product-buy">
