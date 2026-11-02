@@ -22,6 +22,7 @@ import type { PipelineStage } from "mongoose";
 import { ProductReview } from "../reviews/models";
 import { schoolVisible, shopperVisible } from "./visibility";
 import { shared } from "../db/shop-cache";
+import { Provider, type ProviderLabel } from "../providers/models";
 export type CatalogItem = {
   id: string;
   slug: string;
@@ -39,6 +40,8 @@ export type CatalogItem = {
   featured: boolean;
   bestseller: boolean;
   categorySlug: string;
+  /** Another shop that supplies it, once an owner approved it: "Provided by …". None for our own stock. */
+  provider?: ProviderLabel;
   /** School catalogue only. */
   gstRatePercent?: number;
   variants: {
@@ -121,6 +124,8 @@ type Shelf = {
   variantById: Map<string, Doc>;
   available: Map<string, number>;
   reviews: Map<string, { rating: number; reviewCount: number }>;
+  /** Approved providers' names and towns, by id. */
+  providers: Map<string, ProviderLabel>;
 };
 
 /**
@@ -132,9 +137,9 @@ type Shelf = {
  */
 const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf> => {
   await connectDB();
-  const [{ products, variants, reviews }, inventory] = await Promise.all([
+  const [{ products, variants, reviews, providers }, inventory] = await Promise.all([
     shared(`shelf:${audience}`, async () => {
-      const [products, variants, reviews] = await Promise.all([
+      const [products, variants, reviews, providers] = await Promise.all([
         Product.find(audience === "schools" ? schoolVisible : shopperVisible)
           .sort({ bestseller: -1, createdAt: 1 })
           .limit(SHELF_LIMIT)
@@ -145,8 +150,10 @@ const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf>
           { $match: { status: "published" } },
           { $group: { _id: "$productId", rating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } },
         ]),
+        // only approved ones: a provider still waiting for an owner isn't named to shoppers
+        Provider.find({ status: "active" }).select("name town").lean<Doc[]>(),
       ]);
-      return { products, variants, reviews };
+      return { products, variants, reviews, providers };
     }),
     shared("stock", () => InventoryItem.find({}).select("variantId onHand reserved").lean<Doc[]>(), 5),
   ]);
@@ -169,6 +176,7 @@ const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf>
         { rating: row.rating, reviewCount: row.reviewCount },
       ]),
     ),
+    providers: new Map(providers.map((provider) => [String(provider._id), { name: provider.name, town: provider.town }])),
   };
 });
 
@@ -288,6 +296,9 @@ async function catalogFor(
         featured: Boolean(p.featured),
         bestseller: Boolean(p.bestseller),
         categorySlug: p.categorySlug,
+        ...(p.providerId && shelf.providers.has(String(p.providerId))
+          ? { provider: shelf.providers.get(String(p.providerId)) }
+          : {}),
         ...(forSchools && p.gstRatePercent != null ? { gstRatePercent: p.gstRatePercent } : {}),
         rating: reviews?.rating ?? 0,
         reviewCount: reviews?.reviewCount ?? 0,

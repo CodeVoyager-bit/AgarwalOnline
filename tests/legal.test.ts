@@ -64,6 +64,15 @@ describe("store policies", () => {
       }
   });
 
+  it("says other shops' items are still sold by us, and those shops get no customer details", () => {
+    const section = (locale: "en" | "mr") =>
+      termsDoc[locale](LIVE).sections.find((s) => s.id === "orders")!.blocks.flatMap(texts).join("\n");
+    expect(section("en")).toContain("provided by other local shops");
+    expect(section("en")).toContain("your order, bill, delivery, returns and refunds are all with Agarwal General Stores");
+    expect(section("mr")).toContain("इतर स्थानिक दुकानांकडून");
+    expect(words(privacyDoc.en(LIVE))).toContain("don't receive your details");
+  });
+
   it("keeps the store's final say in disputes without taking away consumer rights", () => {
     const disputes = termsDoc.en(LIVE).sections.find((s) => s.id === "disputes")!;
     const text = disputes.blocks.flatMap(texts).join("\n");

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bell, ChevronDown, Heart, MapPin, School, UserRound } from "lucide-react";
+import { ArrowRight, Bell, ChevronDown, Heart, MapPin, School, Truck, UserRound } from "lucide-react";
 import { SmartSearch } from "./smart-search";
 import { MobileNav } from "./mobile-nav";
 import { LocaleToggle } from "./locale-toggle";
@@ -97,7 +97,16 @@ export async function Header({
       <div className="top-strip">
         <div className="top-strip-inner">
           <p>
-            {front.showFreeDelivery && <span>{text.freeFrom(formatPrice(rules.freeThresholdPaise))}</span>}
+            {front.showFreeDelivery && (
+              <span className="strip-free">
+                <Truck size={15} className="strip-truck" aria-hidden="true" />
+                {/* phones show the short words; screen readers always get the whole sentence */}
+                <span className="strip-long">{text.freeFrom(formatPrice(rules.freeThresholdPaise))}</span>
+                <span className="strip-short" aria-hidden="true">
+                  {text.freeShort(formatPrice(rules.freeThresholdPaise))}
+                </span>
+              </span>
+            )}
             {front.showWelcome && welcome?.code && (
               <>
                 {front.showFreeDelivery && <span aria-hidden="true">·</span>}
@@ -107,6 +116,9 @@ export async function Header({
                   </span>
                   <span className="welcome-short">
                     {text.welcomeShort(welcome.minimumSubtotalPaise ? formatPrice(welcome.minimumSubtotalPaise) : "")}
+                  </span>
+                  <span className="welcome-tiny">
+                    {text.welcomeTiny(welcome.minimumSubtotalPaise ? formatPrice(welcome.minimumSubtotalPaise) : "")}
                   </span>{" "}
                   <span className="offer-code">{welcome.code}</span>
                 </span>

@@ -109,6 +109,10 @@ const itemSchema = new Schema(
     unavailableQuantity: Number,
     substituteName: String,
     substituteQuantity: Number,
+    // another shop that provided it, as it was when ordered: a later rename doesn't rewrite history
+    providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
+    providerName: String,
+    providerTown: String,
   },
   { _id: false },
 );

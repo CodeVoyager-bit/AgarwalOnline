@@ -8,6 +8,7 @@ const labels: Record<string, string> = {
   descriptionMr: "Marathi description",
   brand: "Brand",
   categoryId: "Category",
+  providerId: "Provided by",
   aliases: "Search terms",
   sku: "SKU",
   label: "Pack",
@@ -31,9 +32,12 @@ const HIDDEN = new Set(["productId"]);
 export function ApprovalDetails({
   values,
   categoryName,
+  providerName,
 }: {
   values?: Record<string, unknown>;
   categoryName?: string;
+  /** "Sharma Stationers, Roha", shown instead of the provider's id. */
+  providerName?: string;
 }) {
   if (!values)
     return <p className="muted">New — nothing is live yet.</p>;
@@ -57,6 +61,8 @@ export function ApprovalDetails({
                 : "None"
               : key === "categoryId" && categoryName
               ? categoryName
+              : key === "providerId" && providerName
+              ? providerName
               : key.endsWith("Paise") && typeof value === "number"
                 ? new Intl.NumberFormat("en-IN", {
                     style: "currency",

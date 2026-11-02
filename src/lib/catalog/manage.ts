@@ -13,6 +13,7 @@ import {
 import { objectId } from "../commerce/service";
 import { gstRateField, hsnField, optionalField } from "../tax/gst";
 import { orderedPhotos, photoFields, photoList } from "./photos";
+import { chosenProvider } from "../providers/service";
 
 async function authorize(actorId: string, permission: Permission = "catalog:write") {
   await connectDB();
@@ -87,6 +88,9 @@ export async function saveCategory(actorId: string, input: unknown) {
 
 export async function updateProductMetadata(actorId: string, input: unknown) {
   await authorize(actorId);
+  // the "Provided by" choice; a caller that sends none leaves the provider as it is
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const providerChosen = "providerId" in raw;
   const data = z
     .object({
       productId: objectId,
@@ -113,6 +117,7 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
     const category = await Category.findById(data.categoryId).session(session);
     if (!product || !category) throw Error("Product or category not found.");
     const before = product.toObject();
+    const providerId = providerChosen ? await chosenProvider(actorId, raw, session) : product.providerId;
     const enHighlights = data.highlightsEn.split("\n").map((item) => item.trim()).filter(Boolean);
     const mrHighlights = data.highlightsMr.split("\n").map((item) => item.trim()).filter(Boolean);
     const specifications = data.specifications
@@ -129,6 +134,7 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
       brand: data.brand,
       categoryId: category._id,
       categorySlug: category.slug,
+      providerId,
       aliases: [
         ...new Set(
           data.aliases

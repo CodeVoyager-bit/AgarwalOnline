@@ -6,6 +6,7 @@ import { discountPercent, formatPrice } from "@/lib/display";
 import { QuickAdd } from "./quick-add";
 import { WishlistButton } from "./wishlist-button";
 import { AisleIcon } from "./aisle-icon";
+import { ProviderLine } from "./provider-line";
 import { savedProductIds } from "@/lib/engagement/saved";
 
 export async function ProductCard({
@@ -55,6 +56,7 @@ export async function ProductCard({
             ★ {p.rating.toFixed(1)} <small>({p.reviewCount})</small>
           </span>
         )}
+        <ProviderLine provider={p.provider} mr={locale === "mr"} />
         <span className="pack">{v.label}</span>
       </Link>
       <div className="price-row">

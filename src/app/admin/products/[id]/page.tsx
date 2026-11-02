@@ -20,6 +20,8 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { isShopperVisible } from "@/lib/catalog/visibility";
 import { GST_RATES } from "@/lib/tax/gst";
 import { DEFAULT_ALERT_BELOW, isLow } from "@/lib/inventory/low-stock";
+import { ProviderPicker, type ProviderOption } from "@/components/provider-picker";
+import { Provider } from "@/lib/providers/models";
 export const metadata = { title: "Edit product", robots: { index: false } };
 
 const STATUS_NAMES: Record<string, string> = {
@@ -38,10 +40,15 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   if (!objectId.safeParse(id).success) notFound();
   const product = await Product.findById(id);
   if (!product) notFound();
-  const [categories, packs] = await Promise.all([
+  const [categories, packs, providers] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
     // purchase prices are read for owners only
     ProductVariant.find({ productId: product._id }).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }),
+    // its own provider stays in the list whatever its status, so saving never drops it unseen
+    Provider.find({ $or: [{ status: { $in: ["active", "pending"] } }, { _id: product.providerId ?? null }] })
+      .sort({ name: 1 })
+      .select("name town status")
+      .lean<{ _id: unknown; name: string; town: string; status: ProviderOption["status"] }[]>(),
   ]);
   const [stock, waiting] = await Promise.all([
     InventoryItem.find({ variantId: { $in: packs.map((pack) => pack._id) } }),
@@ -127,6 +134,11 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
                 Brand
                 <input name="brand" defaultValue={product.brand} />
               </label>
+              <ProviderPicker
+                owner={isOwner}
+                value={product.providerId ? String(product.providerId) : ""}
+                providers={providers.map((p) => ({ id: String(p._id), name: p.name, town: p.town, status: p.status }))}
+              />
             </div>
             <label>
               Other words shoppers type <small>Separated by commas, English or Marathi</small>

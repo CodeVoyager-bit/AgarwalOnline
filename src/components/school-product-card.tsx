@@ -4,6 +4,7 @@ import { productImages } from "@/lib/catalog/images";
 import type { CatalogItem } from "@/lib/catalog/queries";
 import { quoteMoney } from "@/lib/schools/display";
 import { AisleIcon } from "./aisle-icon";
+import { ProviderLine } from "./provider-line";
 import { QuoteAdd } from "./quote-add";
 
 /** "₹42.50 + GST", "From ₹31.00 + GST" for several packs, or "Price on quotation". */
@@ -60,6 +61,7 @@ export function SchoolProductCard({
           {already > 0 && <span className="stock-badge in-quote">{already.toLocaleString("en-IN")} in basket</span>}
         </div>
         <h3>{p.name.en}</h3>
+        <ProviderLine provider={p.provider} />
         <span className="pack">{p.variants.length > 1 ? `${p.variants.length} pack sizes` : p.variants[0].label}</span>
       </Link>
       <p className={price ? "school-price" : "school-price muted"}>
@@ -101,6 +103,7 @@ export function SchoolProductRow({
         </span>
         <span>
           <strong>{p.name.en}</strong>
+          <ProviderLine provider={p.provider} />
           <small>
             {p.variants.length > 1 ? `${p.variants.length} pack sizes` : p.variants[0].label}
             {already > 0 && ` · ${already.toLocaleString("en-IN")} in basket`}

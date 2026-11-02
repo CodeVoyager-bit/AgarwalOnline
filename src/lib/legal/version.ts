@@ -14,6 +14,9 @@
  * 2026-10-16.1: only what is live: the family tab (khata) is gone, cash on delivery is the only way
  * to pay (no Razorpay text), and the switched-off shop assistant isn't mentioned. Shipping says
  * "shown above" only when an area list is above it.
+ *
+ * 2026-10-31.1: providers: some items are provided by other local shops and say so; Agarwal still
+ * sells, bills, delivers and handles returns, and those shops don't receive customers' details.
  */
-export const POLICY_VERSION = "2026-10-16.1";
-export const LAST_UPDATED = { en: "16 October 2026", mr: "16 ऑक्टोबर 2026" } as const;
+export const POLICY_VERSION = "2026-10-31.1";
+export const LAST_UPDATED = { en: "31 October 2026", mr: "31 ऑक्टोबर 2026" } as const;
