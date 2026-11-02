@@ -14,8 +14,10 @@ export function LocaleToggle({ locale }: { locale: Locale }) {
       aria-label="Language"
     >
       <input type="hidden" name="returnTo" value={returnTo} />
-      <button name="locale" value="en" aria-pressed={locale === "en"}>
-        English
+      <button name="locale" value="en" aria-pressed={locale === "en"} aria-label="English">
+        {/* the phone top bar shows "EN" to stay on one line; everywhere else, the whole word */}
+        <span className="locale-long">English</span>
+        <span className="locale-short">EN</span>
       </button>
       <button name="locale" value="mr" aria-pressed={locale === "mr"}>
         मराठी

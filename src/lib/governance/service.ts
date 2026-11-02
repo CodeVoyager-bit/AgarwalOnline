@@ -18,6 +18,8 @@ import { ApprovalRequest, ApprovalHistory } from "./models";
 import { gstRateField, hsnField, optionalField } from "../tax/gst";
 import { UploadedEvidence } from "../evidence/models";
 import { photoFields, photoList } from "../catalog/photos";
+import { Provider } from "../providers/models";
+import { chosenProvider } from "../providers/service";
 
 /** Photos chosen for a product waiting for approval are kept this long; a rejected request's then go. */
 const PENDING_PHOTO_DAYS = 60;
@@ -45,6 +47,8 @@ export const productInput = z
     descriptionMr: z.string().trim().min(5).max(2000),
     brand: z.string().trim().max(60),
     categoryId: objectId,
+    // another shop that supplies it ("Provided by …"); none means our own stock
+    providerId: objectId.optional(),
     aliases: z.string().max(1000),
     sku: z
       .string()
@@ -167,7 +171,9 @@ function assertSchoolPriceAllowed(actor: { roles: unknown }, schoolPricePaise?: 
 
 export async function submitProduct(actorId: string, input: unknown) {
   const actor = await authorize(actorId, "approval:request");
-  const data = productInput.parse(input);
+  // the "Provided by" choice can be a shop typed in beside it, added in the same step
+  const { providerId: providerChoice, newProviderName, newProviderTown, ...fields } = (input ?? {}) as Record<string, unknown>;
+  const data = productInput.parse(fields);
   assertSchoolPriceAllowed(actor, data.schoolPricePaise, data.costPaise);
   if (!(await Category.exists({ _id: data.categoryId })))
     throw Error("Select a category.");
@@ -181,8 +187,9 @@ export async function submitProduct(actorId: string, input: unknown) {
         { $set: { expiresAt: new Date(Date.now() + PENDING_PHOTO_DAYS * 86400 * 1000) } },
         { session },
       );
+    const providerId = await chosenProvider(actorId, { providerId: providerChoice, newProviderName, newProviderTown }, session);
     live = await openRequest(
-      { kind: "product", targetId: new mongoose.Types.ObjectId(), after: data },
+      { kind: "product", targetId: new mongoose.Types.ObjectId(), after: providerId ? { ...data, providerId } : data },
       actorId,
       session,
     );
@@ -362,6 +369,12 @@ async function publish(
     const data = productInput.parse(after);
     const category = await Category.findById(data.categoryId).session(session);
     if (!category) throw Error("Category no longer exists");
+    // an item never goes live looking like our own while its provider still waits for an owner
+    if (data.providerId) {
+      const provider = await Provider.findById(data.providerId).select("name status").session(session);
+      if (!provider) throw Error("The provider of this product no longer exists. Ask for it again with another provider.");
+      if (provider.status !== "active") throw Error(`Approve the provider ${provider.name} first, on the Providers page.`);
+    }
     const [p] = await Product.create(
       [
         {
@@ -372,6 +385,7 @@ async function publish(
           brand: data.brand,
           categoryId: category._id,
           categorySlug: category.slug,
+          ...(data.providerId ? { providerId: data.providerId } : {}),
           aliases: data.aliases
             .split(",")
             .map((s) => s.trim())

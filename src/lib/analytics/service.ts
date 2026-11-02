@@ -61,6 +61,9 @@ export async function analytics(actorId: string, input: unknown) {
     string,
     { orders: number; revenuePaise: number }
   >();
+  // what each provider's items sold for, from delivered orders, to settle with each shop; the name
+  // is the one kept on the order line, so a later rename doesn't move old sales
+  const providerTotals = new Map<string, { name: string; quantity: number; revenuePaise: number }>();
   for (const order of orders) {
     // a cancelled order sold nothing: top products agree with the profit table
     for (const item of order.orderStatus === "cancelled" ? [] : order.items) {
@@ -73,6 +76,13 @@ export async function analytics(actorId: string, input: unknown) {
       current.quantity += item.quantity;
       current.revenuePaise += item.linePaise;
       productTotals.set(key, current);
+      if (order.deliveryStatus === "delivered") {
+        const name = item.providerName ? `${item.providerName}, ${item.providerTown ?? ""}`.replace(/, $/, "") : "Our own stock";
+        const shop = providerTotals.get(name) ?? { name, quantity: 0, revenuePaise: 0 };
+        shop.quantity += item.quantity;
+        shop.revenuePaise += item.linePaise;
+        providerTotals.set(name, shop);
+      }
     }
     const area = order.address?.areaName || "Unknown";
     const current = areaTotals.get(area) ?? { orders: 0, revenuePaise: 0 };
@@ -143,6 +153,10 @@ export async function analytics(actorId: string, input: unknown) {
     topProducts: [...productTotals.values()]
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10),
+    // empty until an order with a provider's item is delivered, so shops without providers see nothing new
+    providers: [...providerTotals.values()].some((shop) => shop.name !== "Our own stock")
+      ? [...providerTotals.values()].sort((a, b) => b.revenuePaise - a.revenuePaise)
+      : [],
     areas: [...areaTotals.entries()]
       .map(([name, values]) => ({ name, ...values }))
       .sort((a, b) => b.orders - a.orders),

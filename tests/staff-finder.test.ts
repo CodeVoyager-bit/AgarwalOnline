@@ -20,6 +20,9 @@ describe("workspace search", () => {
     expect(ids("cod limit")[0]).toBe("settings.cod-limit");
     expect(ids("gst")).toEqual(expect.arrayContaining(["settings.gstin", "settings.gst-rate"]));
     expect(ids("grievance")[0]).toBe("settings.grievance-officer");
+    expect(ids("providers").slice(0, 2)).toEqual(expect.arrayContaining(["page.providers", "action.add-provider"]));
+    expect(ids("vendor")).toEqual(expect.arrayContaining(["page.providers", "action.add-provider"]));
+    expect(ids("पुरवठादार", owner, "mr")).toContain("page.providers");
     expect(ids("तक्रार निवारण", owner, "mr")).toContain("settings.grievance-officer");
     expect(ids("feedback")[0]).toBe("page.feedback");
     expect(ids("low rating")).toContain("page.feedback-attention");

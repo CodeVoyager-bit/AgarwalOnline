@@ -1220,6 +1220,23 @@ tbody tr:hover { background: var(--canvas); }
 .product-specs div { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .product-specs dt { color: var(--muted); }
 .product-specs dd { margin: 0; font-weight: 500; }
+.product-specs dl { margin: 0; }
+/* packing slip: one group per shop the items come from */
+.slip-group th { padding-top: 12px; color: var(--accent); font-size: 0.78rem; letter-spacing: 0.08em; text-align: left; text-transform: uppercase; }
+.product-specs-title { margin: 0 0 4px; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* "Provided by": another shop supplies the item; tinted so it reads as the first fact */
+.product-specs .provider-row { margin: 0 -10px; padding-inline: 10px; border-radius: var(--r-sm); background: var(--brand-soft); }
+.product-specs .provider-row dd { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.product-specs .provider-row svg { flex: none; }
+/* the shop icon and "Sharma Stationers, Roha" under an item on cards, in the basket and on orders */
+.provider-line { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 0 0 4px; color: var(--ink-2); font-size: 0.78rem; }
+.provider-line svg { flex: none; color: var(--accent); }
+.provider-line > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.new-provider { grid-column: 1 / -1; padding: 12px 14px; border: 1px dashed var(--accent); border-radius: var(--r-md); background: var(--brand-soft); }
+.new-provider > legend { padding: 0 6px; font-weight: 600; color: var(--accent); }
+.new-provider .muted { margin: 8px 0 0; }
+.provider-decision { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.provider-decision > p { margin: 0 0 10px; }
 .review-card { margin: 0; }
 .review-card > div:first-child { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; color: var(--gold); letter-spacing: 0.1em; }
 .review-card h3 { margin-bottom: 4px; }
@@ -1694,7 +1711,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   /* when the line and the links don't fit side by side ("For my school", big text), the links move
      under the line instead of squeezing it to 3–5 lines or pushing the language switch off the edge */
   .top-strip-inner { flex-wrap: wrap; row-gap: 2px; }
-  .top-strip p { flex: 1 1 14rem; }
+  .top-strip p { flex: 1 1 auto; }
   .top-strip-links { flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; margin-left: auto; min-width: 0; }
   .top-strip p:has(.offer-code) > span:not(:last-child) { display: none; }
   .top-strip .locale-toggle button { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
@@ -1896,9 +1913,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .product-detail { gap: 0; }
   .product-gallery { margin-bottom: 16px; }
   .product-info { display: contents; }
-  /* name over the photo, so the pinned buy bar never covers it on the first screen */
-  .product-info > :is(.product-title-row, h1, h1 + .muted) { order: -1; }
-  .product-info > :is(.description, .product-delivery-note, .add-to-list, .product-specs) { order: 1; }
+  /* the photo first, then the name (the owner's choice, 2026-10-31); Product info, with who provides
+     the item, follows the packs, and the longer reading goes last */
+  .product-info > :is(.description, .product-delivery-note, .add-to-list) { order: 1; }
   .product-info .description { margin-top: 20px; font-size: 1rem; }
   .product-assurance-row { margin: 12px 0 16px; }
   .variant-list:has(> :only-child) {
@@ -3717,10 +3734,25 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
   .mobile-nav { left: 8px; right: 8px; padding: 0 4px; }
   .nav-label { letter-spacing: -0.01em; }
 }
-@media (max-width: 400px) {
-  /* the school door shrinks to its icon; its name stays for screen readers */
+/* the phone top bar on one line: a truck and the short words on the left, the school door and "EN | मराठी" on the right */
+.strip-free { display: inline-flex; align-items: center; gap: 6px; }
+.strip-truck, .strip-short, .welcome-tiny, .locale-short { display: none; }
+@media (max-width: 760px) {
+  .strip-truck { display: block; flex: none; color: var(--offer); }
+}
+@media (max-width: 480px) {
+  .strip-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .strip-short { display: inline; white-space: nowrap; }
+  .top-strip .locale-long { display: none; }
+  .top-strip .locale-short { display: inline; }
+  .top-strip-links { gap: 4px 8px; }
+  /* the school door shrinks to a round icon; its name stays for screen readers */
   .school-door-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-  .top-strip-links > a.school-door { min-width: 32px; justify-content: center; }
+  .top-strip-links > a.school-door:has(.school-door-label) { width: 32px; height: 32px; justify-content: center; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+}
+@media (max-width: 380px) {
+  .welcome-short { display: none; }
+  .welcome-tiny { display: inline; }
 }
 @media (max-width: 340px) {
   .mobile-nav { padding: 0 2px; }

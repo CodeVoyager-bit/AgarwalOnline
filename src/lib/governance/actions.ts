@@ -65,7 +65,7 @@ export async function governanceAction(
     if (e instanceof ZodError) return { error: plainMessage(e) };
     const message = e instanceof Error ? e.message : "";
     if (
-      /^(You cannot|A rejection|This request|Prices changed|Stock changed|This adjustment|A (price|stock) change|That (web address|SKU)|Only the person|Only an owner|Product not found|Select a category|Price must|Tick|Use an uploaded photo|A product can have)/.test(
+      /^(You cannot|A rejection|This request|Prices changed|Stock changed|This adjustment|A (price|stock) change|That (web address|SKU)|Only the person|Only an owner|Product not found|Select a category|Price must|Tick|Use an uploaded photo|A product can have|Approve the provider|The provider|That provider)/.test(
         message,
       )
     )

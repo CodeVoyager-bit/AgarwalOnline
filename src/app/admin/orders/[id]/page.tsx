@@ -5,6 +5,7 @@ import { formatPrice, methodLabel, noBreakTimes } from "@/lib/display";
 import { StatusStrip } from "@/components/status-pill";
 import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
+import { ProviderLine } from "@/components/provider-line";
 import { ChevronRight, Printer, ReceiptText } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -388,6 +389,7 @@ export default async function ManageOrder({
                     <td>
                       {i.name}
                       <small>{i.label}</small>
+                      <ProviderLine provider={i.providerName ? { name: i.providerName, town: i.providerTown ?? "" } : null} />
                       {lineNotes(i, charged).map((note) => (
                         <small className="line-note" key={note}>
                           {note}
@@ -590,6 +592,7 @@ export default async function ManageOrder({
                     <fieldset className="packing-item" key={String(i.variantId)}>
                       <legend>
                         {i.name} · {i.label}
+                        {i.providerName && ` · from ${i.providerName}`}
                       </legend>
                       <p>Ordered: {ordered}</p>
                       <label>

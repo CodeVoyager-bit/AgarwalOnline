@@ -15,6 +15,7 @@ import { publishScheduled } from "@/lib/governance/service";
 import { ActionForm } from "@/components/action-form";
 import { governanceAction } from "@/lib/governance/actions";
 import { formatIst } from "@/lib/display";
+import { Provider } from "@/lib/providers/models";
 export const metadata = { title: "Approvals", robots: { index: false } };
 
 const VIEWS = {
@@ -46,10 +47,12 @@ export default async function Approvals({
   await publishScheduled();
   const params = await searchParams;
   const view = (params.view && params.view in VIEWS ? params.view : "waiting") as View;
-  const [categories, requests, counts] = await Promise.all([
+  const [categories, requests, counts, waitingProviders] = await Promise.all([
     Category.find({}).select("name"),
     ApprovalRequest.find(VIEWS[view].match).sort({ createdAt: view === "waiting" ? 1 : -1 }).limit(200),
     Promise.all((Object.keys(VIEWS) as View[]).map((key) => ApprovalRequest.countDocuments(VIEWS[key].match))),
+    // providers staff added wait on their own page; say so here, where owners come to decide
+    Provider.countDocuments({ status: "pending" }),
   ]);
   const reviewing =
     params.review && mongoose.isValidObjectId(params.review)
@@ -75,6 +78,12 @@ export default async function Approvals({
       ],
     },
   }).select("name");
+  const provider = reviewing?.after?.providerId
+    ? await Provider.findById(reviewing.after.providerId).select("name town status")
+    : null;
+  const reviewingProvider = provider
+    ? `${provider.name}, ${provider.town}${provider.status === "pending" ? " (new: approve it on the Providers page first)" : provider.status === "declined" ? " (declined)" : ""}`
+    : undefined;
   const nameOf = (id: unknown) => people.find((person) => String(person._id) === String(id))?.name ?? "Someone";
   const titleFor = (r: { kind: string; targetId: unknown; after: Record<string, string> }) => {
     if (r.kind === "product") return `New product: ${r.after.nameEn}`;
@@ -96,6 +105,15 @@ export default async function Approvals({
         lead="Your own changes apply at once. New products, packs, prices and large stock changes your staff ask for wait here for you."
         aside={<span className="live-chip">{counts[0]} waiting</span>}
       />
+      {waitingProviders > 0 && (
+        <p className="notice" role="status">
+          Also waiting:{" "}
+          <Link href="/admin/providers?status=pending">
+            <strong>{waitingProviders}</strong> new {waitingProviders === 1 ? "provider" : "providers"} to approve
+          </Link>
+          . Approve a provider before the products that name it.
+        </p>
+      )}
       {reviewing && (
         <div className="panel adjust-panel" id="review">
           <div className="panel-heading">
@@ -133,6 +151,7 @@ export default async function Approvals({
               <ApprovalDetails
                 values={reviewing.after}
                 categoryName={categories.find((c) => String(c._id) === String(reviewing.after.categoryId))?.name.en}
+                providerName={reviewingProvider}
               />
             </div>
           </div>

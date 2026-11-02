@@ -81,7 +81,7 @@ export async function catalogManagementAction(
   } catch (error) {
     if (error instanceof z.ZodError) return { error: plainMessage(error) };
     const message = error instanceof Error ? error.message : "";
-    if (/^(A category|Parent|Category|Product|Pack not found|Price|Tick)/.test(message)) return { error: message };
+    if (/^(A category|Parent|Category|Product|Pack not found|Price|Tick|That provider|The provider)/.test(message)) return { error: message };
     if (message === "FORBIDDEN")
       return { error: form.get("operation") === "alert" ? "Your account can’t change stock alerts." : "Only an owner can set school or purchase prices." };
     if (/duplicate key/i.test(message))

@@ -382,6 +382,16 @@ const actions: FinderEntry[] = [
     keywordsMr: ["उत्पादन", "नवीन", "वस्तू"],
   },
   {
+    id: "action.add-provider",
+    kind: "action",
+    title: { en: "Add a provider", mr: "नवीन पुरवठादार जोडा" },
+    hint: { en: "Catalog", mr: "उत्पादने" },
+    href: "/admin/providers?edit=new#provider",
+    permission: "catalog:write",
+    keywords: ["provider", "vendor", "supplier", "other shop", "seller"],
+    keywordsMr: ["पुरवठादार", "दुकान"],
+  },
+  {
     id: "action.adjust-stock",
     kind: "action",
     title: { en: "Adjust stock", mr: "स्टॉक बदला" },
@@ -655,6 +665,16 @@ const otherPages: FinderEntry[] = [
     permission: "catalog:write",
     keywords: ["categories", "category", "sections"],
     keywordsMr: ["विभाग"],
+  },
+  {
+    id: "page.providers",
+    kind: "page",
+    title: { en: "Providers", mr: "पुरवठादार" },
+    hint: { en: "Catalog", mr: "उत्पादने" },
+    href: "/admin/providers",
+    permission: "catalog:write",
+    keywords: ["providers", "vendors", "suppliers", "other shops", "approve provider"],
+    keywordsMr: ["पुरवठादार"],
   },
   {
     id: "page.shop",

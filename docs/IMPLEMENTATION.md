@@ -278,3 +278,16 @@ Customize → Bills has a **Bill style** choice. Modern, the open layout bills h
   - `tests/money-words.test.ts`: Marathi words. `tests/shop-settings.test.ts`: the new defaults.
   - Every style was printed to PDF in Chromium. A4 and A5 bills of five lines fill exactly one page, and a 45-line bill runs to three.
 - **Still to check:** the Marathi labels and number words, by a Marathi speaker.
+
+## Providers: other shops' items (October 2026)
+
+Other local shops can supply items that Agarwal sells. Agarwal stays the only seller: one basket, one bill in its name, its riders and its cash; the owner settles with each shop separately. Shoppers see only the shop's name and town.
+
+- **Record:** `Provider` (`src/lib/providers/models.ts`): name, town, a slug, status `pending` / `active` / `declined`, and staff-only phone and notes. Its writes empty the shop cache.
+- **Who adds and decides** (`src/lib/providers/service.ts`): anyone with `catalog:write` adds one; an owner's is live at once, staff's waits and the owners are told. Owners (`approval:review`) approve or decline (with a reason; whoever added it is told). Adding a shop that's already there (same name and town, any capitals) finds it instead.
+- **Listing:** Add and Edit product have a "Provided by" picker (`provider-picker.tsx`): our own stock, a provider, or "Add a new provider", typed in the same form. `Product.providerId` is optional; none means our own stock. A product whose provider still waits can't be published ("Approve the provider … first"), so an item never shows as our own by mistake.
+- **Shoppers see** an approved provider only: a shop-icon line on cards, school cards, basket tiles and basket lines (`provider-line.tsx`), and "Provided by" and "Sold by" rows heading Product info on the product pages. On phones the product photo now comes first, then the name.
+- **Orders** keep `providerId`, `providerName` and `providerTown` on each line at checkout, so a rename later doesn't change history. They show on the customer and staff order pages; the packing slip groups lines by shop ("Our shelves", then "From …").
+- **Staff:** `/admin/providers` (a tab beside Categories, in the workspace search), a provider filter on Products, "Sales by provider" (delivered orders) in Analytics, and a "Provided by" column in the order-lines export.
+- **Policies** (2026-10-31.1): Terms say such items are still sold, billed, delivered and refunded by Agarwal; Privacy says those shops don't receive customers' details.
+- **Not built:** provider pages, contact details or a catalogue filter for shoppers; provider logins; an agreed price per provider. If providers ever bill in their own name, that's a marketplace (one bill per seller, seller details by law, GST TCS): ask the CA first.

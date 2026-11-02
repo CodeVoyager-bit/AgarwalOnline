@@ -31,7 +31,22 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
   const [o, shop, slip] = await Promise.all([Order.findById(id), taxProfile(), shopSettings("slip")]);
   if (!o) notFound();
   const customer = await User.findById(o.customerId).select("substitutionPreference");
-  const lines = o.items as (PackedLine & { variantId: string; name: string; label: string; quantity: number })[];
+  const lines = o.items as (PackedLine & {
+    variantId: string;
+    name: string;
+    label: string;
+    quantity: number;
+    providerName?: string;
+    providerTown?: string;
+  })[];
+  // items other shops provide are collected from them: one group per shop, our shelves first
+  const groups = [...new Set(lines.map((line) => (line.providerName ? `${line.providerName}, ${line.providerTown ?? ""}` : "")))]
+    .sort((a, b) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)))
+    .map((key) => ({
+      title: key ? `From ${key.replace(/, $/, "")}` : "Our shelves",
+      lines: lines.filter((line) => (line.providerName ? `${line.providerName}, ${line.providerTown ?? ""}` : "") === key),
+    }));
+  const grouped = groups.length > 1 || Boolean(groups[0]?.lines[0]?.providerName);
   const cash = o.paymentMethod === "cod";
   const day = o.deliveryDate ? dayLabel(o.deliveryDate) : "";
   const pieces = lines.reduce((sum, line) => sum + line.quantity, 0);
@@ -104,8 +119,16 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
               )}
             </tr>
           </thead>
-          <tbody>
-            {lines.map((line) => (
+          {groups.map((group) => (
+          <tbody key={group.title}>
+            {grouped && (
+              <tr className="slip-group">
+                <th scope="rowgroup" colSpan={slip.showPrices ? 4 : 3}>
+                  {group.title}
+                </th>
+              </tr>
+            )}
+            {group.lines.map((line) => (
               <tr key={String(line.variantId)}>
                 <td className="slip-tick">
                   <span className="slip-box" aria-hidden="true" />
@@ -128,6 +151,7 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
               </tr>
             ))}
           </tbody>
+          ))}
           {slip.showPrices && (
             <tfoot>
               <tr>

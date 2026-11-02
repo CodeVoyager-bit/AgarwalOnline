@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import type { StaffRole } from "@/lib/auth/permissions";
@@ -16,6 +17,12 @@ const StaffChrome = dynamic(() => import("./staff-chrome"));
  * (see StaffChrome); the school marketplace gets its own from its layout. The root layout
  * doesn't re-render on navigation, so the choice is made here from the path, which changes as
  * people move between the shop, the school marketplace and the workspace.
+ *
+ * The slots stay inside their own keyed Fragments, never directly in the lists below. Signing in or
+ * out sends new slots that stream in one by one, while the list here changes shape. If React had to
+ * wait for a slot in this list, it could resume with the old children already marked for removal and
+ * mark them again, then remove them twice and crash the page (tests/e2e/shell-switch.spec.ts). In a
+ * Fragment, the wait happens in the Fragment, and this list has finished by then.
  */
 export function AdaptiveShell({
   header,
@@ -46,15 +53,17 @@ export function AdaptiveShell({
   if (isSchoolPath(pathname))
     return (
       <>
-        {children}
-        {footer}
+        <Fragment key="page">{children}</Fragment>
+        <Fragment key="footer">{footer}</Fragment>
       </>
     );
   return (
     <>
-      {header}
-      <main id="main">{children}</main>
-      {footer}
+      <Fragment key="header">{header}</Fragment>
+      <main key="main" id="main">
+        {children}
+      </main>
+      <Fragment key="footer">{footer}</Fragment>
     </>
   );
 }

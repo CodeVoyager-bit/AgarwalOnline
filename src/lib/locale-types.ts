@@ -3,10 +3,14 @@ export type Locale = "en" | "mr";
 export const copy = {
   en: {
     freeFrom: (amount: string) => `Free delivery from ${amount}`,
+    /** The phone strip's version, beside a truck icon. */
+    freeShort: (amount: string) => `Free from ${amount}`,
     welcomeCode: (minimum: string) =>
       minimum ? `New here? Use code on a first basket of ${minimum}+` : "New here? Save on your first order with code",
     /** The phone strip's version: a few words before the code. */
     welcomeShort: (minimum: string) => (minimum ? `First basket ${minimum}+` : "First order"),
+    /** The smallest phones' version, so the code still fits on one line. */
+    welcomeTiny: (minimum: string) => (minimum ? `${minimum}+` : "First order"),
     sameDay: (cutoff: string) => `Same-day before ${cutoff} · check your area`,
     search: "Search products",
     searchPlaceholder: "Search products",
@@ -41,9 +45,11 @@ export const copy = {
   },
   mr: {
     freeFrom: (amount: string) => `${amount} पासून मोफत वितरण`,
+    freeShort: (amount: string) => `${amount} पासून मोफत`,
     welcomeCode: (minimum: string) =>
       minimum ? `नवीन आहात? ${minimum}+ च्या पहिल्या बास्केटवर कोड वापरा` : "नवीन आहात? पहिल्या ऑर्डरवर हा कोड वापरून बचत करा",
     welcomeShort: (minimum: string) => (minimum ? `पहिली बास्केट ${minimum}+` : "पहिली ऑर्डर"),
+    welcomeTiny: (minimum: string) => (minimum ? `${minimum}+` : "पहिली ऑर्डर"),
     sameDay: (cutoff: string) => `${cutoff} पूर्वी त्याच दिवशी · तुमचे क्षेत्र तपासा`,
     search: "उत्पादने शोधा",
     searchPlaceholder: "उत्पादने शोधा",

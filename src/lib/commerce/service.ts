@@ -38,6 +38,7 @@ import { isShopperVisible, shopperVisible } from "../catalog/visibility";
 import { resolveBasketLines } from "./basket-lines";
 import { orderFamily } from "../family/checkout";
 import { shopSettings } from "../settings/shop";
+import { Provider } from "../providers/models";
 export const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid record.");
 export type { UnavailableLine } from "./basket-lines";
 export async function cartFor(customerId: string) {
@@ -212,6 +213,10 @@ export async function checkout(customerId: string, input: unknown) {
       subtotal += linePaise;
       merchandiseSavingsPaise +=
         Math.max(0, variant.mrpPaise - variant.pricePaise) * line.quantity;
+      // the line keeps who provided it, named only once an owner approved the provider
+      const provider = product.providerId
+        ? await Provider.findOne({ _id: product.providerId, status: "active" }).select("name town").session(session)
+        : null;
       items.push({
         variantId: variant._id,
         name: product.name.en,
@@ -219,6 +224,7 @@ export async function checkout(customerId: string, input: unknown) {
         quantity: line.quantity,
         pricePaise: variant.pricePaise,
         linePaise,
+        ...(provider ? { providerId: provider._id, providerName: provider.name, providerTown: provider.town } : {}),
       });
     }
     const fee = deliveryFee(subtotal, area.feePaise, rules);

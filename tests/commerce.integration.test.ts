@@ -28,6 +28,8 @@ import {
 } from "../src/lib/commerce/service";
 import { Promotion, PromotionRedemption } from "../src/lib/promotions/models";
 import { POLICY_VERSION } from "../src/lib/legal/version";
+import { Provider } from "../src/lib/providers/models";
+import { analytics } from "../src/lib/analytics/service";
 const uri = process.env.TEST_MONGODB_URI;
 describe.skipIf(!uri)("Transactional COD checkout", () => {
   let customer: string,
@@ -149,6 +151,35 @@ describe.skipIf(!uri)("Transactional COD checkout", () => {
     idempotencyKey: randomUUID(),
     method: "cod",
     termsVersion: POLICY_VERSION,
+  });
+  it("keeps who provided each line, as it was when ordered, and totals delivered sales by provider", async () => {
+    const provider = await Provider.create({
+      name: "Sharma Stationers",
+      town: "Roha",
+      slug: "sharma-stationers-roha",
+      status: "active",
+      createdBy: customer,
+    });
+    await Product.updateOne({ slug: "rice" }, { $set: { providerId: provider._id } });
+    const id = await checkout(customer, input());
+    // a rename later doesn't rewrite the order
+    await Provider.updateOne({ _id: provider._id }, { $set: { name: "Sharma Books" } });
+    const o = await Order.findById(id);
+    expect(o.items[0]).toMatchObject({ providerName: "Sharma Stationers", providerTown: "Roha" });
+    expect(String(o.items[0].providerId)).toBe(String(provider._id));
+    const staff = await User.create({ name: "Staff", phone: "9000000079", roles: ["customer", "admin"] });
+    expect((await analytics(String(staff._id), {})).providers).toEqual([]);
+    // delivered by someone: every real delivery has a partner
+    await Order.updateOne({ _id: id }, { $set: { deliveryStatus: "delivered", assignedTo: staff._id } });
+    expect((await analytics(String(staff._id), {})).providers).toEqual([
+      { name: "Sharma Stationers, Roha", quantity: o.items[0].quantity, revenuePaise: o.items[0].linePaise },
+    ]);
+  });
+  it("doesn't name a provider an owner hasn't approved yet", async () => {
+    const provider = await Provider.create({ name: "Kale Toys", town: "Pali", slug: "kale-toys-pali", status: "pending", createdBy: customer });
+    await Product.updateOne({ slug: "rice" }, { $set: { providerId: provider._id } });
+    const o = await Order.findById(await checkout(customer, input()));
+    expect(o.items[0].providerName).toBeUndefined();
   });
   it("snapshots server prices, reserves stock and retries idempotently", async () => {
     const data = input();

@@ -24,6 +24,8 @@ const STATUSES = [
   ["rejected", "Rejected"],
 ] as const;
 
+import { Provider } from "@/lib/providers/models";
+
 export default async function Products({
   searchParams,
 }: {
@@ -32,12 +34,15 @@ export default async function Products({
   await requirePage("catalog:write");
   const params = await searchParams;
   // ponytail: filters run in memory; move them into the query once the catalog passes a few hundred products
-  const [categories, products, variants, stock] = await Promise.all([
+  const [categories, products, variants, stock, providers] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
     Product.find({}).sort({ "name.en": 1 }).limit(500),
     ProductVariant.find({}).limit(2000),
     InventoryItem.find({}).limit(2000),
+    Provider.find({}).sort({ name: 1 }).select("name town").lean<{ _id: unknown; name: string; town: string }[]>(),
   ]);
+  const providerOf = (product: { providerId?: unknown }) =>
+    product.providerId ? providers.find((provider) => String(provider._id) === String(product.providerId)) : undefined;
   const available = new Map(
     stock.map((item) => [String(item.variantId), Math.max(0, item.onHand - item.reserved)]),
   );
@@ -61,6 +66,8 @@ export default async function Products({
           (text) => text.toLowerCase().includes(q),
         )) &&
       (!params.category || row.category?.slug === params.category) &&
+      (!params.provider ||
+        (params.provider === "own" ? !row.product.providerId : String(row.product.providerId ?? "") === params.provider)) &&
       (!params.status || row.product.status === params.status) &&
       (params.stock !== "low" || row.low) &&
       (params.stock !== "out" || row.available === 0) &&
@@ -69,7 +76,7 @@ export default async function Products({
         (params.audience === "schools-only" && row.product.showToSchools === true && row.product.showToCustomers === false) ||
         (params.audience === "customers-only" && row.product.showToSchools !== true)),
   );
-  const filtered = Boolean(q || params.category || params.status || params.stock || params.audience);
+  const filtered = Boolean(q || params.category || params.provider || params.status || params.stock || params.audience);
   const page = shown.slice(0, rowsShown(params.show));
   return (
     <section className="page-container">
@@ -100,6 +107,20 @@ export default async function Products({
             ))}
           </select>
         </label>
+        {providers.length > 0 && (
+          <label>
+            Provided by
+            <select name="provider" defaultValue={params.provider ?? ""}>
+              <option value="">Anyone</option>
+              <option value="own">Our own stock</option>
+              {providers.map((provider) => (
+                <option key={String(provider._id)} value={String(provider._id)}>
+                  {provider.name}, {provider.town}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Stock
           <select name="stock" defaultValue={params.stock ?? ""}>
@@ -167,6 +188,7 @@ export default async function Products({
                     <small>
                       {category?.name.en ?? product.categorySlug}
                       {product.brand ? ` · ${product.brand}` : ""}
+                      {providerOf(product) ? ` · from ${providerOf(product)!.name}` : ""}
                       {product.showToSchools === true
                         ? product.showToCustomers === false
                           ? " · Schools only"

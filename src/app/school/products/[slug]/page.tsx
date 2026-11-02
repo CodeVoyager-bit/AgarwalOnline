@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, FileText, Users } from "lucide-react";
+import { ChevronRight, FileText, Store, Users } from "lucide-react";
+import { taxProfile } from "@/lib/tax/profile";
 import { productImages } from "@/lib/catalog/images";
 import { schoolProductBySlug } from "@/lib/catalog/queries";
 import { requireSchoolPage } from "@/lib/schools/access";
@@ -30,7 +31,12 @@ export default async function SchoolProduct({
   const { school } = await requireSchoolPage(s, `/school/products/${encodeURIComponent(slug)}`);
   const p = await schoolProductBySlug(slug);
   if (!p) notFound();
-  const [aisles, basket] = await Promise.all([schoolAisles(), quoteBasketView(school.id)]);
+  const [aisles, basket, seller] = await Promise.all([
+    schoolAisles(),
+    quoteBasketView(school.id),
+    // another shop provides it: Product info names who sells it, which is still us
+    p.provider ? taxProfile() : null,
+  ]);
   const aisle = aisles.find((entry) => entry.slug === p.categorySlug);
   const image = p.image ?? productImages[p.slug];
   const inBasket = new Map(basket.lines.map((line) => [line.variantId, line.quantity]));
@@ -109,15 +115,35 @@ export default async function SchoolProduct({
           <p className="notice product-delivery-note">
             The store confirms prices and delivery on the quotation. Nothing is paid here.
           </p>
-          {specs.length > 0 && (
-            <dl className="product-specs">
-              {specs.map((spec) => (
-                <div key={spec.label.en}>
-                  <dt>{spec.label.en}</dt>
-                  <dd>{spec.value.en}</dd>
-                </div>
-              ))}
-            </dl>
+          {(specs.length > 0 || p.provider) && (
+            <section className="product-specs" aria-labelledby="product-info-title">
+              <h2 id="product-info-title" className="product-specs-title">
+                Product info
+              </h2>
+              <dl>
+                {p.provider && (
+                  <>
+                    <div className="provider-row">
+                      <dt>Provided by</dt>
+                      <dd>
+                        <Store size={15} aria-hidden="true" />
+                        {p.provider.name}, {p.provider.town}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Sold by</dt>
+                      <dd>{seller?.legalName ?? "Agarwal General Stores"}</dd>
+                    </div>
+                  </>
+                )}
+                {specs.map((spec) => (
+                  <div key={spec.label.en}>
+                    <dt>{spec.label.en}</dt>
+                    <dd>{spec.value.en}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           )}
         </div>
       </div>
