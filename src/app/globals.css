@@ -3554,11 +3554,22 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
 .workspace-nav.is-sheet > details[open] > summary > svg { transform: rotate(180deg); }
 .workspace-nav.is-sheet > details > .workspace-group-items { padding: 0 0 8px; }
 
-/* Staff header on phones: the shop is one tap away, as an icon beside the bell */
+/* Staff header on phones: the name on two lines, as in the shop, and the shop, sound and bell in one
+   capsule, so the two never meet. The shop is one tap away, as an icon beside the bell */
 @media (max-width: 760px) {
-  .staff-header .view-shop { display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); }
+  .staff-brand { min-width: 0; font-size: 23px; } /* px on purpose: enlarged text grows the content, not the wordmark */
+  .staff-brand-name { display: grid; gap: 3px; line-height: 1; }
+  .staff-brand-online { color: var(--muted); font-family: var(--font-sans); font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+  .staff-header .view-shop { display: grid; place-items: center; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); }
   .staff-header .view-shop span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-  .staff-header-actions { gap: 2px; }
+  .staff-header-actions { gap: 0; padding: 0 2px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); }
+  .staff-header-actions > :is(.view-shop, .order-alerts, .alerts-bell) { width: 38px; height: 44px; min-height: 44px; }
+  .alerts-bell .nav-count { top: 0; right: -4px; font-size: 11px; } /* px: its bubble doesn't grow with enlarged text */
+  /* the overview has no Back button, so the name starts at the page's edge */
+  .staff-header-inner:not(:has(.staff-back)) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions"; }
+}
+@media (max-width: 340px) {
+  .staff-brand { font-size: 20px; }
 }
 
 /* Store settings on phones: each section shows its title and summary; its forms open on a tap */
