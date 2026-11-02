@@ -226,6 +226,8 @@ orderSchema.index(
 );
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ assignedTo: 1, deliveryStatus: 1 });
+// "Often bought together" on the product page reads the recent orders with a product in them
+orderSchema.index({ "items.variantId": 1, createdAt: -1 });
 const reservationSchema = new Schema(
   {
     orderId: ref("Order"),
