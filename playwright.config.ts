@@ -29,7 +29,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: "list",
-  use: { baseURL: "http://127.0.0.1:3002", trace: "retain-on-failure" },
+  use: {
+    baseURL: "http://127.0.0.1:3002",
+    trace: "retain-on-failure",
+    // no smooth scrolling (globals.css): a click finds its button, then presses and releases. If the page is still
+    // gliding, the release can land off the button, and the click does nothing without any error or retry
+    contextOptions: { reducedMotion: "reduce" },
+  },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },

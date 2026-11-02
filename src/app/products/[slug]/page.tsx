@@ -13,8 +13,8 @@ import { Order } from "@/lib/commerce/models";
 import { ProductVariant, User } from "@/lib/db/models";
 import { WishlistItem } from "@/lib/engagement/models";
 import { reviewAction, reportReviewAction } from "@/lib/reviews/actions";
-import { recommendationsFor } from "@/lib/catalog/recommendations";
-import { ProductCard } from "@/components/product-card";
+import { relatedFor } from "@/lib/catalog/related";
+import { RelatedRows } from "@/components/related-rows";
 import { deliveryRules } from "@/lib/commerce/service";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductQuantity } from "@/components/quick-add";
@@ -66,12 +66,7 @@ export default async function ProductPage({
     ProductReview.find({ productId: p.id, status: "published" })
       .sort({ createdAt: -1 })
       .limit(20),
-    recommendationsFor({
-      customerId: user?.id,
-      category: p.categorySlug,
-      excludeSlug: p.slug,
-      limit: 5,
-    }),
+    relatedFor({ product: p, customerId: user?.id }),
     deliveryRules(),
     user
       ? WishlistItem.exists({ customerId: user.id, productId: p.id })
@@ -337,21 +332,7 @@ export default async function ProductPage({
         </div>
       </section>
       )}
-      {related.length > 0 && (
-        <section className="section">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">{mr ? "तुम्हाला हेही आवडेल" : "You may also like"}</span>
-              <h2>{mr ? "तुमच्या दुकानातील आणखी वस्तू" : "More from your store"}</h2>
-            </div>
-          </div>
-          <div className="product-grid">
-            {related.map((product) => (
-              <ProductCard key={product.id} product={product} locale={locale} />
-            ))}
-          </div>
-        </section>
-      )}
+      <RelatedRows product={p} rows={related} categoryName={categoryName} locale={locale} />
     </section>
   );
 }
