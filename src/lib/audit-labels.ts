@@ -1,5 +1,7 @@
 /** What each audit code means, in the words an owner would use. The code itself stays visible next to it. */
 const LABELS: Record<string, string> = {
+  "approval.publish.delete-pack": "Deleted a pack",
+  "approval.publish.delete-product": "Deleted a product",
   "auth.customer.email_login": "Signed in with email",
   "auth.customer.login": "Signed in with a one-time code",
   "auth.customer.password_reset": "Set a new password with a one-time code",

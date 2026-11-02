@@ -20,6 +20,7 @@ import { UploadedEvidence } from "../evidence/models";
 import { photoFields, photoList } from "../catalog/photos";
 import { Provider } from "../providers/models";
 import { chosenProvider } from "../providers/service";
+import { deletedName, notDeleted } from "../catalog/deleted";
 
 /** Photos chosen for a product waiting for approval are kept this long; a rejected request's then go. */
 const PENDING_PHOTO_DAYS = 60;
@@ -203,7 +204,7 @@ export async function submitVariant(actorId: string, input: unknown) {
   assertSchoolPriceAllowed(actor, data.schoolPricePaise, data.costPaise);
   let live = false;
   await mongoose.connection.transaction(async (session) => {
-    if (!(await Product.exists({ _id: data.productId }).session(session)))
+    if (!(await Product.exists({ _id: data.productId, ...notDeleted }).session(session)))
       throw Error("Product not found.");
     await assertFree({ sku: data.sku }, session);
     live = await openRequest(
@@ -229,9 +230,7 @@ export async function requestPrice(actorId: string, input: unknown) {
     .parse(input);
   let live = false;
   await mongoose.connection.transaction(async (session) => {
-    const variant = await ProductVariant.findById(data.variantId).session(
-      session,
-    );
+    const variant = await ProductVariant.findOne({ _id: data.variantId, ...notDeleted }).session(session);
     if (!variant) throw Error("This variant is unavailable.");
     await assertNothingPending("price", variant._id, session);
     live = await openRequest(
@@ -265,7 +264,10 @@ async function applyStock(
     { session },
   );
 }
-/** Small changes apply at once; large ones wait for an owner (an owner's own apply at once). */
+/**
+ * Small additions apply at once. Large changes, and anything staff remove, wait for an owner; an
+ * owner's own apply at once.
+ */
 export async function adjustStock(actorId: string, input: unknown) {
   await authorize(actorId, "inventory:adjust");
   const data = z
@@ -293,8 +295,13 @@ export async function adjustStock(actorId: string, input: unknown) {
     const stock = await InventoryItem.findOne({
       variantId: data.variantId,
     }).session(session);
-    if (!stock) throw Error("This stock record is unavailable.");
-    if (Math.abs(data.delta) >= threshold) {
+    if (!stock || !(await ProductVariant.exists({ _id: data.variantId, ...notDeleted }).session(session)))
+      throw Error("This stock record is unavailable.");
+    // said straight away, not when an owner comes to approve it
+    if (stock.onHand + data.delta < stock.reserved)
+      throw Error("This adjustment would reduce stock below reservations.");
+    const owner = await isOwner(actorId, session);
+    if (Math.abs(data.delta) >= threshold || (data.delta < 0 && !owner)) {
       await assertNothingPending("stock", data.variantId, session);
       const live = await openRequest(
         {
@@ -324,6 +331,109 @@ export async function adjustStock(actorId: string, input: unknown) {
     }
   });
   return { outcome };
+}
+
+const WHAT_IS_DELETED = { "delete-pack": "pack", "delete-product": "product" } as const;
+type DeleteKind = keyof typeof WHAT_IS_DELETED;
+
+/** Stock held for open orders can't go: those orders still have to be packed from it. */
+async function assertNothingHeld(packs: { _id: unknown }[], session: mongoose.ClientSession) {
+  const stock = await InventoryItem.find({ variantId: { $in: packs.map((pack) => pack._id) } })
+    .select("reserved")
+    .session(session);
+  const held = stock.reduce((sum, item) => sum + item.reserved, 0);
+  if (held > 0)
+    throw Error(`${held} ${held === 1 ? "is" : "are"} held for open orders. Deliver or cancel those orders first.`);
+}
+
+/** The packs a delete takes with it; refuses what is already gone. */
+async function packsDeletedBy(kind: DeleteKind, targetId: unknown, session: mongoose.ClientSession) {
+  if (kind === "delete-pack") {
+    const packs = await ProductVariant.find({ _id: targetId, ...notDeleted }).session(session);
+    if (!packs.length) throw Error("This pack was already deleted.");
+    return packs;
+  }
+  if (!(await Product.exists({ _id: targetId, ...notDeleted }).session(session)))
+    throw Error("This product was already deleted.");
+  return ProductVariant.find({ productId: targetId, ...notDeleted }).session(session);
+}
+
+/**
+ * Deletes a pack, or a product with its packs. They are kept for past orders and bills; hiding them
+ * is what takes them out of the shop, baskets and checkout (catalog/deleted.ts).
+ */
+async function applyDelete(kind: DeleteKind, targetId: unknown, actorId: string, session: mongoose.ClientSession) {
+  const packs = await packsDeletedBy(kind, targetId, session);
+  await assertNothingHeld(packs, session);
+  const deletedAt = new Date();
+  for (const pack of packs) {
+    const stock = await InventoryItem.findOne({ variantId: pack._id }).session(session);
+    if (stock?.onHand) await applyStock(actorId, pack._id, -stock.onHand, session);
+    // 0 never warns: the empty record stops counting as sold out on the overview and in reports
+    await InventoryItem.updateOne({ variantId: pack._id }, { $set: { alertBelow: 0 } }, { session });
+    pack.set({ active: false, deletedAt, sku: deletedName(pack.sku, pack._id) });
+    await pack.save({ session });
+  }
+  if (kind === "delete-product") {
+    const product = await Product.findById(targetId).session(session);
+    product.set({ status: "draft", deletedAt, slug: deletedName(product.slug, product._id) });
+    await product.save({ session });
+  }
+  // what was still waiting for these can't happen any more
+  const stale = await ApprovalRequest.find({
+    state: "pending",
+    $or: [
+      { kind: { $in: ["price", "stock", "delete-pack"] }, targetId: { $in: packs.map((pack) => pack._id) } },
+      ...(kind === "delete-product" ? [{ kind: "variant", "after.productId": String(targetId) }] : []),
+    ],
+  }).session(session);
+  if (stale.length) {
+    await ApprovalRequest.updateMany({ _id: { $in: stale.map((r) => r._id) } }, { $set: { state: "withdrawn" } }, { session });
+    await ApprovalHistory.create(
+      stale.map((r) => ({
+        requestId: r._id,
+        actorId,
+        previous: "pending",
+        next: "withdrawn",
+        comment: `The ${WHAT_IS_DELETED[kind]} was deleted.`,
+      })),
+      { session, ordered: true },
+    );
+  }
+}
+
+/** Delete a pack or a product: an owner's happens at once, anyone else's waits for an owner. */
+export async function requestDelete(actorId: string, input: unknown) {
+  await authorize(actorId, "approval:request");
+  const data = z
+    .object({
+      target: z.enum(["pack", "product"]),
+      targetId: objectId,
+      reason: z.string().trim().max(500).default(""),
+    })
+    .parse(input);
+  const kind: DeleteKind = data.target === "pack" ? "delete-pack" : "delete-product";
+  let live = false;
+  await mongoose.connection.transaction(async (session) => {
+    const owner = await isOwner(actorId, session);
+    if (!owner && data.reason.length < 5) throw Error("Say why it should go (5 letters or more), so the owner can decide.");
+    const packs = await packsDeletedBy(kind, data.targetId, session);
+    await assertNothingHeld(packs, session);
+    if (await ApprovalRequest.exists({ kind, targetId: data.targetId, state: "pending" }).session(session))
+      throw Error(`A request to delete this ${data.target} is already waiting for an owner.`);
+    const stock = await InventoryItem.find({ variantId: { $in: packs.map((pack) => pack._id) } }).select("onHand").session(session);
+    const onHand = stock.reduce((sum, item) => sum + item.onHand, 0);
+    const name =
+      kind === "delete-pack"
+        ? { label: packs[0].label, sku: packs[0].sku }
+        : { nameEn: (await Product.findById(data.targetId).select("name").session(session)).name.en, packs: packs.length };
+    live = await openRequest(
+      { kind, targetId: data.targetId, before: { ...name, onHand }, after: { deleted: true }, reason: data.reason || undefined },
+      actorId,
+      session,
+    );
+  });
+  return { live };
 }
 async function createPack(
   data: z.infer<typeof variantInput> | z.infer<typeof productInput>,
@@ -410,9 +520,13 @@ async function publish(
     await createPack(data, p._id, new mongoose.Types.ObjectId(), actorId, session);
   } else if (kind === "variant") {
     const data = variantInput.parse(after);
-    if (!(await Product.exists({ _id: data.productId }).session(session)))
+    if (!(await Product.exists({ _id: data.productId, ...notDeleted }).session(session)))
       throw Error("Product not found.");
     await createPack(data, data.productId, request.targetId, actorId, session);
+  } else if (kind === "delete-pack" || kind === "delete-product") {
+    await applyDelete(kind, request.targetId, actorId, session);
+  } else if (!(await ProductVariant.exists({ _id: request.targetId, ...notDeleted }).session(session))) {
+    throw Error("This pack was deleted, so the change can't be applied.");
   } else if (kind === "price") {
     const result = await ProductVariant.updateOne(
       {
@@ -461,6 +575,8 @@ const KIND_NAMES: Record<string, string> = {
   variant: "new pack size",
   price: "price change",
   stock: "stock change",
+  "delete-pack": "request to delete a pack",
+  "delete-product": "request to delete a product",
 };
 function describe(request: { kind: string; after: Record<string, unknown> }) {
   const what = KIND_NAMES[request.kind] ?? "change";
@@ -527,7 +643,9 @@ export async function reviewApproval(actorId: string, input: unknown) {
           ? `Your ${what} was not approved`
           : scheduledAt && scheduledAt.getTime() > Date.now()
             ? `Your ${what} was approved for later`
-            : `Your ${what} is live`,
+            : result.kind in WHAT_IS_DELETED
+              ? `Your ${what} was approved`
+              : `Your ${what} is live`,
       body:
         data.decision === "rejected"
           ? `Reason: ${data.comment}`

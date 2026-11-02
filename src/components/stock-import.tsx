@@ -16,7 +16,7 @@ const OUTCOME: Record<ImportRow["outcome"], string> = {
 /**
  * Stock for many packs at once: download the sheet, fill in a Count (what's on the shelf) or a
  * Change for the packs that moved, upload it, check what each row will do, then apply. Every row
- * goes through the same change as the form above, so big ones still wait for an owner.
+ * goes through the same change as the Add and Remove buttons, so what needs an owner still waits for one.
  */
 export function StockImport() {
   const router = useRouter();
@@ -159,8 +159,8 @@ export function StockImport() {
             (confirming ? (
               <div className="stock-import-confirm" role="group" aria-label="Apply the sheet?">
                 <span>
-                  Apply {usable.length} {usable.length === 1 ? "change" : "changes"}? Shoppers see the new stock at once; big changes wait
-                  for an owner.
+                  Apply {usable.length} {usable.length === 1 ? "change" : "changes"}? Shoppers see the new stock at once; removals by staff and
+                  big changes wait for an owner.
                 </span>
                 <button type="button" className="secondary-button" onClick={() => setConfirming(false)} disabled={pending}>
                   No, go back

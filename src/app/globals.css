@@ -3715,24 +3715,142 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
 .site-footer.is-compact { margin-top: 24px; }
 .site-footer.is-compact .footer-base-inner p a { color: inherit; text-decoration: underline; }
 
-/* Edit product's "Packs and prices": one look for every action on a pack ("Adjust stock",
-   "Change the price", "School price", "Name, order limit…" and "Add another pack size") */
-.pack-list .pack-stock a,
-.pack-list details > summary,
-.pack-list + .text-button,
-.pack-list ~ .text-button {
-  display: inline-flex;
+/* Edit product's "Packs and prices": each setting is a row showing its value that opens in place,
+   like a phone's settings. Delete is the same row in red, here and on the Stock page's menu. */
+.pack-list > li { padding: 14px 0 4px; }
+.pack-list > li:last-child { border-bottom: 0; }
+.pack-row strong { font-size: 1.02rem; }
+.pack-stock { flex-wrap: nowrap; gap: 6px; margin: 10px 0 6px; padding: 8px 8px 8px 12px; border-radius: var(--r); background: var(--brand-soft); }
+.pack-stock-count { flex: 1 1 auto; display: grid; justify-items: start; min-width: 0; }
+.pack-stock-count small { color: var(--muted); font-size: 0.76rem; }
+.pack-stock .compact-button { flex: none; gap: 4px; padding-inline: 10px; text-decoration: none; }
+.pack-setting { border-top: 1px solid var(--line); }
+.pack-stock + .pack-setting { border-top: 0; }
+details.pack-setting > summary, .pack-setting-row {
+  display: flex;
   align-items: center;
-  min-height: 36px;
-  color: var(--link);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+details.pack-setting > summary > svg:first-child, .pack-setting-row > svg:first-child { flex: none; color: var(--brand); }
+.pack-setting-name { flex: 1 1 auto; min-width: 0; }
+.pack-setting-value { color: var(--muted); font-size: 0.82rem; font-weight: 400; text-align: right; }
+.pack-setting-chevron { flex: none; color: var(--faint); transition: transform var(--fast); }
+.pack-setting[open] > summary .pack-setting-chevron { transform: rotate(90deg); }
+.pack-setting-body { padding: 4px 0 16px; }
+.pack-setting-body > .muted { margin: 0 0 10px; font-size: 0.84rem; }
+details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summary > svg:first-child, .pack-setting-row.is-danger, .pack-setting-row.is-danger > svg:first-child { color: var(--danger); }
+.pack-delete-form { border-top: 1px solid var(--line); }
+.pack-delete-form > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
+.pack-delete-form > .error-message { margin: 8px 0 0; }
+.pack-delete-form .sr-only + button { margin-top: 0; }
+.pack-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r);
+  color: var(--link);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.pack-add:hover { background: var(--brand-soft); }
+.visibility-panel > :is(.pack-setting, .pack-delete-form, .pack-setting-row) { margin-top: 14px; }
+.visibility-panel > .pack-setting-row { border-top: 1px solid var(--line); }
 @media (pointer: coarse) {
-  .pack-list .pack-stock a, .pack-list details > summary, .pack-list ~ .text-button { min-height: 44px; }
+  .pack-stock .compact-button, .stock-actions .compact-button { min-height: 44px; }
+}
+
+/* Deleting: a red confirm button, and what happens listed plainly */
+.danger-button { background: var(--danger); }
+.danger-button:hover { background: var(--danger); filter: brightness(0.9); }
+.confirm-list { display: grid; gap: 8px; margin: 0; padding: 0 0 0 18px; }
+@media (max-width: 760px) {
+  .modal-backdrop:has(> .confirm-modal.is-danger) { place-items: end stretch; padding: 0; }
+  .confirm-modal.is-danger { width: 100%; padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .confirm-modal.is-danger .split-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+}
+
+/* Add or remove stock: a popup on PC, a sheet from the bottom on phones */
+.stock-dialog { width: min(440px, calc(100vw - 32px)); margin: auto; max-height: calc(100dvh - 32px); padding: 24px; border: 0; border-radius: var(--r-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); overflow-y: auto; }
+.stock-dialog::backdrop { background: var(--scrim); }
+.stock-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.stock-dialog-head h2 { margin: 0; font-size: 1.3rem; }
+.stock-dialog-close { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink); cursor: pointer; }
+.stock-dialog-close:hover { background: var(--brand-soft); }
+.stock-dialog > p { margin: 0 0 14px; font-size: 0.88rem; }
+.stock-quantity { display: flex; align-items: center; gap: 8px; }
+.stock-quantity button { flex: none; display: grid; place-items: center; min-width: 48px; height: 48px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+.form-stack label.stock-quantity-box { flex: 1 1 auto; min-width: 0; }
+.stock-quantity-box input { width: 100%; height: 48px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r); font-size: 1.2rem; font-weight: 600; text-align: center; }
+.stock-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; }
+.stock-reasons legend { margin-bottom: 6px; padding: 0; font-size: 0.88rem; font-weight: 600; }
+.form-stack .stock-reasons label { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: 0.86rem; font-weight: 500; cursor: pointer; }
+.stock-reasons input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.form-stack .stock-reasons label:has(input:checked) { border-color: var(--brand); background: var(--brand-tint); color: var(--brand); font-weight: 600; }
+.stock-reasons label:has(input:focus-visible) { box-shadow: var(--ring); }
+.stock-result { margin: 0; padding: 8px 12px; border-radius: var(--r); background: var(--brand-soft); font-size: 0.9rem; text-align: center; font-variant-numeric: tabular-nums; }
+.stock-dialog .form-stack > button { width: 100%; }
+.stock-dialog .danger-outline { border-color: var(--danger); color: var(--danger); }
+.stock-dialog .danger-outline:hover { background: var(--danger); border-color: var(--danger); color: var(--canvas); }
+.stock-done .primary-button { width: 100%; margin-top: 14px; }
+@media (max-width: 760px) {
+  .stock-dialog { width: 100%; max-width: 100%; margin: auto 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+}
+
+/* The Stock page: Remove, Add and a menu on each row; on phones a card with the three counts side by side */
+/* the headings wrap so the buttons fit beside the counts instead of running off the table's edge */
+.stock-table th { padding-inline: 10px; white-space: normal; vertical-align: bottom; }
+.stock-table td { padding-inline: 10px; }
+.stock-table th:first-child, .stock-table td:first-child { padding-left: 16px; }
+.stock-table td:last-child { width: 1%; }
+.stock-actions { flex-wrap: nowrap; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+.stock-actions:has(.overflow-menu[open]) { flex-wrap: wrap; }
+.stock-actions .compact-button { gap: 4px; padding-inline: 10px; text-decoration: none; }
+.table-scroll .stock-actions a.primary-button { color: var(--on-brand); }
+.table-scroll .stock-actions a.secondary-button { color: var(--ink); font-weight: 600; }
+.table-scroll .stock-actions a.secondary-button:hover { color: var(--canvas); }
+.stock-actions .overflow-menu > summary { width: 36px; height: 36px; }
+.stock-actions .overflow-menu[open] { flex: 1 1 100%; display: flex; flex-direction: column; align-items: flex-end; }
+/* in the row's own flow, so the table's edge can't cut it off; while closed it takes up no room at all */
+.stock-actions .overflow-menu:not([open]) .popover-panel { display: none; }
+.stock-actions .overflow-menu .popover-panel { position: static; width: 100%; min-width: 220px; margin-top: 6px; gap: 0; padding: 4px 12px; box-shadow: none; text-align: left; }
+.table-scroll .stock-menu-link { display: flex; align-items: center; min-height: 44px; color: var(--ink); font-weight: 500; text-decoration: none; }
+@media (pointer: coarse) {
+  .stock-actions .overflow-menu > summary { width: 44px; height: 44px; }
+}
+@media (max-width: 760px) {
+  .stock-table tbody tr { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 10px; }
+  .stock-table td { align-content: space-between; padding-inline: 0; } /* the counts line up when one label takes two lines */
+  .stock-table td:first-child { padding-left: 0; }
+  .stock-table td:last-child { width: auto; }
+  .stock-table td:last-child { padding-top: 8px; }
+  .stock-table td:last-child::before { display: none; }
+  .stock-actions { display: flex; justify-content: stretch; width: 100%; white-space: normal; }
+  .stock-actions > .compact-button { flex: 1 1 0; }
+  .stock-actions .overflow-menu .popover-panel { min-width: 0; }
 }
 /* a filter row's button stands as tall as the boxes beside it */
 .audit-filters > :is(button, .primary-button, .secondary-button) { min-height: 48px; }
