@@ -291,3 +291,14 @@ Other local shops can supply items that Agarwal sells. Agarwal stays the only se
 - **Staff:** `/admin/providers` (a tab beside Categories, in the workspace search), a provider filter on Products, "Sales by provider" (delivered orders) in Analytics, and a "Provided by" column in the order-lines export.
 - **Policies** (2026-10-31.1): Terms say such items are still sold, billed, delivered and refunded by Agarwal; Privacy says those shops don't receive customers' details.
 - **Not built:** provider pages, contact details or a catalogue filter for shoppers; provider logins; an agreed price per provider. If providers ever bill in their own name, that's a marketplace (one bill per seller, seller details by law, GST TCS): ask the CA first.
+
+## What goes under a product page (November 2026)
+
+The bottom of the shop's product page has up to three rows, chosen by `relatedFor` (`src/lib/catalog/related.ts`) with the rules in `related-rules.ts`. Only what's in stock shows, no item appears twice, and a row with nothing to show is left out, so a shop with few stock counts still looks short.
+
+- **Often bought together:** a box (`bought-together.tsx`) with this item and up to 2 others, tick boxes and "Add all 3 · ₹75". An item counts only when at least 2 different customers (`MIN_CUSTOMERS`) ordered it with this one in the last 180 days, cancelled orders left out. Shoppers see only the items, never counts or names. If this item is sold out, the others show as a plain row.
+- **Popular in this category:** stands in until sales can say what's bought together, ordered by real units sold, then the bestseller and featured marks. It takes at most half of a small category, and becomes "Popular in our shop" if the category has nothing else in stock. There's no "Add all", because these weren't really bought together.
+- **Similar items:** the same category, same brand first, then closest in price.
+- **Other items:** other categories, in `recommendationsFor`'s personal order, with a link to the catalogue.
+- **Reads:** the orders and units sold are kept for a minute by `shared()`, and `{ "items.variantId": 1, createdAt: -1 }` is a new index on orders.
+- **Screens:** rows use `MiniProduct` in `.mini-grid.related-row`: 5 across on a computer, swiping at tablet width and below. The school product page isn't changed.
