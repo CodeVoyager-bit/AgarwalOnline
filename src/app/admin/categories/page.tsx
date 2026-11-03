@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { requirePage } from "@/lib/auth/session";
 import { catalogManagementAction } from "@/lib/catalog/manage-actions";
 import { Category, Product } from "@/lib/db/models";
+import { notDeleted } from "@/lib/catalog/deleted";
 export const metadata = { title: "Categories", robots: { index: false } };
 
 type CategoryDoc = { _id: unknown; slug: string; name: { en: string; mr: string }; symbol?: string; parentId?: unknown };
@@ -67,7 +68,7 @@ export default async function CategoriesPage({
   const term = q.trim().toLowerCase().slice(0, 80);
   const [categories, counts] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
-    Product.aggregate<{ _id: unknown; count: number }>([{ $group: { _id: "$categoryId", count: { $sum: 1 } } }]),
+    Product.aggregate<{ _id: unknown; count: number }>([{ $match: notDeleted }, { $group: { _id: "$categoryId", count: { $sum: 1 } } }]),
   ]);
   const countFor = (id: unknown) => counts.find((row) => String(row._id) === String(id))?.count ?? 0;
   const editing = edit && mongoose.isValidObjectId(edit) ? categories.find((item) => String(item._id) === edit) : undefined;

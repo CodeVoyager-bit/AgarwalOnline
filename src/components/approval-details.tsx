@@ -19,6 +19,8 @@ const labels: Record<string, string> = {
   stock: "Opening stock",
   onHand: "Stock on hand",
   delta: "Stock adjustment",
+  deleted: "Deleted",
+  packs: "Packs",
   maxQuantity: "Most one shopper can buy",
   showToCustomers: "Shoppers see it",
   showToSchools: "Schools see it",

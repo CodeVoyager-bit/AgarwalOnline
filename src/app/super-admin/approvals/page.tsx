@@ -28,6 +28,7 @@ const VIEWS = {
   all: { label: "Everything", match: {} },
 } as const;
 type View = keyof typeof VIEWS;
+const isDelete = (kind: string) => kind === "delete-pack" || kind === "delete-product";
 const STATES: Record<string, [string, Tone]> = {
   pending: ["Waiting", "warn"],
   approved: ["Approved for later", "warn"],
@@ -67,7 +68,7 @@ export default async function Approvals({
     ),
     // price and stock requests point at a pack; name the product so the reviewer knows what is changing
     ProductVariant.find({
-      _id: { $in: all.filter((r) => r.kind === "price" || r.kind === "stock").map((r) => r.targetId) },
+      _id: { $in: all.filter((r) => r.kind === "price" || r.kind === "stock" || r.kind === "delete-pack").map((r) => r.targetId) },
     }).select("productId label"),
   ]);
   const products = await Product.find({
@@ -75,6 +76,7 @@ export default async function Approvals({
       $in: [
         ...packs.map((pack) => pack.productId),
         ...all.filter((r) => r.kind === "variant").map((r) => r.after.productId),
+        ...all.filter((r) => r.kind === "delete-product").map((r) => r.targetId),
       ],
     },
   }).select("name");
@@ -91,10 +93,16 @@ export default async function Approvals({
       const product = products.find((item) => String(item._id) === String(r.after.productId));
       return `New pack: ${product?.name.en ?? "a product"} · ${r.after.label}`;
     }
+    if (r.kind === "delete-product")
+      return `Delete product: ${products.find((item) => String(item._id) === String(r.targetId))?.name.en ?? "a product"}`;
     const pack = packs.find((item) => String(item._id) === String(r.targetId));
     const product = products.find((item) => String(item._id) === String(pack?.productId));
-    return `${r.kind === "price" ? "Price change" : "Stock change"}: ${product?.name.en ?? "a product"}${pack ? ` · ${pack.label}` : ""}`;
+    const change = r.kind === "price" ? "Price change" : r.kind === "delete-pack" ? "Delete pack" : "Stock change";
+    return `${change}: ${product?.name.en ?? "a product"}${pack ? ` · ${pack.label}` : ""}`;
   };
+  // "Live" reads wrongly for something that has just left the shop
+  const stateOf = (kind: string, state: string): [string, Tone] =>
+    isDelete(kind) && state === "published" ? ["Deleted", "ok"] : (STATES[state] ?? [state, "neutral"]);
   const href = (extra: Record<string, string>) =>
     `/super-admin/approvals?${new URLSearchParams({ ...(view !== "waiting" ? { view } : {}), ...extra })}`;
   return (
@@ -102,7 +110,7 @@ export default async function Approvals({
       <PageHeading
         eyebrow="Owner"
         title="Approvals"
-        lead="Your own changes apply at once. New products, packs, prices and large stock changes your staff ask for wait here for you."
+        lead="Your own changes apply at once. New products, packs, prices, stock removals, large stock additions and deletes your staff ask for wait here for you."
         aside={<span className="live-chip">{counts[0]} waiting</span>}
       />
       {waitingProviders > 0 && (
@@ -128,9 +136,7 @@ export default async function Approvals({
             </Link>
           </div>
           <p>
-            <StatusPill tone={(STATES[reviewing.state] ?? ["", "neutral"])[1]}>
-              {(STATES[reviewing.state] ?? [reviewing.state])[0]}
-            </StatusPill>{" "}
+            <StatusPill tone={stateOf(reviewing.kind, reviewing.state)[1]}>{stateOf(reviewing.kind, reviewing.state)[0]}</StatusPill>{" "}
             {reviewing.state === "approved" && reviewing.scheduledAt && (
               <span className="muted">Goes live {formatIst(reviewing.scheduledAt)}</span>
             )}
@@ -159,7 +165,11 @@ export default async function Approvals({
             <ActionForm
               action={governanceAction}
               submit="Record decision"
-              confirmMessage="Approving publishes the change at the time you chose, or straight away; rejecting sends it back to the person who asked."
+              confirmMessage={
+                isDelete(reviewing.kind)
+                  ? "Approving deletes it: its stock is written off and it leaves the shop, the Stock page and baskets. Past orders and bills keep it. Rejecting sends it back to the person who asked."
+                  : "Approving publishes the change at the time you chose, or straight away; rejecting sends it back to the person who asked."
+              }
             >
               <input type="hidden" name="operation" value="review" />
               <input type="hidden" name="requestId" value={String(reviewing._id)} />
@@ -176,10 +186,12 @@ export default async function Approvals({
                 Note <small>Needed when you reject, so they know what to fix</small>
                 <textarea name="comment" maxLength={500} />
               </label>
-              <label>
-                Publish at <small>Optional; leave empty to publish as soon as you approve</small>
-                <input name="scheduledAt" type="datetime-local" />
-              </label>
+              {!isDelete(reviewing.kind) && (
+                <label>
+                  Publish at <small>Optional; leave empty to publish as soon as you approve</small>
+                  <input name="scheduledAt" type="datetime-local" />
+                </label>
+              )}
             </ActionForm>
           ) : null}
           {reviewing.state === "pending" && (
@@ -199,7 +211,7 @@ export default async function Approvals({
               <ul>
                 {history.map((h) => (
                   <li key={String(h._id)}>
-                    <strong>{(STATES[String(h.next)] ?? [String(h.next)])[0]}</strong> · {nameOf(h.actorId)} ·{" "}
+                    <strong>{stateOf(reviewing.kind, String(h.next))[0]}</strong> · {nameOf(h.actorId)} ·{" "}
                     {formatIst(h.at)}
                     {h.comment ? ` · ${h.comment}` : ""}
                   </li>
@@ -240,7 +252,7 @@ export default async function Approvals({
           {
             header: "Status",
             cell: (request) => {
-              const [label, tone] = STATES[request.state] ?? [request.state, "neutral"];
+              const [label, tone] = stateOf(request.kind, request.state);
               return <StatusPill tone={tone}>{label}</StatusPill>;
             },
           },
@@ -249,7 +261,7 @@ export default async function Approvals({
           <EmptyState
             icon={ClipboardCheck}
             title={view === "waiting" ? "Nothing waiting" : "Nothing here"}
-            body="New products, new packs, price changes and large stock changes appear here when someone asks for them."
+            body="New products, new packs, price changes, stock changes and deletes appear here when someone asks for them."
             heading="h3"
           />
         }

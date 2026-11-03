@@ -25,6 +25,7 @@ const STATUSES = [
 ] as const;
 
 import { Provider } from "@/lib/providers/models";
+import { notDeleted } from "@/lib/catalog/deleted";
 
 export default async function Products({
   searchParams,
@@ -36,8 +37,8 @@ export default async function Products({
   // ponytail: filters run in memory; move them into the query once the catalog passes a few hundred products
   const [categories, products, variants, stock, providers] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
-    Product.find({}).sort({ "name.en": 1 }).limit(500),
-    ProductVariant.find({}).limit(2000),
+    Product.find(notDeleted).sort({ "name.en": 1 }).limit(500),
+    ProductVariant.find(notDeleted).limit(2000),
     InventoryItem.find({}).limit(2000),
     Provider.find({}).sort({ name: 1 }).select("name town").lean<{ _id: unknown; name: string; town: string }[]>(),
   ]);
@@ -91,6 +92,11 @@ export default async function Products({
         }
       />
       <CatalogAdminNav />
+      {params.deleted && (
+        <p className="success-message" role="status">
+          Product deleted. Past orders and bills keep it.
+        </p>
+      )}
       <FilterBar label="Filter products" submitLabel="Show products" clearHref={filtered ? "/admin/products" : undefined}>
         <label>
           Search <small>name, brand or SKU</small>

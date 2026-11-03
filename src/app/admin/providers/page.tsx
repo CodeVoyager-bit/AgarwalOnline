@@ -15,6 +15,7 @@ import { Product, User } from "@/lib/db/models";
 import { Provider } from "@/lib/providers/models";
 import { providerAction } from "@/lib/providers/actions";
 import { ApprovalRequest } from "@/lib/governance/models";
+import { notDeleted } from "@/lib/catalog/deleted";
 export const metadata = { title: "Providers", robots: { index: false } };
 
 type ProviderDoc = {
@@ -70,7 +71,7 @@ export default async function ProvidersPage({
   const [providers, counts, waitingProducts] = await Promise.all([
     Provider.find({}).sort({ name: 1 }).limit(500).lean<ProviderDoc[]>(),
     Product.aggregate<{ _id: unknown; count: number }>([
-      { $match: { providerId: { $exists: true } } },
+      { $match: { providerId: { $exists: true }, ...notDeleted } },
       { $group: { _id: "$providerId", count: { $sum: 1 } } },
     ]),
     // new products waiting for an owner that name a provider: what an approval decision unblocks

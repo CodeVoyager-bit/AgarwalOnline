@@ -502,7 +502,7 @@ export default async function ManageOrder({
                     {recount.map((line, index) => (
                       <Fragment key={String(line.variantId)}>
                         {index > 0 && ", "}
-                        <Link href={`/admin/inventory?adjust=${line.variantId}#adjust`}>
+                        <Link href={`/admin/inventory?pack=${line.variantId}&mode=remove`}>
                           {lineName(line)}
                         </Link>
                       </Fragment>

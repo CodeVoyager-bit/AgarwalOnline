@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requirePermission } from "../auth/session";
 import type { MutationState } from "../commerce/actions";
 import {
@@ -7,6 +8,7 @@ import {
   submitVariant,
   requestPrice,
   adjustStock,
+  requestDelete,
   reviewApproval,
   withdrawRequest,
 } from "./service";
@@ -18,6 +20,8 @@ export async function governanceAction(
   _state: MutationState,
   form: FormData,
 ): Promise<MutationState> {
+  // a deleted product's own page is gone, so its form can't stay there to say so
+  let leaveFor = "";
   try {
     const user = await requirePermission("profile:own");
     const operation = String(form.get("operation"));
@@ -47,7 +51,11 @@ export async function governanceAction(
       success =
         outcome === "applied"
           ? "Stock updated."
-          : "This is a large change, so it was sent to an owner for approval.";
+          : "Sent to an owner. The count changes once they approve it.";
+    } else if (operation === "delete") {
+      const { live } = await requestDelete(user.id, data);
+      success = live ? "Deleted." : "Request sent. An owner decides whether it goes.";
+      if (live && data.target === "product") leaveFor = "/admin/products?deleted=1";
     } else if (operation === "review") {
       await reviewApproval(user.id, data);
       success = "Decision saved.";
@@ -60,12 +68,12 @@ export async function governanceAction(
     revalidatePath("/super-admin/approvals");
     revalidatePath("/catalog");
     revalidatePath("/");
-    return { success };
+    if (!leaveFor) return { success };
   } catch (e) {
     if (e instanceof ZodError) return { error: plainMessage(e) };
     const message = e instanceof Error ? e.message : "";
     if (
-      /^(You cannot|A rejection|This request|Prices changed|Stock changed|This adjustment|A (price|stock) change|That (web address|SKU)|Only the person|Only an owner|Product not found|Select a category|Price must|Tick|Use an uploaded photo|A product can have|Approve the provider|The provider|That provider)/.test(
+      /^(You cannot|A rejection|This request|Prices changed|Stock changed|This adjustment|A (price|stock) change|That (web address|SKU)|Only the person|Only an owner|Product not found|Select a category|Price must|Tick|Use an uploaded photo|A product can have|Approve the provider|The provider|That provider|Say why|\d+ (is|are) held|This (pack|product) was|A request to delete)/.test(
         message,
       )
     )
@@ -73,4 +81,5 @@ export async function governanceAction(
     log("error", "governance.unexpected-error", { error: e });
     return { error: "Unable to save. Check the values and try again." };
   }
+  redirect(leaveFor);
 }
