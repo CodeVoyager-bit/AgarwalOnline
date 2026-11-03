@@ -7,7 +7,7 @@ This ledger describes the launch-first implementation. The complete website flow
 - Four fixed roles are enforced on the server: customer, delivery, admin and super-admin.
 - Better Auth provides MongoDB-backed customer phone OTP, staff email/password authentication, signed cookies, session lifecycle and endpoint rate limiting. Existing credential hashes migrate into Better Auth accounts on first staff sign-in.
 - Super Admin can create, edit, deactivate and reassign staff, revoke all staff sessions and inspect the visible permission matrix.
-- Product, price and large stock changes use independent approval, rejection reasons, stale-value protection and scheduled publication.
+- Product, price and large stock changes, stock removals by staff and deletes use independent approval, rejection reasons, stale-value protection and scheduled publication.
 - Searchable audit history records staff, access, configuration, inventory, delivery, evidence and refund actions. Sensitive fields are recursively redacted in logs and the UI.
 - Active Better Auth sessions, ownership and permissions are checked for every protected page, action, route and chat poll. The legacy session fallback was removed on 2026-09-23; Better Auth is the only session source.
 
@@ -101,7 +101,7 @@ _Superseded by "Staff workspace: own header, search and grouped menu (October 20
 
 Researched against Shopify Polaris (index tables, settings layout, badges), GOV.UK Design System (text inputs, error messages), and Nielsen Norman Group (data tables, confirmation dialogs, dashboards), then applied:
 
-- Catalog, stock, categories, staff and offers are tables with search and filters instead of stacks of open forms. Records are edited one at a time: products on their own page (`/admin/products/[id]`), stock, aisles and staff in an `?edit=`/`?adjust=` panel above the table.
+- Catalog, stock, categories, staff and offers are tables with search and filters instead of stacks of open forms. Records are edited one at a time: products on their own page (`/admin/products/[id]`), aisles and staff in an `?edit=` panel above the table, and stock in a dialog (`?pack=<id>&mode=add|remove`).
 - The order page leads with the next step and why it matters, shows items with the total, and has a tap-to-call link for the customer. The overview has order search.
 - Store settings use a two-column settings layout; the cutoff is a time picker and weekly holidays are day checkboxes.
 - Money fields are `MoneyInput` (₹ prefix, decimal keypad, no scroll-wheel stepping). Validation errors are rewritten by `plainMessage` to name the field. Confirmation dialogs name the exact action ("Record cash handover?" / "Yes, record cash handover") and are kept for money and publishing.
@@ -182,7 +182,7 @@ Customers rate an order after delivery; only the shop reads it. Product reviews 
 - **Search start panel and voice.** `SmartSearch` shows recent searches (this browser, `ags-recent-searches`, 6 at most, Clear) and the popular hints when the box is focused and empty, and a microphone where the browser has speech recognition (Marathi or English, from the page's language).
 - **Packing slip and bill.** `/admin/orders/[id]/slip` is a print-ready slip (who, when, where, tick boxes per line, what to do if an item is missing, cash to collect, signatures); print CSS shows the slip alone. The order page links to it and to the bill.
 - **New-order sound.** `OrderAlerts` beside the staff bell (for staff whose counts include orders). Switched on (remembered in this browser), it asks `/api/staff/new-orders?since=` every 20 s for orders waiting to be confirmed. A new one plays a chime made with Web Audio, shows a note with a link, blinks the tab title and, in a background tab, shows a browser notification. The first ask only learns what's already waiting, and the counts are refreshed through `useRefreshStaffCounts`.
-- **Stock from a spreadsheet.** `/api/staff/stock-sheet` downloads every pack (`sku,product,pack,on_shelf,count,change,reason`). The Stock page's "Update stock from a spreadsheet" panel reads a filled-in CSV (`src/lib/inventory/csv.ts`; Excel's BOM, quotes, CRLF; formula-safe when written), checks each row against today's stock (`planStockImport`: a Count or a Change, a reason of 5+ letters, never below 0, no repeated SKU, at most 500 rows) and shows the plan; Apply re-reads the sheet and sends each row through `adjustStock`, so big changes still wait for an owner and every change is audited.
+- **Stock from a spreadsheet.** `/api/staff/stock-sheet` downloads every pack (`sku,product,pack,on_shelf,count,change,reason`). The Stock page's "Update stock from a spreadsheet" panel reads a filled-in CSV (`src/lib/inventory/csv.ts`; Excel's BOM, quotes, CRLF; formula-safe when written), checks each row against today's stock (`planStockImport`: a Count or a Change, a reason of 5+ letters, never below 0, no repeated SKU, at most 500 rows) and shows the plan; Apply re-reads the sheet and sends each row through `adjustStock`, so big changes and staff lowering a count wait for an owner, and every change is audited.
 - **Rider's list.** Each stop shows the address with Call and Map buttons beside its link.
 - **Checks.** `tests/stock-csv.test.ts`, `tests/stock-import.integration.test.ts` and `tests/e2e/easier.spec.ts` (both widths), with the slot buttons in `store.spec`/`journey.spec` and the rider's buttons in `journey.spec`.
 
@@ -291,6 +291,17 @@ Other local shops can supply items that Agarwal sells. Agarwal stays the only se
 - **Staff:** `/admin/providers` (a tab beside Categories, in the workspace search), a provider filter on Products, "Sales by provider" (delivered orders) in Analytics, and a "Provided by" column in the order-lines export.
 - **Policies** (2026-10-31.1): Terms say such items are still sold, billed, delivered and refunded by Agarwal; Privacy says those shops don't receive customers' details.
 - **Not built:** provider pages, contact details or a catalogue filter for shoppers; provider logins; an agreed price per provider. If providers ever bill in their own name, that's a marketplace (one bill per seller, seller details by law, GST TCS): ask the CA first.
+
+## Pack settings, removing stock and deleting (November 2026)
+
+The Packs and prices card on Edit product is a list of settings rows (`pack-card.tsx`): each shows its value and opens in place, one at a time, through `<details name>`. The Stock page has Remove, Add and a menu on each row, and on phones each pack is a card with its three counts side by side.
+
+- **Adding and removing stock:** `stock-change-dialog.tsx`, a popup on PC and a sheet from the bottom on phones, opened from the page's address (`?pack=<id>&mode=add|remove`, so one dialog serves a whole page; `?stock=` is the Stock page's own filter). It has quantity buttons, "All N" for what isn't held, reason chips and a live "30 → 25" line. It sends the same `delta` and `reason` to `adjustStock`. The older `?adjust=` address still opens it.
+- **Who can change stock at once:** owners always. Staff can add below the approval limit at once. Anything staff remove waits for an owner however small, and so does a lower count on the stock sheet. Taking stock below what open orders hold is refused straight away.
+- **Deleting a pack or product** (`requestDelete` in `governance/service.ts`, `delete-row.tsx`): an owner's happens at once after a confirm; staff give a reason and it waits on Approvals as a `delete-pack` or `delete-product` request. Both are refused while open orders hold its stock, when asked and again at approval.
+- **What a delete does** (`applyDelete`): nothing is erased, because past orders, bills, quotations, stock history and sales reports look packs up by id. It sets `deletedAt` and hides the record (`active: false`, product `status: "draft"`), so the shop, baskets and checkout need no new code. It writes the remaining stock off through `applyStock`, and sets `alertBelow: 0` so the empty record stops counting as sold out. It renames the SKU or web address to `…-deleted-<last 6 of id>` so they can be used again (`shownSku()` shows the old SKU in history). Requests still waiting for it are withdrawn; one approved for later fails with a reason when its time comes.
+- **Staff lists and saves** spread `notDeleted` (`src/lib/catalog/deleted.ts`) into their filters. A new staff list of packs or products must do the same.
+- **Not built:** an Undo or Restore page. A deleted record stays in the database, so it can be restored by hand.
 
 ## What goes under a product page (November 2026)
 

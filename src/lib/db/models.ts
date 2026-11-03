@@ -119,6 +119,8 @@ const productSchema = new Schema(
     /** Printed on school quotations; each quotation line starts with these and can change them. */
     gstRatePercent: { type: Number, enum: [...GST_RATES] },
     hsnCode: { type: String, match: HSN_RE },
+    /** Set when it was deleted: kept for past orders, gone from everywhere else (catalog/deleted.ts). */
+    deletedAt: Date,
   },
   opts,
 );
@@ -163,6 +165,8 @@ const variantSchema = new Schema(
      * "+costPaise", so no page, list or shopper's browser gets it by accident.
      */
     costPaise: { type: Number, min: 0, validate: Number.isSafeInteger, select: false },
+    /** Set when it was deleted: kept for past orders, gone from everywhere else (catalog/deleted.ts). */
+    deletedAt: Date,
   },
   opts,
 );

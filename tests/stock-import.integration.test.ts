@@ -91,7 +91,7 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
     const { rows, problem } = await planStockImport(
       admin,
       sheet(
-        "NB-100,12,,Monthly count", // counted 12 of 20: take off 8
+        "NB-100,12,,Monthly count", // counted 12 of 20: take off 8, which staff need an owner for
         "nb-200,,+3,", // a change, and SKUs in any case; the shared reason covers it
         "NB-400,,,", // nothing filled in
         "NB-999,4,,Counted", // no such pack
@@ -101,7 +101,7 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
     );
     expect(problem).toBeUndefined();
     expect(rows.map((row) => [row.line, row.outcome, row.delta, row.after])).toEqual([
-      [2, "apply", -8, 12],
+      [2, "approval", -8, 12],
       [3, "apply", 3, 8],
       [4, "same", undefined, undefined],
       [5, "error", undefined, undefined],
@@ -139,7 +139,7 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
 
   it("applies the sheet through the normal stock change, so big changes wait for an owner", async () => {
     await SystemSetting.create({ key: "large-stock-threshold", value: 50 });
-    const text = sheet("NB-100,12,,Monthly count", "NB-200,,60,Supplier delivery", "NB-400,,-1,Damaged", "NB-999,1,,Counted");
+    const text = sheet("NB-100,25,,Monthly count", "NB-200,,60,Supplier delivery", "NB-400,,-1,Damaged", "NB-999,1,,Counted");
     expect((await planStockImport(admin, text)).rows.map((row) => row.outcome)).toEqual(["apply", "approval", "error", "error"]);
     const result = await applyStockImport(admin, text);
     expect(result).toEqual({
@@ -150,13 +150,13 @@ describe.skipIf(!uri)("Stock from a spreadsheet", () => {
         { line: 5, sku: "NB-999", message: "No pack has this SKU." },
       ],
     });
-    expect(await onHand("NB-100")).toBe(12);
+    expect(await onHand("NB-100")).toBe(25);
     // the 60 waits for the owner, as it would from the Stock page
     expect(await onHand("NB-200")).toBe(5);
     expect(await ApprovalRequest.countDocuments({ kind: "stock", state: "pending" })).toBe(1);
     expect(await AuditLog.countDocuments({ actorId: admin })).toBeGreaterThan(0);
     // reading the same counts again changes nothing more
-    expect((await planStockImport(admin, text)).rows[0]).toMatchObject({ outcome: "same", after: 12 });
+    expect((await planStockImport(admin, text)).rows[0]).toMatchObject({ outcome: "same", after: 25 });
   });
 
   it("lets an owner's big changes through at once", async () => {

@@ -265,7 +265,7 @@ const settings: FinderEntry[] = [
     hint: CHECKS,
     href: "/super-admin#stock-approval",
     permission: "settings:write",
-    keywords: ["approval limit", "threshold", "units", "large stock change", "owner approval"],
+    keywords: ["approval limit", "threshold", "units", "large stock change", "large stock addition", "owner approval"],
     keywordsMr: ["मंजुरी", "स्टॉक", "मर्यादा"],
   },
   {
