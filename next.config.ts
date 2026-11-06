@@ -43,7 +43,10 @@ const config: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`,
+            // Google Analytics (components/analytics.tsx): the tag from googletagmanager.com, page views to
+            // analytics.google.com and *.google-analytics.com. Its ad pings (www.google.com/g/collect,
+            // stats.g.doubleclick.net) stay blocked on purpose: the shop doesn't advertise with this data.
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.razorpay.com https://analytics.google.com https://*.analytics.google.com https://*.google-analytics.com https://*.googletagmanager.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`,
           },
           ...(process.env.NODE_ENV === "production"
             ? [
