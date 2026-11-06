@@ -25,6 +25,12 @@ describe("security boundaries", () => {
     expect(parseEnv({ ...env, ...from }).EMAIL_FROM).toBe(from.EMAIL_FROM);
     expect(parseEnv({ ...env, ...from, SMTP_USER: "orders@example.test", SMTP_PASS: "x" }).SMTP_PASS).toBe("x");
   });
+  it("lets only a G-… Measurement ID into the analytics script tag", () => {
+    expect(parseEnv({ ...env, GA_MEASUREMENT_ID: "G-N74DJNS842" }).GA_MEASUREMENT_ID).toBe("G-N74DJNS842");
+    expect(parseEnv({ ...env, GA_MEASUREMENT_ID: "" }).GA_MEASUREMENT_ID).toBeUndefined();
+    for (const bad of ["UA-12345-1", "G-1');alert(1)//", "g-n74djns842"])
+      expect(() => parseEnv({ ...env, GA_MEASUREMENT_ID: bad })).toThrow();
+  });
   it("treats blank optional values, as .env.example ships them, as not set", () => {
     const blank = Object.fromEntries(
       [

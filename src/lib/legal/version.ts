@@ -14,6 +14,9 @@
  * 2026-10-16.1: only what is live: the family tab (khata) is gone, cash on delivery is the only way
  * to pay (no Razorpay text), and the switched-off shop assistant isn't mentioned. Shipping says
  * "shown above" only when an area list is above it.
+ *
+ * 2026-11-07.1: Google Analytics, only after the shopper taps Allow: what it sees, its _ga cookies,
+ * 2 months' retention at Google, and Cookie choices to change the answer.
  */
-export const POLICY_VERSION = "2026-10-16.1";
-export const LAST_UPDATED = { en: "16 October 2026", mr: "16 ऑक्टोबर 2026" } as const;
+export const POLICY_VERSION = "2026-11-07.1";
+export const LAST_UPDATED = { en: "7 November 2026", mr: "7 नोव्हेंबर 2026" } as const;
