@@ -15,6 +15,9 @@
  * to pay (no Razorpay text), and the switched-off shop assistant isn't mentioned. Shipping says
  * "shown above" only when an area list is above it.
  *
+ * 2026-10-31.1: providers: some items are provided by other local shops and say so; Agarwal still
+ * sells, bills, delivers and handles returns, and those shops don't receive customers' details.
+ *
  * 2026-11-07.1: Google Analytics, only after the shopper taps Allow: what it sees, its _ga cookies,
  * 2 months' retention at Google, and Cookie choices to change the answer.
  */

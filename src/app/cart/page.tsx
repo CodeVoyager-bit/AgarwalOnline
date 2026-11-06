@@ -24,6 +24,7 @@ import { redirect } from "next/navigation";
 import { currentLocale } from "@/lib/i18n";
 import { listsFor, memberList } from "@/lib/lists/service";
 import { BasketPills, NewBasket, SharedBasket } from "./shared-basket";
+import { ProviderLine } from "@/components/provider-line";
 export const metadata = { title: "Basket", robots: { index: false } };
 
 export default async function Cart({ searchParams }: { searchParams: Promise<{ basket?: string }> }) {
@@ -168,6 +169,7 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
                         <h3>
                           <Link href={`/products/${line.productSlug}`}>{line.name}</Link>
                         </h3>
+                        <ProviderLine provider={line.provider} />
                         <p className="muted">
                           {line.label} · {formatPrice(line.pricePaise)} each
                           {line.mrpPaise > line.pricePaise && <del> {formatPrice(line.mrpPaise)}</del>}

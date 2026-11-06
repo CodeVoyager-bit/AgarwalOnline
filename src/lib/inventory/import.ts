@@ -8,6 +8,7 @@ import { adjustStock } from "../governance/service";
 import { setAlertLevel, setPackCost } from "../catalog/manage";
 import { paiseFromRupees } from "../display";
 import { headerPositions, parseCsv, toCsv } from "./csv";
+import { notDeleted } from "../catalog/deleted";
 
 /** The most rows one sheet may change, and the largest file read. */
 export const MAX_ROWS = 500;
@@ -28,7 +29,7 @@ export type ImportRow = {
   alertBelow?: number;
   /** New purchase price, when an owner's row changes it. */
   costPaise?: number;
-  /** apply: changes at once · approval: big enough to wait for an owner · same: nothing to change · error: see message */
+  /** apply: changes at once · approval: waits for an owner · same: nothing to change · error: see message */
   outcome: "apply" | "approval" | "same" | "error";
   message?: string;
 };
@@ -47,7 +48,7 @@ async function actor(actorId: string) {
 export async function stockSheet(actorId: string) {
   const { owner } = await actor(actorId);
   const [variants, products, stock] = await Promise.all([
-    ProductVariant.find({})
+    ProductVariant.find(notDeleted)
       .sort({ sku: 1 })
       .select(`sku label productId active${owner ? " +costPaise" : ""}`)
       .lean<{ _id: unknown; sku: string; label: string; productId: unknown; active?: boolean; costPaise?: number }[]>(),
@@ -77,7 +78,8 @@ const whole = (text: string) => (/^[+-]?\d+$/.test(text.trim()) ? Number(text.tr
 
 /**
  * Reads a filled-in sheet against today's stock, row by row, without changing anything: what each
- * row would do, which changes are big enough to wait for an owner, and which rows can't be used.
+ * row would do, which changes wait for an owner (staff lowering a count, or a big change), and
+ * which rows can't be used.
  */
 export async function planStockImport(actorId: string, text: string, sharedReason = ""): Promise<ImportPlan> {
   const { owner } = await actor(actorId);
@@ -94,7 +96,7 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
   const skus = [...new Set(body.map((cells) => (cells[columns.sku!] ?? "").trim()).filter(Boolean))];
   const [variants, setting] = await Promise.all([
     // SKUs match whatever their case in the sheet
-    ProductVariant.find({ sku: { $in: skus } })
+    ProductVariant.find({ sku: { $in: skus }, ...notDeleted })
       .collation({ locale: "en", strength: 2 })
       .select(`sku label productId${owner ? " +costPaise" : ""}`)
       .lean<{ _id: unknown; sku: string; label: string; productId: unknown; costPaise?: number }[]>(),
@@ -162,7 +164,7 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
         ? { ...base, ...extras, delta, after: onHand, outcome: "apply", message: `Already this many. Sets ${also.join(" and ")}.` }
         : { ...base, delta, after: onHand, outcome: "same", message: "Already this many." };
     if (reason.length < 5) return { ...base, delta, after: onHand + delta, outcome: "error", message: "Add a reason (5 letters or more), in the row or above the file." };
-    return { ...base, ...extras, delta, after: onHand + delta, outcome: Math.abs(delta) >= threshold && !owner ? "approval" : "apply", message: note };
+    return { ...base, ...extras, delta, after: onHand + delta, outcome: (delta < 0 || Math.abs(delta) >= threshold) && !owner ? "approval" : "apply", message: note };
   });
   return { rows };
 }
@@ -170,8 +172,8 @@ export async function planStockImport(actorId: string, text: string, sharedReaso
 export type ImportResult = { applied: number; waiting: number; failed: { line: number; sku: string; message: string }[] };
 
 /**
- * Applies a sheet: each usable row through the same stock change as the Stock page, so big changes
- * still wait for an owner and every change is in the audit trail. A row that fails doesn't stop
+ * Applies a sheet: each usable row through the same stock change as the Stock page, so what needs
+ * an owner still waits for one and every change is in the audit trail. A row that fails doesn't stop
  * the rest. The sheet is read again first, so it's checked against stock as it is now.
  */
 export async function applyStockImport(actorId: string, text: string, sharedReason = ""): Promise<ImportResult> {

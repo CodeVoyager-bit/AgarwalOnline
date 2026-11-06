@@ -96,6 +96,7 @@ export const privacyDoc: LegalBuilder = {
             ],
           },
           "These providers handle data for us under their own security terms. Some of them may process it outside India, as the DPDP Act allows.",
+          "The other shops whose items we sell (named under those items) don't receive your details: we pack and deliver every order ourselves.",
         ],
       },
       {
@@ -300,6 +301,7 @@ export const privacyDoc: LegalBuilder = {
             ],
           },
           "या सेवा त्यांच्या स्वतःच्या सुरक्षा अटींनुसार आमच्यासाठी माहिती हाताळतात. त्यापैकी काही, DPDP कायद्याने परवानगी दिल्याप्रमाणे, भारताबाहेर माहितीवर प्रक्रिया करू शकतात.",
+          "आम्ही ज्या इतर दुकानांच्या वस्तू विकतो (त्या वस्तूखाली त्यांचे नाव असते) त्यांना तुमचा तपशील मिळत नाही: प्रत्येक ऑर्डर आम्हीच पॅक करून पोहोचवतो.",
         ],
       },
       {

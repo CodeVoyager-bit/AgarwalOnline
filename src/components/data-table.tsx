@@ -38,6 +38,7 @@ export function DataTable<T,>({
   rowsOnPhone = false,
   exportName,
   exportRows,
+  className,
 }: {
   /** Describes the table for screen readers; visually hidden. */
   caption: string;
@@ -55,6 +56,7 @@ export function DataTable<T,>({
   exportName?: string | false;
   /** Everything the filters matched, when the page shows only the first of them. */
   exportRows?: T[];
+  className?: string;
 }) {
   if (!rows.length) return empty ?? null;
   return (
@@ -64,7 +66,7 @@ export function DataTable<T,>({
           <ExportButton name={exportName ?? caption.split(/[:;,(]/)[0].trim()} rows={tableMatrix(columns, exportRows ?? rows)} />
         </div>
       )}
-      <div className={`${bare ? "" : "panel "}table-scroll data-table${rowsOnPhone ? " rows-on-phone" : ""}`}>
+      <div className={`${bare ? "" : "panel "}table-scroll data-table${rowsOnPhone ? " rows-on-phone" : ""}${className ? ` ${className}` : ""}`}>
         <table role="table">
           <caption className="sr-only">{caption}</caption>
           <thead role="rowgroup">

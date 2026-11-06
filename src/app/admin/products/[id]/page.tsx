@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink, Plus } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { Category, InventoryItem, Product, ProductVariant } from "@/lib/db/models";
 import { objectId } from "@/lib/commerce/service";
@@ -9,7 +9,6 @@ import { formatPrice } from "@/lib/display";
 import { catalogManagementAction } from "@/lib/catalog/manage-actions";
 import { governanceAction } from "@/lib/governance/actions";
 import { ActionForm } from "@/components/action-form";
-import { MoneyInput } from "@/components/money-input";
 import { PageHeading } from "@/components/page-heading";
 import { RecordHistory } from "@/components/record-history";
 import { StatusPill } from "@/components/status-pill";
@@ -19,7 +18,12 @@ import { ApprovalRequest } from "@/lib/governance/models";
 import { hasPermission } from "@/lib/auth/permissions";
 import { isShopperVisible } from "@/lib/catalog/visibility";
 import { GST_RATES } from "@/lib/tax/gst";
-import { DEFAULT_ALERT_BELOW, isLow } from "@/lib/inventory/low-stock";
+import { ProviderPicker, type ProviderOption } from "@/components/provider-picker";
+import { Provider } from "@/lib/providers/models";
+import { PackCard } from "@/components/pack-card";
+import { DeleteRow } from "@/components/delete-row";
+import { StockChangeDialog } from "@/components/stock-change-dialog";
+import { notDeleted } from "@/lib/catalog/deleted";
 export const metadata = { title: "Edit product", robots: { index: false } };
 
 const STATUS_NAMES: Record<string, string> = {
@@ -30,33 +34,48 @@ const STATUS_NAMES: Record<string, string> = {
   rejected: "Rejected",
 };
 
-export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditProduct({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ pack?: string; mode?: string }>;
+}) {
   const user = await requirePage("catalog:write");
   // only an owner prices for schools
   const isOwner = hasPermission(user.roles, "settings:write");
   const { id } = await params;
+  const asked = await searchParams;
   if (!objectId.safeParse(id).success) notFound();
-  const product = await Product.findById(id);
+  const product = await Product.findOne({ _id: id, ...notDeleted });
   if (!product) notFound();
-  const [categories, packs] = await Promise.all([
+  const [categories, packs, providers] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
     // purchase prices are read for owners only
-    ProductVariant.find({ productId: product._id }).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }),
+    ProductVariant.find({ productId: product._id, ...notDeleted }).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }),
+    // its own provider stays in the list whatever its status, so saving never drops it unseen
+    Provider.find({ $or: [{ status: { $in: ["active", "pending"] } }, { _id: product.providerId ?? null }] })
+      .sort({ name: 1 })
+      .select("name town status")
+      .lean<{ _id: unknown; name: string; town: string; status: ProviderOption["status"] }[]>(),
   ]);
   const [stock, waiting] = await Promise.all([
     InventoryItem.find({ variantId: { $in: packs.map((pack) => pack._id) } }),
-    // price and stock changes for its packs, and new pack sizes for it, that an owner hasn't decided yet
+    // price and stock changes for its packs, new pack sizes for it and deletes, that an owner hasn't decided yet
     ApprovalRequest.find({
       state: "pending",
       $or: [
-        { kind: { $in: ["price", "stock"] }, targetId: { $in: packs.map((pack) => pack._id) } },
+        { kind: { $in: ["price", "stock", "delete-pack"] }, targetId: { $in: packs.map((pack) => pack._id) } },
         { kind: "variant", "after.productId": id },
+        { kind: "delete-product", targetId: id },
       ],
     }).sort({ createdAt: 1 }),
   ]);
   const describeRequest = (request: { kind: string; targetId: unknown; after: Record<string, unknown> }) => {
     const pack = packs.find((item) => String(item._id) === String(request.targetId));
     if (request.kind === "variant") return `New pack: ${String(request.after.label)} at ${formatPrice(Number(request.after.pricePaise))}`;
+    if (request.kind === "delete-product") return "Delete this product";
+    if (request.kind === "delete-pack") return `Delete the pack ${pack?.label ?? ""}`;
     if (request.kind === "price") return `${pack?.label ?? "Pack"}: price to ${formatPrice(Number(request.after.pricePaise))}`;
     return `${pack?.label ?? "Pack"}: stock ${Number(request.after.delta) > 0 ? "+" : ""}${Number(request.after.delta)}`;
   };
@@ -66,6 +85,9 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const inShop = isShopperVisible(product);
   const forCustomers = product.showToCustomers !== false;
   const forSchools = product.showToSchools === true;
+  const stockOf = (packId: unknown) => stock.find((row) => String(row.variantId) === String(packId));
+  const changing = asked.pack ? packs.find((pack) => String(pack._id) === asked.pack) : undefined;
+  const stockHref = (packId: unknown, mode: "add" | "remove") => `/admin/products/${id}?pack=${packId}&mode=${mode}`;
   return (
     <section className="page-container">
       <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -127,6 +149,11 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
                 Brand
                 <input name="brand" defaultValue={product.brand} />
               </label>
+              <ProviderPicker
+                owner={isOwner}
+                value={product.providerId ? String(product.providerId) : ""}
+                providers={providers.map((p) => ({ id: String(p._id), name: p.name, town: p.town, status: p.status }))}
+              />
             </div>
             <label>
               Other words shoppers type <small>Separated by commas, English or Marathi</small>
@@ -232,6 +259,15 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
               <input type="hidden" name="productId" value={id} />
               <input type="hidden" name="visible" value={live ? "hide" : "show"} />
             </ActionForm>
+            <DeleteRow
+              target="product"
+              id={id}
+              owner={isOwner}
+              held={stock.reduce((sum, row) => sum + row.reserved, 0)}
+              waiting={waiting.some((request) => request.kind === "delete-product")}
+              onHand={stock.reduce((sum, row) => sum + row.onHand, 0)}
+              packs={packs.length}
+            />
           </div>
           <div className="panel audience-panel">
             <h2>Who can see it</h2>
@@ -263,147 +299,16 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
             <h2>Packs and prices</h2>
             {packs.length ? (
               <ul className="pack-list">
-                {packs.map((pack) => {
-                  const item = stock.find((row) => String(row.variantId) === String(pack._id));
-                  const left = Math.max(0, (item?.onHand ?? 0) - (item?.reserved ?? 0));
-                  const hidden = pack.active === false;
-                  return (
-                    <li key={String(pack._id)}>
-                      <div className="pack-row">
-                        <span>
-                          <strong>{pack.label}</strong>
-                          <small>
-                            SKU {pack.sku} · up to {pack.maxQuantity} per order
-                            {hidden ? " · hidden" : ""}
-                          </small>
-                        </span>
-                        <span className="pack-price">
-                          {formatPrice(pack.pricePaise)}
-                          {pack.mrpPaise > pack.pricePaise && <del>{formatPrice(pack.mrpPaise)}</del>}
-                        </span>
-                      </div>
-                      <p className="pack-school-price muted">
-                        {pack.schoolPricePaise
-                          ? `School price ${formatPrice(pack.schoolPricePaise)} + GST`
-                          : "No school price: schools see “Price on quotation”"}
-                      </p>
-                      <p className="pack-stock">
-                        {left === 0 ? (
-                          <StatusPill tone="bad">Sold out</StatusPill>
-                        ) : isLow(left, item?.alertBelow) ? (
-                          <StatusPill tone="warn">{left} left</StatusPill>
-                        ) : (
-                          <span>{left} in stock</span>
-                        )}
-                        <Link href={`/admin/inventory?adjust=${pack._id}#adjust`}>Adjust stock</Link>
-                      </p>
-                      {isOwner && (
-                        <p className="pack-school-price muted">
-                          {pack.costPaise != null
-                            ? `Bought at ${formatPrice(pack.costPaise)} · ${formatPrice(pack.pricePaise - pack.costPaise)} profit a pack (${
-                                pack.pricePaise ? Math.round(((pack.pricePaise - pack.costPaise) / pack.pricePaise) * 100) : 0
-                              }%)`
-                            : "No purchase price yet: add one to see the profit"}
-                        </p>
-                      )}
-                      <details>
-                        <summary>Change the price</summary>
-                        <ActionForm action={governanceAction} submit="Change price">
-                          <input type="hidden" name="operation" value="price" />
-                          <input type="hidden" name="variantId" value={String(pack._id)} />
-                          <label>
-                            Selling price (₹)
-                            <MoneyInput name="priceRupees" defaultValue={pack.pricePaise / 100} />
-                          </label>
-                          <label>
-                            MRP (₹)
-                            <MoneyInput name="mrpRupees" defaultValue={pack.mrpPaise / 100} />
-                          </label>
-                          <p className="muted">
-                            {isOwner ? "Shoppers see the new price at once." : "An owner approves price changes before shoppers see them."}
-                          </p>
-                        </ActionForm>
-                      </details>
-                      {isOwner && (
-                        <details>
-                          <summary>Purchase price</summary>
-                          <ActionForm action={catalogManagementAction} submit="Save purchase price">
-                            <input type="hidden" name="operation" value="cost" />
-                            <input type="hidden" name="variantId" value={String(pack._id)} />
-                            <label>
-                              What you paid for one pack (₹) <small>Only owners see this. Leave blank to clear it.</small>
-                              <MoneyInput
-                                name="costRupees"
-                                defaultValue={pack.costPaise != null ? pack.costPaise / 100 : undefined}
-                                required={false}
-                              />
-                            </label>
-                          </ActionForm>
-                        </details>
-                      )}
-                      <details>
-                        <summary>Stock alert{` (below ${item?.alertBelow ?? DEFAULT_ALERT_BELOW})`}</summary>
-                        <ActionForm action={catalogManagementAction} submit="Save alert">
-                          <input type="hidden" name="operation" value="alert" />
-                          <input type="hidden" name="variantId" value={String(pack._id)} />
-                          <label>
-                            Warn me when fewer than this can be sold{" "}
-                            <small>0 turns the warning off; blank uses the shop default of {DEFAULT_ALERT_BELOW}</small>
-                            <input
-                              name="alertBelow"
-                              inputMode="numeric"
-                              pattern="[0-9]{1,6}"
-                              defaultValue={item?.alertBelow ?? ""}
-                              placeholder={String(DEFAULT_ALERT_BELOW)}
-                              autoComplete="off"
-                            />
-                          </label>
-                        </ActionForm>
-                      </details>
-                      {isOwner && (
-                        <details>
-                          <summary>School price</summary>
-                          <ActionForm action={catalogManagementAction} submit="Save school price">
-                            <input type="hidden" name="operation" value="school-price" />
-                            <input type="hidden" name="variantId" value={String(pack._id)} />
-                            <label>
-                              School price before GST (₹) <small>Leave blank for “Price on quotation”</small>
-                              <MoneyInput
-                                name="schoolPriceRupees"
-                                defaultValue={pack.schoolPricePaise ? pack.schoolPricePaise / 100 : undefined}
-                                required={false}
-                              />
-                            </label>
-                          </ActionForm>
-                        </details>
-                      )}
-                      <details>
-                        <summary>Name, order limit or hide this pack</summary>
-                        <ActionForm action={catalogManagementAction} submit="Save pack">
-                          <input type="hidden" name="operation" value="pack" />
-                          <input type="hidden" name="variantId" value={String(pack._id)} />
-                          <label>
-                            Pack label <small>What shoppers see, like “Pack of 10”</small>
-                            <input name="label" defaultValue={pack.label} maxLength={40} required />
-                          </label>
-                          <label>
-                            Most one shopper can buy
-                            <input
-                              name="maxQuantity"
-                              inputMode="numeric"
-                              pattern="[0-9]{1,3}"
-                              defaultValue={pack.maxQuantity}
-                              required
-                            />
-                          </label>
-                          <label className="checkbox-label">
-                            <input type="checkbox" name="active" defaultChecked={!hidden} /> Shoppers can buy this pack
-                          </label>
-                        </ActionForm>
-                      </details>
-                    </li>
-                  );
-                })}
+                {packs.map((pack) => (
+                  <PackCard
+                    key={String(pack._id)}
+                    pack={pack}
+                    stock={stockOf(pack._id)}
+                    owner={isOwner}
+                    stockHref={(mode) => stockHref(pack._id, mode)}
+                    deleteWaiting={waiting.some((request) => request.kind === "delete-pack" && String(request.targetId) === String(pack._id))}
+                  />
+                ))}
               </ul>
             ) : (
               <p className="muted">No pack yet, so shoppers cannot buy this product.</p>
@@ -429,13 +334,25 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
                 </ul>
               </div>
             )}
-            <Link href={`/admin/inventory?new=pack&product=${id}#new-pack`} className="text-button">
-              Add another pack size
+            <Link href={`/admin/inventory?new=pack&product=${id}#new-pack`} className="pack-add">
+              <Plus size={16} aria-hidden="true" /> Add another pack size
             </Link>
           </div>
         </aside>
       </div>
       <RecordHistory target={id} title="Product history" />
+      {changing && (
+        <StockChangeDialog
+          key={`${changing._id}-${asked.mode}`}
+          variantId={String(changing._id)}
+          name={`${product.name.en} · ${changing.label}`}
+          mode={asked.mode === "remove" ? "remove" : "add"}
+          onHand={stockOf(changing._id)?.onHand ?? 0}
+          reserved={stockOf(changing._id)?.reserved ?? 0}
+          owner={isOwner}
+          closeHref={`/admin/products/${id}`}
+        />
+      )}
     </section>
   );
 }

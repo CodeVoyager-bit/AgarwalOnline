@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { productImages } from "@/lib/catalog/images";
 import type { CatalogItem } from "@/lib/catalog/queries";
+import { ProviderLine } from "./provider-line";
 import { formatPrice } from "@/lib/display";
+import type { Locale } from "@/lib/locale-types";
 import { AisleIcon } from "./aisle-icon";
 import { QuickAdd } from "./quick-add";
 
-/** A small product tile for rows on the basket page: photo, name, price and the shop's Add button. */
-export function MiniProduct({ product }: { product: CatalogItem }) {
+/** A small product tile for rows on the basket and product pages: photo, name, price and the shop's Add button. */
+export function MiniProduct({ product, locale = "en" }: { product: CatalogItem; locale?: Locale }) {
   const variant = product.variants.find((v) => v.available > 0) ?? product.variants[0];
   const image = product.image ?? productImages[product.slug];
   return (
@@ -20,7 +22,8 @@ export function MiniProduct({ product }: { product: CatalogItem }) {
             <AisleIcon slug={product.categorySlug} />
           )}
         </span>
-        <span className="mini-product-name">{product.name.en}</span>
+        <span className="mini-product-name">{product.name[locale]}</span>
+        <ProviderLine provider={product.provider} />
         <small>{variant.label}</small>
       </Link>
       <div className="mini-product-buy">
@@ -33,7 +36,8 @@ export function MiniProduct({ product }: { product: CatalogItem }) {
           pricePaise={variant.pricePaise}
           available={variant.available}
           max={variant.maxQuantity}
-          name={product.name.en}
+          name={product.name[locale]}
+          mr={locale === "mr"}
         />
       </div>
     </article>

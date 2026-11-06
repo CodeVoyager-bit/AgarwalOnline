@@ -40,6 +40,7 @@ export const termsDoc: LegalBuilder = {
           {
             list: [
               "Products on the site are an invitation to order. Your order is an offer to buy, and a contract is made when the store confirms it.",
+              `Some items are provided by other local shops, and say so under the item ("Provided by …"). We still sell them to you ourselves: your order, bill, delivery, returns and refunds are all with ${f.business.legalName}.`,
               "Prices are in Indian rupees and include all taxes. Prices and stock are checked again when you confirm, and the price at that moment is the one on your order. Delivery charges are shown before you confirm.",
               "Each item may have a limit per order.",
               "If an item is listed at a clearly wrong price, or stock runs out, we may cancel that item or the order and refund anything you paid.",
@@ -202,6 +203,7 @@ export const termsDoc: LegalBuilder = {
           {
             list: [
               "साइटवरील उत्पादने हे ऑर्डर देण्याचे आमंत्रण आहे. तुमची ऑर्डर ही खरेदीची ऑफर आहे, आणि दुकान ती पक्की करते तेव्हा करार होतो.",
+              `काही वस्तू इतर स्थानिक दुकानांकडून येतात, आणि त्या वस्तूखाली तसे लिहिलेले असते ("पुरवठा: …"). तरीही त्या आम्हीच तुम्हाला विकतो: तुमची ऑर्डर, बिल, वितरण, परत करणे आणि पैसे परत हे सर्व ${f.business.legalName} कडेच असते.`,
               "किमती भारतीय रुपयांत असून त्यात सर्व कर समाविष्ट आहेत. तुम्ही ऑर्डर पक्की करताना किमती आणि साठा पुन्हा तपासला जातो, आणि त्या क्षणाची किंमत तुमच्या ऑर्डरवर राहते. वितरण शुल्क पक्की करण्यापूर्वी दाखवले जाते.",
               "प्रत्येक वस्तूवर एका ऑर्डरसाठी मर्यादा असू शकते.",
               "एखाद्या वस्तूची किंमत स्पष्टपणे चुकीची दाखवली गेल्यास, किंवा साठा संपल्यास, आम्ही ती वस्तू किंवा ऑर्डर रद्द करून तुम्ही दिलेले पैसे परत करू शकतो.",

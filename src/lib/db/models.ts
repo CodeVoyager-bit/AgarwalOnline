@@ -89,6 +89,8 @@ const productSchema = new Schema(
     brand: String,
     categoryId: ref("Category"),
     categorySlug: { type: String, required: true },
+    /** Another shop that supplies it ("Provided by …"); missing means our own stock. Agarwal still sells it. */
+    providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
     aliases: [String],
     image: String,
     images: [String],
@@ -117,11 +119,14 @@ const productSchema = new Schema(
     /** Printed on school quotations; each quotation line starts with these and can change them. */
     gstRatePercent: { type: Number, enum: [...GST_RATES] },
     hsnCode: { type: String, match: HSN_RE },
+    /** Set when it was deleted: kept for past orders, gone from everywhere else (catalog/deleted.ts). */
+    deletedAt: Date,
   },
   opts,
 );
 productSchema.index({ categoryId: 1, status: 1 });
 productSchema.index({ status: 1, showToSchools: 1 });
+productSchema.index({ providerId: 1 }, { sparse: true });
 const variantSchema = new Schema(
   {
     productId: ref("Product"),
@@ -160,6 +165,8 @@ const variantSchema = new Schema(
      * "+costPaise", so no page, list or shopper's browser gets it by accident.
      */
     costPaise: { type: Number, min: 0, validate: Number.isSafeInteger, select: false },
+    /** Set when it was deleted: kept for past orders, gone from everywhere else (catalog/deleted.ts). */
+    deletedAt: Date,
   },
   opts,
 );

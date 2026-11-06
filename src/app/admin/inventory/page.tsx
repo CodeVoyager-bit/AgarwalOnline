@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { History, PackageSearch } from "lucide-react";
+import { History, Minus, MoreVertical, PackageSearch, Plus } from "lucide-react";
 import mongoose from "mongoose";
 import { ActionForm } from "@/components/action-form";
 import { DataTable } from "@/components/data-table";
@@ -7,6 +7,9 @@ import { ShowMore, rowsShown } from "@/components/show-more";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { MoneyInput } from "@/components/money-input";
+import { Popover } from "@/components/popover";
+import { DeleteRow } from "@/components/delete-row";
+import { StockChangeDialog } from "@/components/stock-change-dialog";
 import { StatusPill } from "@/components/status-pill";
 import { When } from "@/components/when";
 import { displayStatus } from "@/lib/display";
@@ -22,6 +25,8 @@ import { InventoryMovement } from "@/lib/commerce/models";
 import { InventoryItem, Product, ProductVariant } from "@/lib/db/models";
 import { DEFAULT_ALERT_BELOW, isLow } from "@/lib/inventory/low-stock";
 import { shopSettings } from "@/lib/settings/shop";
+import { notDeleted, shownSku } from "@/lib/catalog/deleted";
+import { ApprovalRequest } from "@/lib/governance/models";
 export const metadata = { title: "Stock", robots: { index: false } };
 
 export default async function InventoryPage({
@@ -33,14 +38,15 @@ export default async function InventoryPage({
   // only an owner prices for schools
   const isOwner = hasPermission(user.roles, "settings:write");
   const params = await searchParams;
-  const [products, variants, inventory, movements, starts] = await Promise.all([
-    Product.find({}).sort({ "name.en": 1 }).limit(500),
+  const [products, variants, inventory, movements, starts, waitingDeletes] = await Promise.all([
+    Product.find(notDeleted).sort({ "name.en": 1 }).limit(500),
     // purchase prices are read for owners only
-    ProductVariant.find({}).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }).limit(2000),
+    ProductVariant.find(notDeleted).select(isOwner ? "+costPaise" : "").sort({ sku: 1 }).limit(2000),
     InventoryItem.find({}).limit(2000),
     InventoryMovement.find({}).sort({ at: -1 }).limit(50).populate("variantId", "sku label"),
     // where a new pack starts (Customize → Form defaults)
     shopSettings("defaults"),
+    ApprovalRequest.find({ kind: "delete-pack", state: "pending" }).select("targetId").lean<{ targetId: unknown }[]>(),
   ]);
   const rows = variants.map((variant) => {
     const product = products.find((item) => String(item._id) === String(variant.productId));
@@ -60,15 +66,16 @@ export default async function InventoryPage({
       (params.stock !== "out" || row.available === 0),
   );
   const page = shown.slice(0, rowsShown(params.show));
-  // the pack being adjusted opens above the table, one at a time
-  const adjusting =
-    params.adjust && mongoose.isValidObjectId(params.adjust)
-      ? rows.find((row) => String(row.variant._id) === params.adjust)
-      : undefined;
+  const rowFor = (id?: string) => (id && mongoose.isValidObjectId(id) ? rows.find((row) => String(row.variant._id) === id) : undefined);
+  // one dialog for the pack being changed (?adjust= is the address older links use), not one per row
+  const changing = rowFor(params.pack ?? params.adjust);
+  // the pack whose alert is being set opens above the table, one at a time
+  const alerting = rowFor(params.alert);
   const filters = new URLSearchParams(
     Object.entries({ q: params.q, stock: params.stock }).filter(([, value]) => value) as [string, string][],
   );
-  const adjustHref = (id: string) => `/admin/inventory?${new URLSearchParams({ ...Object.fromEntries(filters), adjust: id })}#adjust`;
+  const closeHref = `/admin/inventory${filters.size ? `?${filters}` : ""}`;
+  const withParams = (extra: Record<string, string>) => `/admin/inventory?${new URLSearchParams({ ...Object.fromEntries(filters), ...extra })}`;
   const filtered = Boolean(q || params.stock);
   return (
     <section className="page-container">
@@ -83,44 +90,34 @@ export default async function InventoryPage({
         }
       />
       <CatalogAdminNav />
-      {adjusting && (
-        <div className="panel adjust-panel" id="adjust">
+      {changing && (
+        <StockChangeDialog
+          key={`${changing.variant._id}-${params.mode}`}
+          variantId={String(changing.variant._id)}
+          name={`${changing.product?.name.en ?? "Pack"} · ${changing.variant.label}`}
+          mode={params.mode === "remove" ? "remove" : "add"}
+          onHand={changing.onHand}
+          reserved={changing.reserved}
+          owner={isOwner}
+          closeHref={closeHref}
+        />
+      )}
+      {alerting && (
+        <div className="panel adjust-panel" id="alert">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">Adjust stock</span>
+              <span className="eyebrow">Stock alert</span>
               <h2>
-                {adjusting.product?.name.en} · {adjusting.variant.label}
+                {alerting.product?.name.en} · {alerting.variant.label}
               </h2>
             </div>
-            <Link href={`/admin/inventory${filters.size ? `?${filters}` : ""}`} className="text-button">
+            <Link href={closeHref} className="text-button">
               Close
             </Link>
           </div>
-          <p className="muted">
-            {adjusting.onHand} on the shelf · {adjusting.reserved} held for open orders · {adjusting.available} can be sold
-          </p>
-          <ActionForm
-            action={governanceAction}
-            submit="Record the change"
-            confirmMessage={isOwner ? "This changes how many shoppers can buy and is written to the audit trail." : "This changes how many shoppers can buy and is written to the audit trail. Large changes wait for an owner."}
-          >
-            <input type="hidden" name="operation" value="stock" />
-            <input type="hidden" name="variantId" value={String(adjusting.variant._id)} />
-            <div className="staff-form-grid">
-              <label>
-                Change <small>Add with a number, remove with a minus sign: 12 or -3</small>
-                {/* a text field: phone number pads have no minus key */}
-                <input name="delta" pattern="-?[0-9]+" required autoComplete="off" />
-              </label>
-              <label>
-                Reason <small>For example: new delivery from the supplier, or damaged</small>
-                <input name="reason" minLength={5} maxLength={500} required />
-              </label>
-            </div>
-          </ActionForm>
-          <ActionForm action={catalogManagementAction} submit="Save alert" buttonClassName="secondary-button">
+          <ActionForm action={catalogManagementAction} submit="Save alert">
             <input type="hidden" name="operation" value="alert" />
-            <input type="hidden" name="variantId" value={String(adjusting.variant._id)} />
+            <input type="hidden" name="variantId" value={String(alerting.variant._id)} />
             <label>
               Warn me when fewer than this can be sold{" "}
               <small>0 turns the warning off; blank uses the shop default of {DEFAULT_ALERT_BELOW}</small>
@@ -128,7 +125,7 @@ export default async function InventoryPage({
                 name="alertBelow"
                 inputMode="numeric"
                 pattern="[0-9]{1,6}"
-                defaultValue={adjusting.ownAlert ?? ""}
+                defaultValue={alerting.ownAlert ?? ""}
                 placeholder={String(DEFAULT_ALERT_BELOW)}
                 autoComplete="off"
               />
@@ -239,6 +236,7 @@ export default async function InventoryPage({
       <DataTable
         caption="Stock for every pack: on the shelf, held for orders and available to sell"
         rows={page}
+        className="stock-table"
         exportName="Stock"
         exportRows={shown}
         rowKey={(row) => String(row.variant._id)}
@@ -284,11 +282,50 @@ export default async function InventoryPage({
             : []),
           {
             header: "Action",
-            cell: ({ variant, product }) => (
-              <Link href={adjustHref(String(variant._id))} aria-label={`Adjust stock of ${product?.name.en ?? "pack"} ${variant.label}`}>
-                Adjust
-              </Link>
-            ),
+            cell: ({ variant, product, onHand, reserved, available }) => {
+              const id = String(variant._id);
+              const name = `${product?.name.en ?? "pack"} ${variant.label}`;
+              return (
+                <span className="row-actions stock-actions">
+                  {available > 0 && (
+                    <Link
+                      href={withParams({ pack: id, mode: "remove" })}
+                      scroll={false}
+                      className="secondary-button compact-button"
+                      aria-label={`Remove stock of ${name}`}
+                    >
+                      <Minus size={16} aria-hidden="true" /> Remove
+                    </Link>
+                  )}
+                  <Link
+                    href={withParams({ pack: id, mode: "add" })}
+                    scroll={false}
+                    className="primary-button compact-button"
+                    aria-label={`Add stock of ${name}`}
+                  >
+                    <Plus size={16} aria-hidden="true" /> Add
+                  </Link>
+                  <Popover className="overflow-menu" label={`More for ${name}`} summary={<MoreVertical size={18} aria-hidden="true" />}>
+                    <Link href={`${withParams({ alert: id })}#alert`} className="stock-menu-link">
+                      Stock alert
+                    </Link>
+                    {product && (
+                      <Link href={`/admin/products/${product._id}`} className="stock-menu-link">
+                        Edit product
+                      </Link>
+                    )}
+                    <DeleteRow
+                      target="pack"
+                      id={id}
+                      owner={isOwner}
+                      held={reserved}
+                      waiting={waitingDeletes.some((request) => String(request.targetId) === id)}
+                      onHand={onHand}
+                    />
+                  </Popover>
+                </span>
+              );
+            },
           },
         ]}
         empty={
@@ -320,7 +357,7 @@ export default async function InventoryPage({
               const variant = movement.variantId as unknown as { sku?: string; label?: string };
               return (
                 <>
-                  {variant?.label} · <code>{variant?.sku}</code>
+                  {variant?.label} · <code>{shownSku(variant?.sku)}</code>
                 </>
               );
             },

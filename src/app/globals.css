@@ -677,7 +677,11 @@ tbody tr:hover { background: var(--canvas); }
   text-transform: uppercase;
   color: var(--muted);
 }
-.primary-nav { grid-area: nav; display: flex; align-items: center; gap: 26px; min-width: 0; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; }
+.nav-row { grid-area: nav; display: flex; align-items: center; min-width: 0; }
+.primary-nav { flex: 1 1 auto; display: flex; align-items: center; gap: 26px; min-width: 0; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; }
+/* with the school door beside them, the aisles stop short of it and fade out under the edge */
+.nav-row.with-door { gap: 4px; }
+.nav-row.with-door .primary-nav { margin-right: 0; padding-right: 32px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .primary-nav::-webkit-scrollbar { display: none; }
 .primary-nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); font-size: 0.92rem; font-weight: 500; white-space: nowrap; border-bottom: 1.5px solid transparent; }
 .primary-nav a:hover { color: var(--ink); border-color: var(--accent); }
@@ -1239,6 +1243,23 @@ body:has(.consent-banner) .site-footer { padding-bottom: 180px; }
 .product-specs div { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .product-specs dt { color: var(--muted); }
 .product-specs dd { margin: 0; font-weight: 500; }
+.product-specs dl { margin: 0; }
+/* packing slip: one group per shop the items come from */
+.slip-group th { padding-top: 12px; color: var(--accent); font-size: 0.78rem; letter-spacing: 0.08em; text-align: left; text-transform: uppercase; }
+.product-specs-title { margin: 0 0 4px; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* "Provided by": another shop supplies the item; tinted so it reads as the first fact */
+.product-specs .provider-row { margin: 0 -10px; padding-inline: 10px; border-radius: var(--r-sm); background: var(--brand-soft); }
+.product-specs .provider-row dd { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.product-specs .provider-row svg { flex: none; }
+/* the shop icon and "Sharma Stationers, Roha" under an item on cards, in the basket and on orders */
+.provider-line { display: flex; align-items: center; gap: 4px; min-width: 0; margin: 0 0 4px; color: var(--ink-2); font-size: 0.78rem; }
+.provider-line svg { flex: none; color: var(--accent); }
+.provider-line > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.new-provider { grid-column: 1 / -1; padding: 12px 14px; border: 1px dashed var(--accent); border-radius: var(--r-md); background: var(--brand-soft); }
+.new-provider > legend { padding: 0 6px; font-weight: 600; color: var(--accent); }
+.new-provider .muted { margin: 8px 0 0; }
+.provider-decision { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.provider-decision > p { margin: 0 0 10px; }
 .review-card { margin: 0; }
 .review-card > div:first-child { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; color: var(--gold); letter-spacing: 0.1em; }
 .review-card h3 { margin-bottom: 4px; }
@@ -1713,7 +1734,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   /* when the line and the links don't fit side by side ("For my school", big text), the links move
      under the line instead of squeezing it to 3–5 lines or pushing the language switch off the edge */
   .top-strip-inner { flex-wrap: wrap; row-gap: 2px; }
-  .top-strip p { flex: 1 1 14rem; }
+  .top-strip p { flex: 1 1 auto; }
   .top-strip-links { flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; margin-left: auto; min-width: 0; }
   .top-strip p:has(.offer-code) > span:not(:last-child) { display: none; }
   .top-strip .locale-toggle button { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
@@ -1724,7 +1745,7 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
     gap: 6px 12px;
     padding: 10px var(--gutter) 12px;
   }
-  .primary-nav { display: none; }
+  .nav-row { display: none; }
   .brand { min-height: 44px; align-items: center; font-size: 25px; } /* px on purpose: enlarged text grows the content, not the wordmark */
   /* a phone's brand row has room for "Agarwal Online" side by side (about 366px with the promise) */
   .header:not(.staff-header, .school-header) .brand { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; }
@@ -1919,9 +1940,9 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .product-detail { gap: 0; }
   .product-gallery { margin-bottom: 16px; }
   .product-info { display: contents; }
-  /* name over the photo, so the pinned buy bar never covers it on the first screen */
-  .product-info > :is(.product-title-row, h1, h1 + .muted) { order: -1; }
-  .product-info > :is(.description, .product-delivery-note, .add-to-list, .product-specs) { order: 1; }
+  /* the photo first, then the name (the owner's choice, 2026-10-31); Product info, with who provides
+     the item, follows the packs, and the longer reading goes last */
+  .product-info > :is(.description, .product-delivery-note, .add-to-list) { order: 1; }
   .product-info .description { margin-top: 20px; font-size: 1rem; }
   .product-assurance-row { margin: 12px 0 16px; }
   .variant-list:has(> :only-child) {
@@ -2116,6 +2137,8 @@ details.account-menu[open] > summary svg:last-child { transform: rotate(180deg);
   .workspace-heading:has(.overview-aside) { align-items: flex-start; }
   /* the chip on the left, New on the right, so its menu opens leftwards inside the screen */
   .overview-aside { width: 100%; justify-content: space-between; }
+  /* New stays on the right even when it wraps under the chip, or its menu opens off the screen */
+  .overview-aside .new-menu { margin-left: auto; }
   .new-menu .popover-panel { left: auto; right: 0; max-width: calc(100vw - 2 * var(--gutter)); }
   .needs-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; }
   .needs-count { font-size: 1.4rem; }
@@ -2842,6 +2865,40 @@ td .form-stack > .compact-button { min-width: 0; }
   .basket-goals-list { justify-content: flex-start; }
 }
 
+/* Product page: what goes with this item (related-rows.tsx, bought-together.tsx) */
+.mini-grid.related-row { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.together-box { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(190px, auto); align-items: center; gap: 12px 24px; padding: 14px 18px; border: 1px solid var(--brand); border-radius: var(--r-lg); background: var(--brand-soft); }
+.together-art { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.together-photo { position: relative; display: grid; place-items: center; flex: none; width: 84px; aspect-ratio: 1; overflow: hidden; border-radius: var(--r-md); background: var(--paper); }
+.together-plus { flex: none; color: var(--muted); font-weight: 600; }
+.together-lines { display: grid; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.together-lines li { display: flex; align-items: center; gap: 6px; min-height: 44px; margin: 0; }
+.together-tick { display: grid; place-items: center; flex: none; width: 36px; min-height: 44px; margin: 0; cursor: pointer; }
+.together-tick input { width: 24px; height: 24px; min-height: 0; margin: 0; padding: 0; accent-color: var(--brand); cursor: pointer; }
+.together-done { color: var(--success); cursor: default; }
+.together-name { display: grid; flex: 1; min-width: 0; font-size: 0.92rem; font-weight: 500; line-height: 1.3; }
+.together-name a { display: inline-flex; align-items: center; min-height: 24px; color: var(--ink); }
+.together-name small { color: var(--muted); font-size: 0.76rem; font-weight: 400; }
+.together-price { flex: none; font-weight: 700; }
+.together-buy { display: grid; gap: 8px; min-width: 0; }
+.together-buy > :is(.primary-button, .secondary-button) { width: 100%; min-height: 44px; }
+.together-buy .error-message { margin: 0; font-size: 0.82rem; }
+@media (max-width: 1023px) {
+  /* every item stays reachable: the row swipes instead of hiding what doesn't fit */
+  .mini-grid.related-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 30%; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) 4px; overflow-x: auto; scroll-padding-inline: var(--gutter); scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .mini-grid.related-row::-webkit-scrollbar { display: none; }
+  .mini-grid.related-row > * { scroll-snap-align: start; }
+  .mini-grid.related-row > :nth-child(n + 4) { display: flex; }
+  .together-box { grid-template-columns: auto minmax(0, 1fr); }
+  .together-buy { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .mini-grid.related-row { grid-auto-columns: 44%; }
+  .together-box { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .together-photo { flex: 1 1 0; width: auto; min-width: 0; max-width: 96px; }
+  .together-art { justify-content: center; }
+}
+
 /* =============================================================================
    Staff workspace chrome (staff-chrome.tsx): its own header with the workspace search,
    the grouped menu with counts, and on phones a staff tab bar with Search and More sheets.
@@ -3181,10 +3238,12 @@ a.school-pill:hover, .school-switch > summary:hover .school-pill { background: #
 .school-main-area { flex: 1 0 auto; }
 
 /* the door between shop and school: in the shop it leads in, in the school header it leads back out.
-   A pill in the aisle row, a chip in the phone's top strip */
-.school-header .primary-nav a.school-door-pill { margin-left: auto; }
-.primary-nav a.school-door-pill { gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--brand); border-radius: var(--r-pill); background: var(--brand-tint); color: var(--brand); font-weight: 600; }
-.primary-nav a.school-door-pill:hover { background: #dde1ed; background: color-mix(in oklab, var(--brand) 15%, var(--canvas)); border-color: var(--brand); }
+   A button pinned at the end of the aisle row (never scrolled out of sight), a chip in the phone's top strip */
+.school-door-pill { display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--brand); border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); font-size: 0.92rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+.school-door-pill:hover { border-color: var(--brand-strong); background: var(--brand-strong); color: var(--on-brand); }
+/* in the school, the way back to the shop is the quieter outline */
+.school-header .school-door-pill { background: var(--brand-tint); color: var(--brand); }
+.school-header .school-door-pill:hover { background: #dde1ed; background: color-mix(in oklab, var(--brand) 15%, var(--canvas)); border-color: var(--brand); color: var(--brand); }
 .top-strip-links > a.school-door { display: none; }
 
 /* home: the shop's welcome band, with the basket or a ready quotation beside it */
@@ -3345,6 +3404,11 @@ li .school-row-item { text-decoration: none; }
 .slot-picker legend { margin-bottom: 6px; padding: 0; font-weight: 600; }
 .slot-day { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: start; gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 .slot-day:first-of-type { border-top: 0; }
+/* later days fold away under "Show more times" (the grid above would otherwise override hidden) */
+.slot-day[hidden] { display: none; }
+.slot-more { display: inline-flex; align-items: center; justify-content: center; gap: 6px; justify-self: start; min-height: 44px; margin-top: 4px; padding: 0 18px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--paper); color: var(--link); font: inherit; font-size: 0.92rem; font-weight: 600; cursor: pointer; }
+.slot-more:hover { border-color: var(--ink); color: var(--ink); }
+.slot-more:focus-visible { outline: 0; box-shadow: var(--ring); }
 .slot-day-name { padding-top: 10px; font-weight: 600; }
 .slot-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .slot-option { position: relative; display: inline-flex; }
@@ -3447,8 +3511,10 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
   .variant-card:only-child .product-limit { display: none; }
   .slot-day { grid-template-columns: 1fr; gap: 6px; }
   .slot-day-name { padding-top: 0; }
-  .slot-option { flex: 1 1 calc(50% - 4px); }
-  .slot-option span[aria-hidden] { justify-content: center; width: 100%; }
+  /* two times to a row: "10 AM – 1 PM" fits half a phone */
+  .slot-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slot-option span[aria-hidden] { justify-content: center; width: 100%; padding: 0 8px; white-space: nowrap; }
+  .slot-more { justify-self: stretch; }
   .search-popover .search-chips a { min-height: 44px; }
   .search-start-head .text-button { min-height: 44px; }
   .packing-slip { padding: 18px; }
@@ -3515,11 +3581,22 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
 .workspace-nav.is-sheet > details[open] > summary > svg { transform: rotate(180deg); }
 .workspace-nav.is-sheet > details > .workspace-group-items { padding: 0 0 8px; }
 
-/* Staff header on phones: the shop is one tap away, as an icon beside the bell */
+/* Staff header on phones: the name on two lines, as in the shop, and the shop, sound and bell in one
+   capsule, so the two never meet. The shop is one tap away, as an icon beside the bell */
 @media (max-width: 760px) {
-  .staff-header .view-shop { display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); }
+  .staff-brand { min-width: 0; font-size: 23px; } /* px on purpose: enlarged text grows the content, not the wordmark */
+  .staff-brand-name { display: grid; gap: 3px; line-height: 1; }
+  .staff-brand-online { color: var(--muted); font-family: var(--font-sans); font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; }
+  .staff-header .view-shop { display: grid; place-items: center; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); }
   .staff-header .view-shop span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-  .staff-header-actions { gap: 2px; }
+  .staff-header-actions { gap: 0; padding: 0 2px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); }
+  .staff-header-actions > :is(.view-shop, .order-alerts, .alerts-bell) { width: 38px; height: 44px; min-height: 44px; }
+  .alerts-bell .nav-count { top: 0; right: -4px; font-size: 11px; } /* px: its bubble doesn't grow with enlarged text */
+  /* the overview has no Back button, so the name starts at the page's edge */
+  .staff-header-inner:not(:has(.staff-back)) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand actions"; }
+}
+@media (max-width: 340px) {
+  .staff-brand { font-size: 20px; }
 }
 
 /* Store settings on phones: each section shows its title and summary; its forms open on a tap */
@@ -3665,24 +3742,142 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
 .site-footer.is-compact { margin-top: 24px; }
 .site-footer.is-compact .footer-base-inner p a { color: inherit; text-decoration: underline; }
 
-/* Edit product's "Packs and prices": one look for every action on a pack ("Adjust stock",
-   "Change the price", "School price", "Name, order limit…" and "Add another pack size") */
-.pack-list .pack-stock a,
-.pack-list details > summary,
-.pack-list + .text-button,
-.pack-list ~ .text-button {
-  display: inline-flex;
+/* Edit product's "Packs and prices": each setting is a row showing its value that opens in place,
+   like a phone's settings. Delete is the same row in red, here and on the Stock page's menu. */
+.pack-list > li { padding: 14px 0 4px; }
+.pack-list > li:last-child { border-bottom: 0; }
+.pack-row strong { font-size: 1.02rem; }
+.pack-stock { flex-wrap: nowrap; gap: 6px; margin: 10px 0 6px; padding: 8px 8px 8px 12px; border-radius: var(--r); background: var(--brand-soft); }
+.pack-stock-count { flex: 1 1 auto; display: grid; justify-items: start; min-width: 0; }
+.pack-stock-count small { color: var(--muted); font-size: 0.76rem; }
+.pack-stock .compact-button { flex: none; gap: 4px; padding-inline: 10px; text-decoration: none; }
+.pack-setting { border-top: 1px solid var(--line); }
+.pack-stock + .pack-setting { border-top: 0; }
+details.pack-setting > summary, .pack-setting-row {
+  display: flex;
   align-items: center;
-  min-height: 36px;
-  color: var(--link);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+details.pack-setting > summary > svg:first-child, .pack-setting-row > svg:first-child { flex: none; color: var(--brand); }
+.pack-setting-name { flex: 1 1 auto; min-width: 0; }
+.pack-setting-value { color: var(--muted); font-size: 0.82rem; font-weight: 400; text-align: right; }
+.pack-setting-chevron { flex: none; color: var(--faint); transition: transform var(--fast); }
+.pack-setting[open] > summary .pack-setting-chevron { transform: rotate(90deg); }
+.pack-setting-body { padding: 4px 0 16px; }
+.pack-setting-body > .muted { margin: 0 0 10px; font-size: 0.84rem; }
+details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summary > svg:first-child, .pack-setting-row.is-danger, .pack-setting-row.is-danger > svg:first-child { color: var(--danger); }
+.pack-delete-form { border-top: 1px solid var(--line); }
+.pack-delete-form > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
+.pack-delete-form > .error-message { margin: 8px 0 0; }
+.pack-delete-form .sr-only + button { margin-top: 0; }
+.pack-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r);
+  color: var(--link);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.pack-add:hover { background: var(--brand-soft); }
+.visibility-panel > :is(.pack-setting, .pack-delete-form, .pack-setting-row) { margin-top: 14px; }
+.visibility-panel > .pack-setting-row { border-top: 1px solid var(--line); }
 @media (pointer: coarse) {
-  .pack-list .pack-stock a, .pack-list details > summary, .pack-list ~ .text-button { min-height: 44px; }
+  .pack-stock .compact-button, .stock-actions .compact-button { min-height: 44px; }
+}
+
+/* Deleting: a red confirm button, and what happens listed plainly */
+.danger-button { background: var(--danger); }
+.danger-button:hover { background: var(--danger); filter: brightness(0.9); }
+.confirm-list { display: grid; gap: 8px; margin: 0; padding: 0 0 0 18px; }
+@media (max-width: 760px) {
+  .modal-backdrop:has(> .confirm-modal.is-danger) { place-items: end stretch; padding: 0; }
+  .confirm-modal.is-danger { width: 100%; padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .confirm-modal.is-danger .split-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+}
+
+/* Add or remove stock: a popup on PC, a sheet from the bottom on phones */
+.stock-dialog { width: min(440px, calc(100vw - 32px)); margin: auto; max-height: calc(100dvh - 32px); padding: 24px; border: 0; border-radius: var(--r-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-lg); overflow-y: auto; }
+.stock-dialog::backdrop { background: var(--scrim); }
+.stock-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.stock-dialog-head h2 { margin: 0; font-size: 1.3rem; }
+.stock-dialog-close { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--ink); cursor: pointer; }
+.stock-dialog-close:hover { background: var(--brand-soft); }
+.stock-dialog > p { margin: 0 0 14px; font-size: 0.88rem; }
+.stock-quantity { display: flex; align-items: center; gap: 8px; }
+.stock-quantity button { flex: none; display: grid; place-items: center; min-width: 48px; height: 48px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r); background: var(--surface); color: var(--ink); font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+.form-stack label.stock-quantity-box { flex: 1 1 auto; min-width: 0; }
+.stock-quantity-box input { width: 100%; height: 48px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r); font-size: 1.2rem; font-weight: 600; text-align: center; }
+.stock-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; }
+.stock-reasons legend { margin-bottom: 6px; padding: 0; font-size: 0.88rem; font-weight: 600; }
+.form-stack .stock-reasons label { position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: 0.86rem; font-weight: 500; cursor: pointer; }
+.stock-reasons input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.form-stack .stock-reasons label:has(input:checked) { border-color: var(--brand); background: var(--brand-tint); color: var(--brand); font-weight: 600; }
+.stock-reasons label:has(input:focus-visible) { box-shadow: var(--ring); }
+.stock-result { margin: 0; padding: 8px 12px; border-radius: var(--r); background: var(--brand-soft); font-size: 0.9rem; text-align: center; font-variant-numeric: tabular-nums; }
+.stock-dialog .form-stack > button { width: 100%; }
+.stock-dialog .danger-outline { border-color: var(--danger); color: var(--danger); }
+.stock-dialog .danger-outline:hover { background: var(--danger); border-color: var(--danger); color: var(--canvas); }
+.stock-done .primary-button { width: 100%; margin-top: 14px; }
+@media (max-width: 760px) {
+  .stock-dialog { width: 100%; max-width: 100%; margin: auto 0 0; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+}
+
+/* The Stock page: Remove, Add and a menu on each row; on phones a card with the three counts side by side */
+/* the headings wrap so the buttons fit beside the counts instead of running off the table's edge */
+.stock-table th { padding-inline: 10px; white-space: normal; vertical-align: bottom; }
+.stock-table td { padding-inline: 10px; }
+.stock-table th:first-child, .stock-table td:first-child { padding-left: 16px; }
+.stock-table td:last-child { width: 1%; }
+.stock-actions { flex-wrap: nowrap; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+.stock-actions:has(.overflow-menu[open]) { flex-wrap: wrap; }
+.stock-actions .compact-button { gap: 4px; padding-inline: 10px; text-decoration: none; }
+.table-scroll .stock-actions a.primary-button { color: var(--on-brand); }
+.table-scroll .stock-actions a.secondary-button { color: var(--ink); font-weight: 600; }
+.table-scroll .stock-actions a.secondary-button:hover { color: var(--canvas); }
+.stock-actions .overflow-menu > summary { width: 36px; height: 36px; }
+.stock-actions .overflow-menu[open] { flex: 1 1 100%; display: flex; flex-direction: column; align-items: flex-end; }
+/* in the row's own flow, so the table's edge can't cut it off; while closed it takes up no room at all */
+.stock-actions .overflow-menu:not([open]) .popover-panel { display: none; }
+.stock-actions .overflow-menu .popover-panel { position: static; width: 100%; min-width: 220px; margin-top: 6px; gap: 0; padding: 4px 12px; box-shadow: none; text-align: left; }
+.table-scroll .stock-menu-link { display: flex; align-items: center; min-height: 44px; color: var(--ink); font-weight: 500; text-decoration: none; }
+@media (pointer: coarse) {
+  .stock-actions .overflow-menu > summary { width: 44px; height: 44px; }
+}
+@media (max-width: 760px) {
+  .stock-table tbody tr { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 10px; }
+  .stock-table td { align-content: space-between; padding-inline: 0; } /* the counts line up when one label takes two lines */
+  .stock-table td:first-child { padding-left: 0; }
+  .stock-table td:last-child { width: auto; }
+  .stock-table td:last-child { padding-top: 8px; }
+  .stock-table td:last-child::before { display: none; }
+  .stock-actions { display: flex; justify-content: stretch; width: 100%; white-space: normal; }
+  .stock-actions > .compact-button { flex: 1 1 0; }
+  .stock-actions .overflow-menu .popover-panel { min-width: 0; }
 }
 /* a filter row's button stands as tall as the boxes beside it */
 .audit-filters > :is(button, .primary-button, .secondary-button) { min-height: 48px; }
@@ -3729,10 +3924,25 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
   .mobile-nav { left: 8px; right: 8px; padding: 0 4px; }
   .nav-label { letter-spacing: -0.01em; }
 }
-@media (max-width: 400px) {
-  /* the school door shrinks to its icon; its name stays for screen readers */
+/* the phone top bar on one line: a truck and the short words on the left, the school door and "EN | मराठी" on the right */
+.strip-free { display: inline-flex; align-items: center; gap: 6px; }
+.strip-truck, .strip-short, .welcome-tiny, .locale-short { display: none; }
+@media (max-width: 760px) {
+  .strip-truck { display: block; flex: none; color: var(--offer); }
+}
+@media (max-width: 480px) {
+  .strip-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .strip-short { display: inline; white-space: nowrap; }
+  .top-strip .locale-long { display: none; }
+  .top-strip .locale-short { display: inline; }
+  .top-strip-links { gap: 4px 8px; }
+  /* the school door shrinks to a round icon; its name stays for screen readers */
   .school-door-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-  .top-strip-links > a.school-door { min-width: 32px; justify-content: center; }
+  .top-strip-links > a.school-door:has(.school-door-label) { width: 32px; height: 32px; justify-content: center; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+}
+@media (max-width: 380px) {
+  .welcome-short { display: none; }
+  .welcome-tiny { display: inline; }
 }
 @media (max-width: 340px) {
   .mobile-nav { padding: 0 2px; }

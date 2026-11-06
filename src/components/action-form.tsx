@@ -21,6 +21,9 @@ export function ActionForm({
   className = "form-stack",
   buttonClassName = "primary-button",
   confirmMessage,
+  danger = false,
+  submitIcon,
+  onSuccess,
   offlineMessage,
   disabled = false,
 }: {
@@ -29,7 +32,12 @@ export function ActionForm({
   submit?: string;
   className?: string;
   buttonClassName?: string;
-  confirmMessage?: string;
+  confirmMessage?: React.ReactNode;
+  /** The confirm dialog is for deleting: a red button, and on phones a sheet from the bottom. */
+  danger?: boolean;
+  submitIcon?: React.ReactNode;
+  /** Called with the success message, for a parent that replaces the form once it has saved. */
+  onSuccess?: (message: string) => void;
   /** What to say when the store can't be reached; defaults to "nothing was lost, tap again". */
   offlineMessage?: string;
   /** Turn the button off when the form can't succeed yet (the page says why). */
@@ -45,6 +53,10 @@ export function ActionForm({
   const opener = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const messageId = useId();
+  useEffect(() => {
+    if (state.success) onSuccess?.(state.success);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per save, whatever the parent re-renders
+  }, [state]);
   // an "add" form should still empty itself once the save goes through
   const keepAfterError = (event: React.FormEvent) => {
     if (state.error) event.preventDefault();
@@ -105,6 +117,7 @@ export function ActionForm({
         {state.error && <p role="alert" className="error-message">{state.error}</p>}
         {state.success && <p role="status" className="success-message">{state.success}</p>}
         <button className={buttonClassName} disabled={pending || disabled} aria-busy={pending}>
+          {!pending && submitIcon}
           {pending ? "Please wait…" : submit}
         </button>
       </form>
@@ -112,7 +125,7 @@ export function ActionForm({
         <div className="modal-backdrop" role="presentation" onMouseDown={dismiss}>
           <div
             ref={dialogRef}
-            className="confirm-modal"
+            className={`confirm-modal${danger ? " is-danger" : ""}`}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -122,7 +135,7 @@ export function ActionForm({
             <span className="eyebrow">Please review</span>
             {/* name the exact action: a generic "Are you sure?" gets clicked through */}
             <h2 id={titleId}>{submit}?</h2>
-            <p id={messageId}>{confirmMessage}</p>
+            {typeof confirmMessage === "string" ? <p id={messageId}>{confirmMessage}</p> : <div id={messageId}>{confirmMessage}</div>}
             <div className="split-actions">
               <button type="button" className="secondary-button" onClick={dismiss}>
                 No, go back
@@ -130,7 +143,7 @@ export function ActionForm({
               <button
                 ref={confirmRef}
                 type="button"
-                className="primary-button"
+                className={danger ? "primary-button danger-button" : "primary-button"}
                 onClick={() => {
                   approved.current = true;
                   setConfirming(false);

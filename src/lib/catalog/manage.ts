@@ -13,6 +13,8 @@ import {
 import { objectId } from "../commerce/service";
 import { gstRateField, hsnField, optionalField } from "../tax/gst";
 import { orderedPhotos, photoFields, photoList } from "./photos";
+import { chosenProvider } from "../providers/service";
+import { notDeleted } from "./deleted";
 
 async function authorize(actorId: string, permission: Permission = "catalog:write") {
   await connectDB();
@@ -87,6 +89,9 @@ export async function saveCategory(actorId: string, input: unknown) {
 
 export async function updateProductMetadata(actorId: string, input: unknown) {
   await authorize(actorId);
+  // the "Provided by" choice; a caller that sends none leaves the provider as it is
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const providerChosen = "providerId" in raw;
   const data = z
     .object({
       productId: objectId,
@@ -109,10 +114,11 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
     })
     .parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const product = await Product.findById(data.productId).session(session);
+    const product = await Product.findOne({ _id: data.productId, ...notDeleted }).session(session);
     const category = await Category.findById(data.categoryId).session(session);
     if (!product || !category) throw Error("Product or category not found.");
     const before = product.toObject();
+    const providerId = providerChosen ? await chosenProvider(actorId, raw, session) : product.providerId;
     const enHighlights = data.highlightsEn.split("\n").map((item) => item.trim()).filter(Boolean);
     const mrHighlights = data.highlightsMr.split("\n").map((item) => item.trim()).filter(Boolean);
     const specifications = data.specifications
@@ -129,6 +135,7 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
       brand: data.brand,
       categoryId: category._id,
       categorySlug: category.slug,
+      providerId,
       aliases: [
         ...new Set(
           data.aliases
@@ -172,7 +179,7 @@ export async function saveProductPhotos(actorId: string, input: unknown) {
   await authorize(actorId);
   const data = z.object({ productId: objectId, images: photoList }).parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const product = await Product.findById(data.productId).session(session);
+    const product = await Product.findOne({ _id: data.productId, ...notDeleted }).session(session);
     if (!product) throw Error("Product not found.");
     const before = orderedPhotos(product);
     const fields = photoFields(data.images);
@@ -196,7 +203,7 @@ export async function setProductVisibility(actorId: string, input: unknown) {
     .object({ productId: objectId, visible: z.enum(["show", "hide"]) })
     .parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const product = await Product.findById(data.productId).session(session);
+    const product = await Product.findOne({ _id: data.productId, ...notDeleted }).session(session);
     if (!product) throw Error("Product not found.");
     const status = data.visible === "show" ? "published" : "draft";
     if (product.status === status) return;
@@ -237,7 +244,7 @@ export async function updateVariant(actorId: string, input: unknown) {
     })
     .parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const variant = await ProductVariant.findById(data.variantId).session(session);
+    const variant = await ProductVariant.findOne({ _id: data.variantId, ...notDeleted }).session(session);
     if (!variant) throw Error("Pack not found.");
     const before = { label: variant.label, maxQuantity: variant.maxQuantity, active: variant.active !== false };
     variant.set({ label: data.label, maxQuantity: data.maxQuantity, active: data.active });
@@ -269,7 +276,7 @@ export async function setProductAudience(actorId: string, input: unknown) {
     })
     .parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const product = await Product.findById(data.productId).session(session);
+    const product = await Product.findOne({ _id: data.productId, ...notDeleted }).session(session);
     if (!product) throw Error("Product not found.");
     const before = { showToCustomers: product.showToCustomers !== false, showToSchools: product.showToSchools === true };
     const after = { showToCustomers: data.showToCustomers, showToSchools: data.showToSchools };
@@ -296,7 +303,7 @@ export async function setSchoolPrice(actorId: string, input: unknown) {
     })
     .parse(input);
   await mongoose.connection.transaction(async (session) => {
-    const variant = await ProductVariant.findById(data.variantId).session(session);
+    const variant = await ProductVariant.findOne({ _id: data.variantId, ...notDeleted }).session(session);
     if (!variant) throw Error("Pack not found.");
     const before = variant.schoolPricePaise ?? null;
     const after = data.schoolPricePaise ?? null;
@@ -317,7 +324,7 @@ export async function setAlertLevel(actorId: string, input: unknown) {
     .object({ variantId: objectId, alertBelow: optionalField(z.coerce.number().int().min(0).max(100000)) })
     .parse(input);
   const item = await InventoryItem.findOne({ variantId: data.variantId });
-  if (!item) throw Error("Pack not found.");
+  if (!item || !(await ProductVariant.exists({ _id: data.variantId, ...notDeleted }))) throw Error("Pack not found.");
   const before = item.alertBelow ?? null;
   const after = data.alertBelow ?? null;
   if (before === after) return;
@@ -334,7 +341,7 @@ export async function setPackCost(actorId: string, input: unknown) {
   const data = z
     .object({ variantId: objectId, costPaise: optionalField(z.coerce.number().int().min(0).max(10_000_000)) })
     .parse(input);
-  const variant = await ProductVariant.findById(data.variantId).select("+costPaise");
+  const variant = await ProductVariant.findOne({ _id: data.variantId, ...notDeleted }).select("+costPaise");
   if (!variant) throw Error("Pack not found.");
   const before = variant.costPaise ?? null;
   const after = data.costPaise ?? null;

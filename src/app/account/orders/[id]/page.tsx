@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ProviderLine } from "@/components/provider-line";
 import { notFound } from "next/navigation";
 import {
   CheckCircle2,
@@ -233,6 +234,7 @@ export default async function OrderDetail({
                     </span>
                     <span className="order-item-info">
                       {picture?.href ? <Link href={picture.href}>{line.name}</Link> : <span>{line.name}</span>}
+                      <ProviderLine provider={line.providerName ? { name: line.providerName, town: line.providerTown ?? "" } : null} />
                       <small>
                         {line.label}
                         {line.quantity > 0 && ` · ${line.quantity}\u00a0×\u00a0${formatPrice(line.pricePaise)}`}

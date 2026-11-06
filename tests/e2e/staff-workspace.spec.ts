@@ -13,6 +13,7 @@ const ADMIN = { name: "Workspace Admin", phone: "9000000062", email: "ws-admin@e
 const SHOPPER = { name: "Workspace Shopper", phone: "9000000063", email: "ws-shopper@e2e.test" };
 const phones = [OWNER.phone, ADMIN.phone, SHOPPER.phone];
 const CHAT = "Workspace test: is my order on its way?";
+const out = process.env.SHOT_DIR;
 
 test.beforeAll(async () => {
   await mongoose.connect(uri);
@@ -143,5 +144,54 @@ test.describe("phone", () => {
     await more.getByRole("link", { name: "Staff & roles" }).click();
     await expect(page).toHaveURL("/super-admin/staff");
     await expect(more).toHaveCount(0);
+  });
+
+  test("the shop's name and the header icons never meet, on any phone", async ({ page }) => {
+    await signIn(page, OWNER);
+    // a page with the Back button: the overview has none, and more room
+    await page.goto("/admin/products");
+    const banner = page.getByRole("banner");
+    await expect(banner.getByRole("button", { name: "Back" })).toBeVisible();
+    const icons = banner.locator(".staff-header-actions");
+    for (const [width, textSize] of [
+      [320, "100%"],
+      [360, "100%"],
+      [369, "100%"],
+      [412, "100%"],
+      [360, "200%"],
+    ] as const) {
+      await page.setViewportSize({ width, height: 740 });
+      await page.evaluate((size) => {
+        document.documentElement.style.fontSize = size;
+      }, textSize);
+      // where the letters really end: they can run past the box the layout gives them
+      const nameEnd = await banner.locator(".staff-brand").evaluate((element) => {
+        const letters = document.createRange();
+        letters.selectNodeContents(element);
+        return letters.getBoundingClientRect().right;
+      });
+      const capsule = (await icons.boundingBox())!;
+      expect(nameEnd, `${width}px at ${textSize} text`).toBeLessThanOrEqual(capsule.x);
+      expect(capsule.x + capsule.width).toBeLessThanOrEqual(width);
+      await expect(banner.getByRole("link", { name: "View shop" })).toBeInViewport();
+      await expect(banner.getByRole("button", { name: "New-order sound" })).toBeInViewport();
+      await expect(banner.locator(".alerts-bell")).toBeInViewport();
+      if (out) {
+        await page.screenshot({
+          path: `${out}/mobile_staff-header-${width}-${textSize.replace("%", "")}.png`,
+          clip: { x: 0, y: 0, width, height: 240 },
+        });
+      }
+    }
+    // the overview has no Back button: the name lines up with the page instead
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "";
+    });
+    await page.goto("/admin");
+    await expect(banner.getByRole("button", { name: "Back" })).toHaveCount(0);
+    const name = (await banner.locator(".staff-brand").boundingBox())!;
+    const heading = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+    expect(Math.abs(name.x - heading.x)).toBeLessThanOrEqual(1);
+    if (out) await page.screenshot({ path: `${out}/mobile_staff-header-overview.png`, clip: { x: 0, y: 0, width: 412, height: 240 } });
   });
 });

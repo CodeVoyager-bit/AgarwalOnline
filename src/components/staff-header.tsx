@@ -39,7 +39,10 @@ export function StaffHeader({
       <div className="staff-header-inner">
         <BackButton label={shop.back} className="staff-back" />
         <Link href={home} className="brand staff-brand" aria-label={text.home}>
-          Agarwal Online<small>{text.workspace}</small>
+          <span className="staff-brand-name">
+            Agarwal <span className="staff-brand-online">Online</span>
+          </span>
+          <small>{text.workspace}</small>
         </Link>
         {finder}
         <div className="staff-header-actions">

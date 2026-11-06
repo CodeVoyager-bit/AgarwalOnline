@@ -20,6 +20,9 @@ export type PackedLine = {
   /** What went in instead of some of the ordered units, at the ordered item's price. */
   substituteName?: string | null;
   substituteQuantity?: number | null;
+  /** Another shop that provided it, as it was when ordered; none for our own stock. */
+  providerName?: string | null;
+  providerTown?: string | null;
 };
 
 /** One line of the packer's checklist. */

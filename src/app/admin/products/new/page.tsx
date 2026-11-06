@@ -9,13 +9,20 @@ import { MoneyInput } from "@/components/money-input";
 import { hasPermission } from "@/lib/auth/permissions";
 import { GST_RATES } from "@/lib/tax/gst";
 import { ProductPhotos } from "@/components/product-photos";
+import { ProviderPicker, type ProviderOption } from "@/components/provider-picker";
+import { Provider } from "@/lib/providers/models";
 export const metadata = { title: "Add a product", robots: { index: false } };
 
 export default async function NewProductPage() {
   const user = await requirePage("catalog:write");
   // only an owner prices for schools
   const isOwner = hasPermission(user.roles, "settings:write");
-  const categories = await Category.find({}).sort({ "name.en": 1 });
+  const [categories, providers] = await Promise.all([
+    Category.find({}).sort({ "name.en": 1 }),
+    Provider.find({ status: { $in: ["active", "pending"] } }).sort({ name: 1 }).select("name town status").lean<
+      { _id: unknown; name: string; town: string; status: ProviderOption["status"] }[]
+    >(),
+  ]);
   return (
     <section className="page-container">
       <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -72,6 +79,10 @@ export default async function NewProductPage() {
               Brand <small>Optional</small>
               <input name="brand" />
             </label>
+            <ProviderPicker
+              owner={isOwner}
+              providers={providers.map((p) => ({ id: String(p._id), name: p.name, town: p.town, status: p.status }))}
+            />
             <label>
               Web address <small>Lowercase words joined by dashes, like gel-pen-set</small>
               <input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" spellCheck={false} required />

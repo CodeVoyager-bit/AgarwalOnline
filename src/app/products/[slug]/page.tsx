@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Star, Truck } from "lucide-react";
+import { ChevronRight, Star, Store, Truck } from "lucide-react";
 import { productImages } from "@/lib/catalog/images";
 import { currentUser } from "@/lib/auth/session";
 import { ActionForm } from "@/components/action-form";
@@ -13,8 +13,8 @@ import { Order } from "@/lib/commerce/models";
 import { ProductVariant, User } from "@/lib/db/models";
 import { WishlistItem } from "@/lib/engagement/models";
 import { reviewAction, reportReviewAction } from "@/lib/reviews/actions";
-import { recommendationsFor } from "@/lib/catalog/recommendations";
-import { ProductCard } from "@/components/product-card";
+import { relatedFor } from "@/lib/catalog/related";
+import { RelatedRows } from "@/components/related-rows";
 import { deliveryRules } from "@/lib/commerce/service";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductQuantity } from "@/components/quick-add";
@@ -25,6 +25,7 @@ import { jsonLd, productDescription, productJsonLd } from "@/lib/seo";
 import { listsFor } from "@/lib/lists/service";
 import { AddToList } from "@/components/add-to-list";
 import { SaveToBoard } from "@/components/save-to-board";
+import { taxProfile } from "@/lib/tax/profile";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -61,16 +62,11 @@ export default async function ProductPage({
   const locale = requestedLocale ? (requestedLocale === "mr" ? "mr" : "en") : savedLocale;
   const mr = locale === "mr";
   const image = p.image ?? productImages[p.slug];
-  const [reviews, related, rules, saved, categories, myLists, variantIds] = await Promise.all([
+  const [reviews, related, rules, saved, categories, myLists, variantIds, seller] = await Promise.all([
     ProductReview.find({ productId: p.id, status: "published" })
       .sort({ createdAt: -1 })
       .limit(20),
-    recommendationsFor({
-      customerId: user?.id,
-      category: p.categorySlug,
-      excludeSlug: p.slug,
-      limit: 5,
-    }),
+    relatedFor({ product: p, customerId: user?.id }),
     deliveryRules(),
     user
       ? WishlistItem.exists({ customerId: user.id, productId: p.id })
@@ -79,6 +75,8 @@ export default async function ProductPage({
     user ? Promise.all([listsFor(user.id, "basket"), listsFor(user.id, "board")]) : null,
     // every pack, hidden ones too: someone who bought a pack since hidden can still review
     user ? ProductVariant.find({ productId: p.id }).distinct("_id") : [],
+    // another shop provides it: Product info names who sells it, which is still us
+    p.provider ? taxProfile() : null,
   ]);
   const [myBaskets, myBoards] = myLists ?? [null, null];
   const listChoices = myBaskets ? [...myBaskets.owned, ...myBaskets.shared] : [];
@@ -225,15 +223,35 @@ export default async function ProductPage({
               lists={listChoices.map((list) => ({ id: String(list._id), name: list.name }))}
             />
           )}
-          {specs.length > 0 && (
-            <dl className="product-specs">
+          {(specs.length > 0 || p.provider) && (
+            <section className="product-specs" aria-labelledby="product-info-title">
+              <h2 id="product-info-title" className="product-specs-title">
+                {mr ? "उत्पादनाची माहिती" : "Product info"}
+              </h2>
+              <dl>
+              {p.provider && (
+                <>
+                  <div className="provider-row">
+                    <dt>{mr ? "पुरवठादार" : "Provided by"}</dt>
+                    <dd>
+                      <Store size={15} aria-hidden="true" />
+                      {p.provider.name}, {p.provider.town}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{mr ? "विक्रेता" : "Sold by"}</dt>
+                    <dd>{seller?.legalName ?? "Agarwal General Stores"}</dd>
+                  </div>
+                </>
+              )}
               {specs.map((specification) => (
                 <div key={specification.label.en}>
                   <dt>{specification.label[locale]}</dt>
                   <dd>{specification.value[locale]}</dd>
                 </div>
               ))}
-            </dl>
+              </dl>
+            </section>
           )}
         </div>
       </div>
@@ -314,21 +332,7 @@ export default async function ProductPage({
         </div>
       </section>
       )}
-      {related.length > 0 && (
-        <section className="section">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">{mr ? "तुम्हाला हेही आवडेल" : "You may also like"}</span>
-              <h2>{mr ? "तुमच्या दुकानातील आणखी वस्तू" : "More from your store"}</h2>
-            </div>
-          </div>
-          <div className="product-grid">
-            {related.map((product) => (
-              <ProductCard key={product.id} product={product} locale={locale} />
-            ))}
-          </div>
-        </section>
-      )}
+      <RelatedRows product={p} rows={related} categoryName={categoryName} locale={locale} />
     </section>
   );
 }
