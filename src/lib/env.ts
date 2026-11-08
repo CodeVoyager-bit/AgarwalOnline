@@ -46,7 +46,7 @@ const schema = z
       .string()
       .regex(/^(mailto:\S+@\S+|https:\/\/\S+)$/, "VAPID_SUBJECT is mailto:you@example.com or an https:// address")
       .optional(),
-    // Google Analytics 4: the stream's Measurement ID. Blank turns analytics and its cookie question off.
+    // Google Analytics 4: the stream's Measurement ID. Blank turns analytics off.
     // It is written into a script tag, so only the G-… shape gets through.
     GA_MEASUREMENT_ID: z
       .string()

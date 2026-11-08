@@ -101,7 +101,7 @@ export default async function RootLayout({
   // "Offers" and "Deals" only when something really sells below MRP (from the cached shelf, no extra read)
   const onOffer = products.some((product) => product.variants.some((v) => v.pricePaise < v.mrpPaise));
   const staffRole = staffRoleOf(user?.roles ?? []);
-  // staff aren't asked or counted: their clicks would read as shoppers
+  // staff aren't counted: their clicks would read as shoppers
   const gaId = staffRole ? undefined : getEnv().GA_MEASUREMENT_ID;
   const { at: basketAt, lines: basket } = await storedBasket(user?.id);
   return (
@@ -152,7 +152,6 @@ export default async function RootLayout({
                 offers={onOffer}
                 signedIn={Boolean(user)}
                 workspace={user ? staffHome(user.roles) : null}
-                cookieChoices={Boolean(gaId)}
               />
             }
             staffFooter={<SiteFooter locale={locale} categories={categories} areas={areas} compact />}
@@ -160,7 +159,12 @@ export default async function RootLayout({
             {children}
           </AdaptiveShell>
         </BasketProvider>
-        {gaId && <Analytics id={gaId} locale={locale} />}
+        {/* reads the search params for its page views, so it waits for them rather than holding up the page */}
+        {gaId && (
+          <Suspense fallback={null}>
+            <Analytics id={gaId} />
+          </Suspense>
+        )}
       </body>
     </html>
   );

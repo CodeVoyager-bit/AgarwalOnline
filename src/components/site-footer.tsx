@@ -14,7 +14,6 @@ export async function SiteFooter({
   offers = false,
   signedIn = false,
   workspace = null,
-  cookieChoices = false,
   compact = false,
 }: {
   locale: Locale;
@@ -27,8 +26,6 @@ export async function SiteFooter({
   signedIn?: boolean;
   /** A staff member's workspace home, linked from the footer. */
   workspace?: string | null;
-  /** Google Analytics is on: a link to change the cookie answer (components/analytics.tsx). */
-  cookieChoices?: boolean;
   /** The staff pages' one line: the shop's columns are for shoppers. */
   compact?: boolean;
 }) {
@@ -123,11 +120,6 @@ export async function SiteFooter({
             <li>
               <Link href={POLICIES_HOME.href}>{mr ? "सर्व धोरणे" : "All policies"}</Link>
             </li>
-            {cookieChoices && (
-              <li>
-                <a href="#cookie-choices">{mr ? "कुकी निवड" : "Cookie choices"}</a>
-              </li>
-            )}
           </ul>
         </nav>
         <div className="footer-store">

@@ -20,6 +20,9 @@
  *
  * 2026-11-07.1: Google Analytics, only after the shopper taps Allow: what it sees, its _ga cookies,
  * 2 months' retention at Google, and Cookie choices to change the answer.
+ *
+ * 2026-11-07.2: no cookie question after all (the owner's call: the shop serves Raigad only):
+ * Google Analytics runs for every shopper, and the policy says how to block it.
  */
-export const POLICY_VERSION = "2026-11-07.1";
+export const POLICY_VERSION = "2026-11-07.2";
 export const LAST_UPDATED = { en: "7 November 2026", mr: "7 नोव्हेंबर 2026" } as const;

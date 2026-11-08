@@ -1,115 +1,76 @@
 "use client";
-import Link from "next/link";
 import Script from "next/script";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Locale } from "@/lib/locale-types";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { cleanUrl, scrub } from "@/lib/analytics-url";
 
-/** "yes" or "no" once the shopper has answered. Nothing loads from Google before a "yes". */
-const KEY = "ags-analytics";
-/** A link to this hash ("Cookie choices" in the footer, the privacy policy) asks again. */
-export const COOKIE_CHOICES = "cookie-choices";
-
-// a private window can refuse storage: the answer then lasts until the tab closes
-let inMemory: string | null = null;
-const listeners = new Set<() => void>();
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", listener);
-  };
-}
-function stored() {
-  try {
-    return window.localStorage.getItem(KEY) ?? inMemory;
-  } catch {
-    return inMemory;
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
   }
 }
-function store(value: "yes" | "no") {
-  inMemory = value;
-  try {
-    window.localStorage.setItem(KEY, value);
-  } catch {
-    // kept in memory above
-  }
-  listeners.forEach((listener) => listener());
-}
+// Google's own queue: commands wait here until gtag.js arrives, and it reads only `arguments` objects
+const gtag: (...args: unknown[]) => void = function () {
+  // eslint-disable-next-line prefer-rest-params
+  (window.dataLayer ??= []).push(arguments);
+};
 
-/** Google's own off switch for a tag already on the page, and its cookies gone. */
-function stopTracking(id: string, off: boolean) {
-  (window as unknown as Record<string, boolean>)[`ga-disable-${id}`] = off;
-  if (!off) return;
-  const site = window.location.hostname.replace(/^www\./, "");
-  for (const name of document.cookie.split(/;\s*/).map((pair) => pair.split("=")[0])) {
-    if (!name.startsWith("_ga")) continue;
-    for (const domain of ["", `; domain=.${site}`]) document.cookie = `${name}=; Max-Age=0; path=/${domain}`;
+/** Where on the page a link sits: a home section's id ("popular", "aisles"), a labelled menu, or the landmark. */
+function sectionOf(link: Element) {
+  for (let el = link.parentElement; el; el = el.parentElement) {
+    const labelledBy = el.getAttribute("aria-labelledby");
+    if (labelledBy) return labelledBy.replace(/-title$/, "");
+    const label = el.getAttribute("aria-label");
+    if (label) return label;
+    if (/^(HEADER|FOOTER|NAV|MAIN|ASIDE)$/.test(el.tagName)) return el.tagName.toLowerCase();
   }
+  return "page";
 }
 
 /**
- * Google Analytics 4, only after the shopper says yes (the DPDP Act wants consent first), with
- * Google signals and ad personalisation off so the privacy policy's "no advertising" stays true.
- * Page changes inside the app are counted by the GA4 stream's enhanced measurement (browser
- * history events), so nothing here tracks route changes.
+ * Google Analytics 4 on every shopper's page, no cookie question: the shop serves Raigad only and
+ * the owner chose this on 2026-11-07; the privacy policy says so and how to block it.
+ * Page views are sent from here, not by the stream's "page changes based on browser history
+ * events" (switch that off in GA), so every address is cleaned first: secret links masked, no
+ * emails or phone numbers. Every link tapped inside the shop is a `link_click` with where it
+ * points, its words and its section; links to other sites are the stream's own outbound clicks.
+ * Google signals and ad personalisation are off.
  */
-export function Analytics({ id, locale }: { id: string; locale: Locale }) {
-  // the server can't see the answer: nothing renders until the browser has read it
-  const choice = useSyncExternalStore(subscribe, stored, () => "unknown");
-  const [asking, setAsking] = useState(
-    () => typeof window !== "undefined" && window.location.hash === `#${COOKIE_CHOICES}`,
-  );
-  useEffect(() => {
-    const clearHash = () => {
-      if (window.location.hash !== `#${COOKIE_CHOICES}`) return false;
-      // the same link must work again next time
-      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
-      return true;
-    };
-    clearHash();
-    const ask = () => {
-      if (clearHash()) setAsking(true);
-    };
-    window.addEventListener("hashchange", ask);
-    return () => window.removeEventListener("hashchange", ask);
-  }, []);
+export function Analytics({ id }: { id: string }) {
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  const last = useRef<string | null>(null);
 
-  const answer = (value: "yes" | "no") => {
-    stopTracking(id, value === "no");
-    store(value);
-    setAsking(false);
-  };
-  const mr = locale === "mr";
-  return (
-    <>
-      {choice === "yes" && (
-        <>
-          <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}',{allow_google_signals:false,allow_ad_personalization_signals:false});`}
-          </Script>
-        </>
-      )}
-      {choice !== "unknown" && (choice === null || asking) && (
-        <section className="consent-banner" id={COOKIE_CHOICES} aria-labelledby="consent-title" lang={locale}>
-          <h2 id="consent-title">{mr ? "तुमची भेट मोजू का?" : "Can we count your visit?"}</h2>
-          <p>
-            {mr
-              ? "लोक कोणती पाने वापरतात हे पाहून दुकान सुधारण्यासाठी आम्हाला Google Analytics कुकीज वापरायच्या आहेत. जाहिराती नाहीत, काहीही विकले जात नाही. "
-              : "We'd like to use Google Analytics cookies to see which pages people use, so we can make the shop better. No ads, and nothing is sold. "}
-            <Link href="/p/privacy-policy#cookies">{mr ? "अधिक माहिती" : "How we use it"}</Link>
-          </p>
-          <div>
-            <button type="button" className="secondary-button" onClick={() => answer("no")}>
-              {mr ? "नको" : "No thanks"}
-            </button>
-            <button type="button" className="primary-button" onClick={() => answer("yes")}>
-              {mr ? "चालेल" : "Allow"}
-            </button>
-          </div>
-        </section>
-      )}
-    </>
-  );
+  useEffect(() => {
+    gtag("js", new Date());
+    gtag("config", id, { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false });
+    const onClick = (event: MouseEvent) => {
+      const link = (event.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      const url = new URL(link.href, window.location.href);
+      if (/^https?:$/.test(url.protocol) && url.origin !== window.location.origin) return;
+      // innerText keeps the line breaks between a card's badge, name and pack, so the words don't run together
+      const words = (link.getAttribute("aria-label") || link.innerText || "").replace(/\s+/g, " ").trim();
+      gtag("event", "link_click", {
+        link_target: cleanUrl(link.href, window.location.origin),
+        link_label: scrub(words).slice(0, 100),
+        link_section: sectionOf(link),
+      });
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [id]);
+
+  useEffect(() => {
+    const here = cleanUrl(window.location.href, window.location.origin);
+    // a query value that cleaning drops (?edit=…) doesn't make a new page
+    if (here === last.current) return;
+    const from = last.current ?? (document.referrer ? cleanUrl(document.referrer, window.location.origin) : undefined);
+    // later events on this page (outbound clicks, scrolls) carry the clean address too
+    gtag("set", { page_location: here, page_referrer: from });
+    gtag("event", "page_view", { page_location: here, page_referrer: from, page_title: document.title });
+    last.current = here;
+  }, [pathname, search]);
+
+  return <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />;
 }
