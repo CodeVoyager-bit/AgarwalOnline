@@ -374,3 +374,19 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   /* desktop has the width for smaller tiles: a section reads in one or two rows */
   .shop-map .aisles { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 16px; }
 }
+
+/* ---------- Product page and basket ---------- */
+.also-shelves { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; color: var(--muted); font-size: 0.8125rem; }
+.also-shelves a { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: var(--r-pill); background: var(--brand-soft); color: var(--ink); font-weight: 600; }
+/* who the order is for: the family's people as chips at the top of the basket */
+.who-for { align-items: center; margin: 0 0 12px; padding: 0; }
+.who-for > span { flex: none; margin-right: 2px; color: var(--muted); font-size: 0.8125rem; font-weight: 600; }
+
+@media (max-width: 760px) {
+  /* page titles at phone size (22px, sections 18px) on the shop's own pages; staff and school pages keep theirs */
+  :where(:root:has(.shop-header)) h1 { font-size: 1.375rem; line-height: 1.2; letter-spacing: -0.02em; }
+  :where(:root:has(.shop-header)) h2 { font-size: 1.125rem; letter-spacing: -0.01em; }
+  /* pages without the search keep a slim second row for the back button */
+  .shop-header .header-inner:not(:has(.smart-search:not(.phone-hidden))) { padding-bottom: 6px; }
+  .shop-header .header-inner:not(:has(.smart-search:not(.phone-hidden))) .search-back { width: 36px; height: 36px; }
+}

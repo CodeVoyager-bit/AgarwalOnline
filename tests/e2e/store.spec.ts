@@ -798,4 +798,14 @@ test("a family: start it, add a child, and a partner joins with the one-time lin
   await page.getByRole("button", { name: /Buy the kit/ }).click();
   await expect(page).toHaveURL(/\/checkout\?for=/);
   await expect(page.getByLabel("Who is it for?").locator("option:checked")).toHaveText(/Aarav/);
+
+  // the basket asks the same question with chips, and the answer travels to checkout
+  await page.goto("/cart");
+  const who = page.getByRole("navigation", { name: "Who is it for?" });
+  await expect(who.getByRole("link", { name: "Me", exact: true })).toHaveAttribute("aria-current", "true");
+  await who.getByRole("link", { name: /Aarav/ }).click();
+  await expect(who.getByRole("link", { name: /Aarav/ })).toHaveAttribute("aria-current", "true");
+  await page.getByRole("link", { name: "Continue to checkout" }).click();
+  await expect(page).toHaveURL(/\/checkout\?for=/);
+  await expect(page.getByLabel("Who is it for?").locator("option:checked")).toHaveText(/Aarav/);
 });

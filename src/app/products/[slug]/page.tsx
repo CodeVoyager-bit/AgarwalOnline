@@ -90,6 +90,8 @@ export default async function ProductPage({
     : [];
   const categoryName =
     categories.find((category) => category.slug === p.categorySlug)?.[locale] ?? p.categorySlug;
+  // the other shelves it also shows on, by name
+  const alsoOn = categories.filter((category) => p.alsoOn.includes(category.slug));
   // the shop is the only seller; saying so is a row of noise
   const specs = p.specifications.filter((spec) => spec.label.en !== "Seller");
   const [reviewUsers, delivered] = await Promise.all([
@@ -146,6 +148,16 @@ export default async function ProductPage({
           <p className="muted" lang={mr ? "en" : "mr"}>
             {p.name[mr ? "en" : "mr"]}
           </p>
+          {alsoOn.length > 0 && (
+            <p className="also-shelves">
+              {mr ? "इथेही आहे:" : "Also on:"}
+              {alsoOn.map((shelf) => (
+                <Link key={shelf.slug} href={`/catalog?category=${shelf.slug}&lang=${locale}`}>
+                  {shelf[locale]}
+                </Link>
+              ))}
+            </p>
+          )}
           <div className="product-assurance-row">
             <span>
               <Star size={14} aria-hidden="true" />

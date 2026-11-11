@@ -16,9 +16,7 @@ import { CheckoutForm } from "@/components/checkout-form";
 import { cookies } from "next/headers";
 import { codeProblem, quoteCart, shopOffers } from "@/lib/promotions/service";
 import { CouponPicker } from "@/components/coupon-picker";
-import { familyOf } from "@/lib/family/service";
-import { classLabel } from "@/lib/family/models";
-import { firstName } from "@/lib/lists/service";
+import { familyPeople } from "@/lib/family/service";
 export const metadata = { title: "Checkout", robots: { index: false } };
 export default async function Checkout({ searchParams }: { searchParams: Promise<{ for?: string }> }) {
   // no account yet: offer sign-in or sign-up in a popup, and come back here afterwards
@@ -81,20 +79,7 @@ export default async function Checkout({ searchParams }: { searchParams: Promise
   const defaultOption = options.find((option) => option.id === String(defaultAddress?._id));
   const subtotal = cart.reduce((n, line) => n + line.pricePaise * line.quantity, 0);
   // in a family, the order is tagged with who it is for; "Buy kit" arrives with the child picked
-  const family = await familyOf(user.id);
-  const adults = family ? await User.find({ _id: { $in: family.adults } }).select("name") : [];
-  const people = family
-    ? [
-        { id: user.id, label: "Me" },
-        ...adults
-          .filter((adult) => String(adult._id) !== user.id)
-          .map((adult) => ({ id: String(adult._id), label: firstName(adult.name) })),
-        ...family.children.map((child: { _id: unknown; name: string; className: string }) => ({
-          id: String(child._id),
-          label: `${child.name} · ${classLabel(child.className)}`,
-        })),
-      ]
-    : undefined;
+  const people = await familyPeople(user.id);
   const wanted = (await searchParams).for;
   const defaultFor = people?.some((person) => person.id === wanted) ? wanted : user.id;
   const promotionCode = (await cookies()).get("ags_promotion")?.value;

@@ -1,3 +1,4 @@
+import { familyPeople } from "@/lib/family/service";
 import Link from "next/link";
 import { PageHeading } from "@/components/page-heading";
 import Image from "next/image";
@@ -27,9 +28,9 @@ import { BasketPills, NewBasket, SharedBasket } from "./shared-basket";
 import { ProviderLine } from "@/components/provider-line";
 export const metadata = { title: "Basket", robots: { index: false } };
 
-export default async function Cart({ searchParams }: { searchParams: Promise<{ basket?: string }> }) {
+export default async function Cart({ searchParams }: { searchParams: Promise<{ basket?: string; for?: string }> }) {
   // each round asks for everything that doesn't wait on something else, all at once
-  const [user, { basket }, savedLocale, jar] = await Promise.all([currentUser(), searchParams, currentLocale(), cookies()]);
+  const [user, { basket, for: wanted }, savedLocale, jar] = await Promise.all([currentUser(), searchParams, currentLocale(), cookies()]);
   const mr = savedLocale === "mr";
   const sharedView = Boolean(user && basket);
   const [baskets, own, rules] = await Promise.all([
@@ -46,6 +47,9 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
   }
   if (user && basket === "new") return <NewBasket baskets={others} mr={mr} />;
   const { lines, unavailable } = own ?? { lines: [], unavailable: [] };
+  // who the order is for, in a family; asked only once there is something to order
+  const people = user && lines.length ? await familyPeople(user.id) : undefined;
+  const forId = people?.some((person) => person.id === wanted) ? wanted : user?.id;
   // checkout refuses these, so say so here, where they can be fixed
   const needsAttention =
     unavailable.length > 0 || lines.some((line) => line.quantity > line.available);
@@ -139,6 +143,17 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
       {lines.length ? (
         <div className="basket-layout">
           <div className="basket-main">
+            {/* in a family: say who the order is for here, and checkout opens with them picked */}
+            {people && (
+              <nav className="section-tabs who-for" aria-label={mr ? "कोणासाठी?" : "Who is it for?"}>
+                <span>{mr ? "कोणासाठी?" : "Who is it for?"}</span>
+                {people.map((person) => (
+                  <Link key={person.id} href={`/cart?for=${person.id}`} scroll={false} aria-current={person.id === forId ? "true" : undefined}>
+                    {person.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
             <div className="basket-delivery">
               <span className="basket-delivery-icon" aria-hidden="true">
                 <Truck size={22} />
@@ -275,7 +290,7 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
               <p className="notice">Fix the items marked in your basket before checking out.</p>
             )}
             {user ? (
-              <Link href="/checkout" className="primary-button">
+              <Link href={forId && forId !== user.id ? `/checkout?for=${forId}` : "/checkout"} className="primary-button">
                 Continue to checkout
                 <ArrowRight size={18} aria-hidden="true" />
               </Link>

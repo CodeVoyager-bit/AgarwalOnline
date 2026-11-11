@@ -9,7 +9,7 @@ import { notify } from "../engagement/service";
 import { hasPermission, type Role } from "../auth/permissions";
 import { LIST_TOKEN } from "../lists/links";
 import { firstName, newToken } from "../lists/service";
-import { CLASSES, FAMILY_LIMITS, Family, SPENT } from "./models";
+import { CLASSES, FAMILY_LIMITS, Family, SPENT, classLabel } from "./models";
 
 const familyName = z.string().trim().min(2, "Give the family a name.").max(40, "Keep the family name under 40 characters.");
 const childInput = z.object({
@@ -36,6 +36,24 @@ export function academicYear(now: Date) {
 export async function familyOf(userId: string) {
   await connectDB();
   return Family.findOne({ adults: userId });
+}
+
+/**
+ * Who an order can be for: the shopper, the family's other adults, then the children. For the
+ * basket's chips and checkout's list; undefined for someone not in a family.
+ */
+export async function familyPeople(userId: string) {
+  const family = await familyOf(userId);
+  if (!family) return undefined;
+  const adults = await User.find({ _id: { $in: family.adults } }).select("name");
+  return [
+    { id: userId, label: "Me" },
+    ...adults.filter((adult) => String(adult._id) !== userId).map((adult) => ({ id: String(adult._id), label: firstName(adult.name) })),
+    ...family.children.map((child: { _id: unknown; name: string; className: string }) => ({
+      id: String(child._id),
+      label: `${child.name} · ${classLabel(child.className)}`,
+    })),
+  ];
 }
 
 export async function createFamily(userId: string, nameInput: unknown) {
