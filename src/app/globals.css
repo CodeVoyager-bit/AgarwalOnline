@@ -770,29 +770,6 @@ tbody tr:hover { background: var(--canvas); }
 .category-nav { display: none; }
 .mobile-nav { display: none; }
 .cart-bar { display: none; }
-/* the Google Analytics question (components/analytics.tsx): a corner card, never a wall over the shop */
-.consent-banner {
-  position: fixed;
-  left: 20px;
-  bottom: 20px;
-  z-index: var(--z-popover);
-  width: min(420px, calc(100vw - 40px));
-  box-sizing: border-box;
-  display: grid;
-  gap: 10px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-lg);
-}
-.consent-banner h2 { margin: 0; font-size: 1.05rem; }
-.consent-banner p { margin: 0; color: var(--ink-2); font-size: 0.9rem; line-height: 1.5; }
-.consent-banner > div { display: flex; gap: 10px; }
-/* Allow and No thanks weigh the same: saying no is as easy as saying yes */
-.consent-banner button { flex: 1; min-height: 44px; }
-body:has(.consent-banner) .site-footer { padding-bottom: 180px; }
 
 /* ---------- Home ---------- */
 /* Welcome band. Grocery storefronts do not use a full-screen photo hero: it
@@ -1839,10 +1816,6 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   html[data-tabs-away] .mobile-nav { transform: translateY(calc(100% + 10px + env(safe-area-inset-bottom))); }
   html[data-tabs-away] .cart-bar { transform: translateY(var(--bottom-nav-h)); }
   body:has(.cart-bar) .site-footer { padding-bottom: calc(var(--bottom-nav-h) + 92px + env(safe-area-inset-bottom)); }
-  /* the cookie question sits above the tab bar, and above the basket bar when there is one */
-  .consent-banner { left: 12px; right: 12px; width: auto; bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 10px); }
-  body:has(.cart-bar) .consent-banner { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 76px); }
-  body:has(.consent-banner) .site-footer { padding-bottom: calc(var(--bottom-nav-h) + 260px + env(safe-area-inset-bottom)); }
   .section-heading { flex-wrap: nowrap; align-items: flex-start; margin-bottom: 20px; }
   .section-heading > div { min-width: 0; }
   .section-heading > a { flex: none; min-height: 32px; }

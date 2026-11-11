@@ -17,8 +17,7 @@ const appEnv = {
   SMTP_USER: "",
   SMTP_PASS: "",
   EMAIL_FROM: "",
-  // blank on purpose: a Measurement ID in .env would put the cookie question over every test page
-  // and count test runs as shoppers in Google Analytics
+  // blank on purpose: a Measurement ID in .env would count test runs as shoppers in Google Analytics
   GA_MEASUREMENT_ID: "",
   // push on, with a test-only key pair (never the real one in .env): the notifications card shows,
   // and no browser in the tests subscribes, so nothing is ever sent

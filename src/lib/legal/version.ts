@@ -21,6 +21,9 @@
  * 2026-11-07.1: Google Analytics, only after the shopper taps Allow: what it sees, its _ga cookies,
  * 2 months' retention at Google, and Cookie choices to change the answer.
  *
+ * 2026-11-07.2: no cookie question after all (the owner's call: the shop serves Raigad only):
+ * Google Analytics runs for every shopper, and the policy says how to block it.
+ *
  * 2026-11-12.1: English only. The Marathi versions are gone, and with them the line that the English
  * version prevails, the language cookie and "language" among account details.
  */
