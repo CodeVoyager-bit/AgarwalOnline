@@ -805,7 +805,8 @@ test("a family: start it, add a child, and a partner joins with the one-time lin
   await expect(who.getByRole("link", { name: "Me", exact: true })).toHaveAttribute("aria-current", "true");
   await who.getByRole("link", { name: /Aarav/ }).click();
   await expect(who.getByRole("link", { name: /Aarav/ })).toHaveAttribute("aria-current", "true");
-  await page.getByRole("link", { name: "Continue to checkout" }).click();
+  // the bill's button on desktop, the pinned pay bar on a phone
+  await page.locator('main a[href^="/checkout"]:visible').first().click();
   await expect(page).toHaveURL(/\/checkout\?for=/);
   await expect(page.getByLabel("Who is it for?").locator("option:checked")).toHaveText(/Aarav/);
 });

@@ -27,7 +27,7 @@
      then the search (56px, stays pinned). The brand row that used to sit between them is gone;
      the offer line moved to the home page and the basket bar. */
   :root:has(.shop-header) { --header-h: 56px; --header-collapse: 0px; }
-  .shop-header { top: 0; }
+  .shop-header { top: 0; border-bottom: 0; }
   .shop-header .header-inner { display: flex; gap: 8px; min-height: 0; padding: 2px var(--gutter) 8px; }
   .shop-header .brand, .shop-header .location { display: none; }
   .shop-header .smart-search { flex: 1 1 auto; min-width: 0; }
@@ -244,13 +244,13 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   /* photo, name, pack, then the price and ADD on one line: about 260px tall, so four fit a screen */
   .product-card { border-radius: 14px; }
   .product-link { padding: 0 8px; }
-  .product-art { margin: 0 -8px 6px; border-bottom: 0; }
+  .product-art { margin: 0 -8px 4px; border-bottom: 0; }
   .product-card h3 { min-height: 2.5em; font-size: 0.8125rem; font-weight: 600; line-height: 1.25; }
   .product-rating { margin: 0 0 2px; font-size: 0.72rem; }
-  .pack { display: block; margin: 2px 0 0; overflow: hidden; font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+  .pack { display: block; margin: 2px 0 0; overflow: hidden; font-size: 0.75rem; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
   .discount, .stock-badge { left: 6px; top: 6px; padding: 2px 7px; font-size: 0.6875rem; }
   .discount { padding-left: 13px; }
-  .price-row { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; min-height: 0; margin: 6px 8px 8px; padding-top: 0; border-top: 0; }
+  .price-row { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; min-height: 0; margin: 4px 8px 7px; padding-top: 0; border-top: 0; }
   .price { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 1px; }
   .price-row strong { font-size: 0.9375rem; line-height: 1.2; }
   .price-row del { font-size: 0.6875rem; line-height: 1.2; }
@@ -269,12 +269,12 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
    until the second screen. */
 .welcome {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px;
+  grid-template-columns: minmax(0, 1fr) 68px;
   align-items: center;
   gap: 12px;
   width: min(100% - 24px, var(--content));
-  margin: 10px auto 0;
-  padding: 12px 12px 12px 14px;
+  margin: 8px auto 0;
+  padding: 10px 12px 10px 14px;
   border-radius: 20px;
   background: var(--paper);
   box-shadow: var(--card, none);
@@ -299,12 +299,14 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
 .welcome .delivery-promise { margin: 2px 0 0; }
 .welcome-slot { min-width: 0; color: var(--ink); }
 .faces-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.faces-slot li { margin: 0; }
 .faces-slot a, .slot-art { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--brand-soft); }
 .faces-slot img, .slot-art img { object-fit: cover; }
 /* on a phone the deal is its photo, the saving on a corner, and the price; the name joins on desktop */
 .deal-slot { position: relative; display: grid; gap: 2px; }
 .deal-slot .eyebrow, .deal-slot > strong { display: none; }
-.deal-slot .slot-line { font-size: 0.75rem; line-height: 1.3; white-space: nowrap; }
+/* wraps at enlarged text instead of pushing the page sideways */
+.deal-slot .slot-line { font-size: 0.75rem; line-height: 1.3; overflow-wrap: anywhere; }
 .deal-slot del { color: var(--muted); font-size: 0.6875rem; }
 .deal-slot .deal-off { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--paper); font-size: 0.6875rem; font-weight: 700; }
 .kit-slot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 10px; padding: 10px 12px; border-radius: 14px; background: var(--tint-1, var(--offer-soft)); }
@@ -329,7 +331,7 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
 }
 /* every shelf as a tile under its section; a shelf in two sections shows in both */
 .aisle-group + .aisle-group { margin-top: 10px; }
-.aisle-group[class*="tint-"] { padding: 10px 10px 12px; border-radius: 18px; }
+.aisle-group[class*="tint-"] { padding: 8px 10px 12px; border-radius: 18px; }
 .aisle-group.tint-1 { background: var(--tint-1, var(--brand-soft)); }
 .aisle-group.tint-2 { background: var(--tint-2, var(--brand-soft)); }
 .aisle-group.tint-3 { background: var(--tint-3, var(--brand-soft)); }
@@ -339,9 +341,9 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
 .aisle-group[class*="tint-"] .aisle-art { background: var(--paper); }
 
 @media (max-width: 760px) {
-  .home { padding-top: 4px; }
+  .home { padding-top: 0; }
   .home .section, .home .offer-ladder, .home .delivery-steps { margin-top: 24px; }
-  .home .section:first-child { margin-top: 12px; }
+  .home .section:first-child { margin-top: 10px; }
   .home .benefits { margin-top: 24px; }
   /* the other language's name for each section is a desktop nicety; here it costs a line per section */
   .home .section-heading { margin-bottom: 8px; padding-bottom: 0; }
@@ -389,4 +391,16 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   /* pages without the search keep a slim second row for the back button */
   .shop-header .header-inner:not(:has(.smart-search:not(.phone-hidden))) { padding-bottom: 6px; }
   .shop-header .header-inner:not(:has(.smart-search:not(.phone-hidden))) .search-back { width: 36px; height: 36px; }
+}
+
+/* ---------- Motion ---------- */
+/* a shelf's products cross-fade in when another shelf is picked (src/app/catalog/page.tsx) */
+::view-transition-old(shelf-content), ::view-transition-new(shelf-content) { animation-duration: 200ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
+}
+
+@media (max-width: 760px) {
+  /* the basket's pay bar: the same bar as the basket summary elsewhere, here leading to checkout */
+  body:has(.pay-bar) .basket-bill > .primary-button { display: none; }
 }

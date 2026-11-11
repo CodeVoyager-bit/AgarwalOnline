@@ -1,6 +1,10 @@
 // One-time, safe to run again: groups the shop's shelves under five sections, so a shelf can show
 // under more than one (Pens under Stationery and under Office). A shelf it doesn't find is skipped,
 // and nothing set by hand in Admin → Categories is removed. Without --write it only prints the plan.
+//
+// ORDER MATTERS: run it with --write only once the code that knows about sections is live. The older
+// code lists every category as a shelf, so on it the five new sections would show as five empty
+// categories in the menu, the home tiles, the footer and the sitemap.
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db/connect";
 import { Category, Product, parentsOf } from "../src/lib/db/models";

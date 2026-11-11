@@ -4,7 +4,7 @@ import { ActionForm } from "@/components/action-form";
 import { PageHeading } from "@/components/page-heading";
 import { requirePage } from "@/lib/auth/session";
 import { governanceAction } from "@/lib/governance/actions";
-import { Category } from "@/lib/db/models";
+import { Category, parentsOf } from "@/lib/db/models";
 import { MoneyInput } from "@/components/money-input";
 import { hasPermission } from "@/lib/auth/permissions";
 import { GST_RATES } from "@/lib/tax/gst";
@@ -23,6 +23,9 @@ export default async function NewProductPage() {
       { _id: unknown; name: string; town: string; status: ProviderOption["status"] }[]
     >(),
   ]);
+  // products sit on shelves; a section only groups them
+  const sectionIds = new Set(categories.flatMap((item) => parentsOf(item)));
+  const shelves = categories.filter((item) => !sectionIds.has(String(item._id)));
   return (
     <section className="page-container">
       <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -68,7 +71,7 @@ export default async function NewProductPage() {
             <label>
               Category
               <select name="categoryId" required>
-                {categories.map((item) => (
+                {shelves.map((item) => (
                   <option value={String(item._id)} key={String(item._id)}>
                     {item.name.en}
                   </option>

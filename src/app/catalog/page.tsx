@@ -1,3 +1,4 @@
+import { ViewTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { permanentRedirect } from "next/navigation";
@@ -122,89 +123,92 @@ export default async function Catalog({
       )}
       <CentreCurrent key={`${params.category ?? "all"}-${section?.slug ?? ""}`} rail=".shelf-rail" />
       <CentreCurrent key={section?.slug ?? "all"} rail=".section-tabs" />
-      <div className="shelf-main">
-        <div className="shelf-head">
-          <div>
-            <h1>
-              {active
-                ? active[locale]
-                : params.q
-                  ? locale === "mr"
-                    ? `“${params.q.slice(0, 60)}” साठी निकाल`
-                    : `Results for “${params.q.slice(0, 60)}”`
-                  : locale === "mr"
-                    ? "सर्व उत्पादने"
-                    : "All products"}
-            </h1>
-            {/* how many, then the aisle in a line from its own products: whose, and at what prices */}
-            <p className="muted results-line">
-              <span>
-                {more > 0 && (locale === "mr" ? `${shown.length} दाखवत आहोत, एकूण ` : `Showing ${shown.length} of `)}
-                <strong>{products.length}</strong> {locale === "mr" ? "उत्पादने" : products.length === 1 ? "product" : "products"}
-                {params.q ? (locale === "mr" ? ` “${params.q}” साठी` : ` for “${params.q}”`) : ""}
-                {active &&
-                  !params.q &&
-                  products.length > 0 &&
-                  [
-                    "",
-                    summary.brands.slice(0, 3).join(", ") + (summary.brands.length > 3 ? "…" : ""),
-                    // word joiners keep "₹90–₹240" on one line on a phone
-                    summary.range.replace("–", "\u2060–\u2060"),
-                  ]
-                    .filter((part, index) => !index || part)
-                    .join(" · ")}
-              </span>
-              {filtered && (
-                <Link href={active && !params.q ? shelfHref(active.slug, section?.slug) : allHref}>
-                  {locale === "mr" ? "फिल्टर काढा" : "Clear filters"}
-                </Link>
+      {/* picking another shelf swaps this part with a cross-fade: same place, different products */}
+      <ViewTransition key={params.category ?? (params.q ? "search" : "all")} name="shelf-content" share="auto" enter="auto" default="none">
+        <div className="shelf-main">
+          <div className="shelf-head">
+            <div>
+              <h1>
+                {active
+                  ? active[locale]
+                  : params.q
+                    ? locale === "mr"
+                      ? `“${params.q.slice(0, 60)}” साठी निकाल`
+                      : `Results for “${params.q.slice(0, 60)}”`
+                    : locale === "mr"
+                      ? "सर्व उत्पादने"
+                      : "All products"}
+              </h1>
+              {/* how many, then the aisle in a line from its own products: whose, and at what prices */}
+              <p className="muted results-line">
+                <span>
+                  {more > 0 && (locale === "mr" ? `${shown.length} दाखवत आहोत, एकूण ` : `Showing ${shown.length} of `)}
+                  <strong>{products.length}</strong> {locale === "mr" ? "उत्पादने" : products.length === 1 ? "product" : "products"}
+                  {params.q ? (locale === "mr" ? ` “${params.q}” साठी` : ` for “${params.q}”`) : ""}
+                  {active &&
+                    !params.q &&
+                    products.length > 0 &&
+                    [
+                      "",
+                      summary.brands.slice(0, 3).join(", ") + (summary.brands.length > 3 ? "…" : ""),
+                      // word joiners keep "₹90–₹240" on one line on a phone
+                      summary.range.replace("–", "\u2060–\u2060"),
+                    ]
+                      .filter((part, index) => !index || part)
+                      .join(" · ")}
+                </span>
+                {filtered && (
+                  <Link href={active && !params.q ? shelfHref(active.slug, section?.slug) : allHref}>
+                    {locale === "mr" ? "फिल्टर काढा" : "Clear filters"}
+                  </Link>
+                )}
+              </p>
+            </div>
+            <CatalogFilterPanel locale={locale} params={params} />
+          </div>
+          {products.length ? (
+            <>
+              <div className="product-grid">
+                {shown.map((p, index) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    locale={locale}
+                    eager={index === 0}
+                  />
+                ))}
+              </div>
+              {more > 0 && (
+                <div className="load-more">
+                  {/* stays where it is: the next products appear under the ones already seen */}
+                  <Link href={nextHref} scroll={false} className="secondary-button">
+                    {locale === "mr"
+                      ? `आणखी ${Math.min(more, PAGE_SIZE)} दाखवा`
+                      : `Load ${Math.min(more, PAGE_SIZE)} more${more > PAGE_SIZE ? ` of ${more}` : ""}`}
+                  </Link>
+                </div>
               )}
-            </p>
-          </div>
-          <CatalogFilterPanel locale={locale} params={params} />
+              {/* the end of a shelf leads on to the next one in the rail */}
+              {more <= 0 && next && !params.q && (
+                <div className="load-more">
+                  <Link href={shelfHref(next.slug, section?.slug)} className="secondary-button">
+                    {locale === "mr" ? "पुढे" : "Next"}: {next[locale]} <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="panel empty-state">
+              <SearchX size={40} strokeWidth={1.5} className="empty-icon" aria-hidden="true" />
+              <h2>{locale === "mr" ? "उत्पादने सापडली नाहीत" : "No products found"}</h2>
+              <p>{locale === "mr" ? "इंग्रजी किंवा मराठीत दुसरे नाव वापरून पाहा, किंवा फिल्टर काढा." : "Try another name in English or Marathi, or clear your filters."}</p>
+              <Link href={allHref} className="primary-button">
+                {locale === "mr" ? "सर्व उत्पादने पाहा" : "Show all products"}
+              </Link>
+            </div>
+          )}
         </div>
-        {products.length ? (
-          <>
-            <div className="product-grid">
-            {shown.map((p, index) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                locale={locale}
-                eager={index === 0}
-              />
-            ))}
-          </div>
-            {more > 0 && (
-              <div className="load-more">
-                {/* stays where it is: the next products appear under the ones already seen */}
-                <Link href={nextHref} scroll={false} className="secondary-button">
-                  {locale === "mr"
-                    ? `आणखी ${Math.min(more, PAGE_SIZE)} दाखवा`
-                    : `Load ${Math.min(more, PAGE_SIZE)} more${more > PAGE_SIZE ? ` of ${more}` : ""}`}
-                </Link>
-              </div>
-            )}
-            {/* the end of a shelf leads on to the next one in the rail */}
-            {more <= 0 && next && !params.q && (
-              <div className="load-more">
-                <Link href={shelfHref(next.slug, section?.slug)} className="secondary-button">
-                  {locale === "mr" ? "पुढे" : "Next"}: {next[locale]} <ArrowRight size={16} aria-hidden="true" />
-                </Link>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="panel empty-state">
-            <SearchX size={40} strokeWidth={1.5} className="empty-icon" aria-hidden="true" />
-            <h2>{locale === "mr" ? "उत्पादने सापडली नाहीत" : "No products found"}</h2>
-            <p>{locale === "mr" ? "इंग्रजी किंवा मराठीत दुसरे नाव वापरून पाहा, किंवा फिल्टर काढा." : "Try another name in English or Marathi, or clear your filters."}</p>
-            <Link href={allHref} className="primary-button">
-              {locale === "mr" ? "सर्व उत्पादने पाहा" : "Show all products"}
-            </Link>
-          </div>
-        )}
-      </div>
+      </ViewTransition>
     </section>
   );
 }

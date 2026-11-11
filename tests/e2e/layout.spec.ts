@@ -9,9 +9,9 @@ import { execFileSync } from "node:child_process";
 import { readdirSync, writeFileSync } from "node:fs";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { User, Product, ProductVariant } from "../../src/lib/db/models";
+import { User, Product, ProductVariant, InventoryItem } from "../../src/lib/db/models";
 import { ShoppingList } from "../../src/lib/lists/models";
-import { Address, Order } from "../../src/lib/commerce/models";
+import { Address, CartLine, Order } from "../../src/lib/commerce/models";
 import { ChatConversation } from "../../src/lib/chat/models";
 import { QuoteBasket, QuoteRequest, School } from "../../src/lib/schools/models";
 import { istDatePlus, quoteTotals } from "../../src/lib/schools/quote-math";
@@ -426,7 +426,12 @@ test("every page holds its layout", async ({ browser }, info) => {
   }
   // signed in, the shopping pages grow more controls: Save to a board, another basket, the school pill
   const customer = pages.get("customer") ?? (await signedIn(browser, "customer", info.project.use));
-  for (const path of ["/", "/catalog", samples["/products/[slug]"], "/cart"]) {
+  // and with something in the basket: its lines, the family's "Who is it for?" chips, the pay bar, and a real checkout
+  const shopper = (await User.findOne({ email: EMAILS.customer }))!;
+  const pack = (await ProductVariant.findOne({ active: { $ne: false } }).sort({ sku: 1 }))!;
+  await InventoryItem.updateOne({ variantId: pack._id }, { onHand: 50, reserved: 0 });
+  await CartLine.create({ customerId: shopper._id, variantId: pack._id, quantity: 2 });
+  for (const path of ["/", "/catalog", samples["/products/[slug]"], "/cart", "/checkout"]) {
     await customer.goto(path);
     await customer.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
     const problems = await problemsOn(customer);
@@ -437,6 +442,7 @@ test("every page holds its layout", async ({ browser }, info) => {
         fullPage: true,
       });
   }
+  await CartLine.deleteMany({});
   // the shop and the policies come in full Marathi too: longer words, same layout rules
   const marathi = await signedIn(browser, "guest", info.project.use);
   await marathi.context().addCookies([{ name: "ags_locale", value: "mr", url: info.project.use.baseURL! }]);

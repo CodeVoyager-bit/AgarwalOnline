@@ -50,6 +50,7 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
   // who the order is for, in a family; asked only once there is something to order
   const people = user && lines.length ? await familyPeople(user.id) : undefined;
   const forId = people?.some((person) => person.id === wanted) ? wanted : user?.id;
+  const checkoutHref = forId && forId !== user?.id ? `/checkout?for=${forId}` : "/checkout";
   // checkout refuses these, so say so here, where they can be fixed
   const needsAttention =
     unavailable.length > 0 || lines.some((line) => line.quantity > line.available);
@@ -290,7 +291,7 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
               <p className="notice">Fix the items marked in your basket before checking out.</p>
             )}
             {user ? (
-              <Link href={forId && forId !== user.id ? `/checkout?for=${forId}` : "/checkout"} className="primary-button">
+              <Link href={checkoutHref} className="primary-button">
                 Continue to checkout
                 <ArrowRight size={18} aria-hidden="true" />
               </Link>
@@ -304,6 +305,18 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
             </p>
           </aside>
           <BasketSync units={units} />
+          {/* phones: what there is to pay and the way on stay in reach while the lines scroll (shown by .cart-bar's phone rules) */}
+          {user && !needsAttention && (
+            <Link href={checkoutHref} className="cart-bar pay-bar">
+              <span>
+                <b>{mr ? "देय रक्कम" : "To pay"}</b>
+                <small>{formatPrice(quote.totalPaise)}</small>
+              </span>
+              <span>
+                {mr ? "चेकआउट" : "Checkout"} <ArrowRight size={16} aria-hidden="true" />
+              </span>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="panel empty-state">

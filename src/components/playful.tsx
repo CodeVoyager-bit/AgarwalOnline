@@ -109,6 +109,16 @@ export function PlayfulFx() {
     if (icon) setTimeout(() => burst(icon.left + icon.width / 2, icon.top + icon.height / 2, false, 28, 70), 250);
   }, [pathname]);
 
+  // the basket just reached free delivery (said by the basket bar): a burst from the bar
+  useEffect(() => {
+    const onFree = () => {
+      const bar = moving() ? document.querySelector(".cart-bar")?.getBoundingClientRect() : undefined;
+      if (bar?.width) burst(bar.left + bar.width / 2, bar.top + 8, false, 24, 64);
+    };
+    document.addEventListener("basket:free", onFree);
+    return () => document.removeEventListener("basket:free", onFree);
+  }, []);
+
   useEffect(() => {
     const root = document.documentElement;
     try {
