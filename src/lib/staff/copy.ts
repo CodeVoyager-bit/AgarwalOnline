@@ -39,7 +39,7 @@ type StaffCopy = {
     keys: string;
     clear: string;
   };
-  sheet: { more: string; close: string; account: string; language: string };
+  sheet: { more: string; close: string; account: string };
 };
 
 export const staffCopy: Record<Locale, StaffCopy> = {
@@ -112,7 +112,7 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       keys: "↑ ↓ move · Enter open · Esc close",
       clear: "Clear search",
     },
-    sheet: { more: "Workspace menu", close: "Close", account: "My account", language: "Language" },
+    sheet: { more: "Workspace menu", close: "Close", account: "My account" },
   },
   mr: {
     workspace: "दुकानाचे काम",
@@ -183,6 +183,6 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       keys: "↑ ↓ निवडा · Enter उघडा · Esc बंद",
       clear: "शोध पुसा",
     },
-    sheet: { more: "कामाचा मेनू", close: "बंद करा", account: "माझे खाते", language: "भाषा" },
+    sheet: { more: "कामाचा मेनू", close: "बंद करा", account: "माझे खाते" },
   },
 };

@@ -436,7 +436,8 @@ export async function replyToFeedback(actorId: string, input: unknown) {
     );
     const order = await Order.findById(feedback.orderId).select("customerId").session(session);
     if (!order) return;
-    const text = feedbackCopy[feedback.locale === "mr" ? "mr" : "en"];
+    // the site is English only, so replies are too, even to feedback left in Marathi before
+    const text = feedbackCopy.en;
     await notify(
       {
         userId: order.customerId,

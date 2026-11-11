@@ -237,7 +237,11 @@ test("staff: a packing slip and the bill from the order page", async ({ browser 
   await expect(slip.getByRole("heading", { name: "Deliver to" })).toBeVisible();
   await expect(slip.locator(".slip-lines tbody tr")).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: "Print packing slip" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open the bill" })).toHaveAttribute("href", `/api/invoices/${order.id}`);
+  // the order's bills, each with Print bill and Share PDF on WhatsApp, above the slip and never printed
+  const bills = page.locator(".slip-actions #bills > li");
+  await expect(bills).not.toHaveCount(0);
+  await expect(bills.first().getByRole("button", { name: /^Print (kaccha )?bill$/ })).toBeVisible();
+  await expect(bills.first().getByRole("button", { name: /^Share (PDF on WhatsApp|kaccha bill)$/ })).toBeVisible();
   const bill = await (await page.request.get(`/api/invoices/${order.id}`)).text();
   expect(bill).toContain("<h1>Agarwal Online Test Shop</h1>");
   expect(bill).toContain("Main Road, Nagothane · Phone 9876543210");
@@ -266,7 +270,8 @@ test("owner: Customize changes the bill and the shop front", async ({ browser },
   await page.goto("/super-admin/customize#storefront");
   const front = page.locator("#storefront");
   await front.getByLabel("Show an announcement bar at the top of every shop page").check();
-  await front.getByRole("group", { name: /^Announcement For example/ }).getByLabel("English").fill("Closed on 1 November for Diwali");
+  // one box per wording since the site went English only
+  await front.getByRole("textbox", { name: /^Announcement For example/ }).fill("Closed on 1 November for Diwali");
   await front.getByRole("button", { name: "Save shop front" }).click();
   await expect(front.getByText("Shop front saved.")).toBeVisible();
   await page.goto("/");
@@ -294,15 +299,17 @@ test("staff: the name on the bill, a re-issue, and the estimate (kaccha bill)", 
   expect(bill).toContain(base);
   expect(bill.toLowerCase()).toContain("cash memo");
   expect(bill).toContain("Not registered under GST");
-  // before delivery the kaccha bill is an estimate, and it says it isn't a bill
-  await expect(page.getByRole("link", { name: "Estimate (kaccha bill)" })).toHaveAttribute("href", `/api/invoices/${order.id}?kind=estimate`);
+  // before delivery the kaccha bill is an estimate, and it says it isn't a bill; it prints and shares like a bill
+  const kaccha = card.locator("#bills > li", { hasText: "Kaccha bill" });
+  await expect(kaccha.getByRole("button", { name: "Print kaccha bill" })).toBeVisible();
+  await expect(kaccha.getByRole("button", { name: "Share kaccha bill" })).toBeVisible();
   const estimate = await (await page.request.get(`/api/invoices/${order.id}?kind=estimate`)).text();
   expect(estimate).toContain(`EST-${order.number}`);
   expect(estimate.toLowerCase()).toContain("not a tax invoice");
   // delivered: the bill is given, so a new name re-issues it under a new number, and there's no estimate any more
   await Order.updateOne({ _id: order.id }, { $set: { deliveryStatus: "delivered", "bill.issuedAt": new Date() } });
   await page.reload();
-  await expect(page.getByRole("link", { name: "Estimate (kaccha bill)" })).toHaveCount(0);
+  await expect(page.locator("#bills > li", { hasText: "Kaccha bill" })).toHaveCount(0);
   await page.locator("#bill").getByLabel(/^Name on the bill/).fill("Patil Traders Pvt Ltd");
   await page.locator("#bill").getByRole("button", { name: "Save bill details" }).click();
   await expect(page.locator("#bill").getByText(/re-issued as bill/)).toBeVisible();

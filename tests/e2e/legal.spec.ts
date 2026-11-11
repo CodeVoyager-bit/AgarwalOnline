@@ -67,12 +67,13 @@ test("a link to one section opens the page at that section", async ({ page }) =>
   await expect(page.locator("#disputes")).toContainText("Consumer Protection Act, 2019");
 });
 
-test("the Marathi pages are in Marathi and say the English text prevails", async ({ page, context, baseURL }) => {
+test("the policies are in English only, even with an old Marathi cookie", async ({ page, context, baseURL }) => {
   await context.addCookies([{ name: "ags_locale", value: "mr", url: baseURL! }]);
   await page.goto("/privacy");
-  await expect(page.getByRole("heading", { level: 1, name: "गोपनीयता धोरण" })).toBeVisible();
-  await expect(page.getByText("इंग्रजी आवृत्ती ग्राह्य धरली जाईल")).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "धोरणे", exact: true }).getByRole("link", { name: "अटी व शर्ती" })).toBeAttached();
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeVisible();
+  // no note about a translation, and no Marathi anywhere on the page
+  await expect(page.locator(".legal-prevails")).toHaveCount(0);
+  expect(await page.locator("main").innerText()).not.toMatch(/[\u0900-\u097F]/);
 });
 
 test("the Contact page names the grievance officer once Store settings has one", async ({ page }) => {

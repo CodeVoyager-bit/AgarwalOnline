@@ -24,10 +24,10 @@ it("names the field and shows paise limits in rupees", () => {
 
 it("rewrites format, length, choice and missing-value errors", () => {
   expect(message({ sku: "a b" })).toBe("SKU is not in the right format.");
-  expect(message({ nameEn: "P" })).toBe("English name needs at least 3 characters.");
+  expect(message({ nameEn: "P" })).toBe("Name needs at least 3 characters.");
   expect(message({ kind: "other" })).toBe("Choose kind from the list.");
   expect(message({ email: "nope" })).toBe("Enter a valid email address.");
-  expect(message({ nameEn: undefined })).toBe("English name is required.");
+  expect(message({ nameEn: undefined })).toBe("Name is required.");
 });
 
 it("keeps messages a schema spells out itself", () => {

@@ -35,7 +35,6 @@ const copy = {
     dealEyebrow: "Biggest saving today",
     dealCta: "See the deal",
     hubs: "Explore the categories",
-    hubsMr: "विभाग पाहा",
     productsCount: (n: number) => (n === 1 ? "1 product" : `${n} products`),
     pinLabel: "Check delivery at your PIN code",
     pinHint: "Six digits. Used only to check serviceability.",
@@ -45,7 +44,6 @@ const copy = {
     areasLabel: (areas: string) => `Delivering in ${areas}`,
     benefitsLabel: "Delivery and payment facts",
     offers: "Offers running now",
-    offersMr: "सध्याच्या ऑफर",
     allOffers: "Shop the offers",
     withCode: "Use code",
     automatic: "Applied automatically at checkout",
@@ -54,20 +52,15 @@ const copy = {
     percentOff: (value: number) => `${value}% off`,
     amountOff: (amount: string) => `${amount} off`,
     aisles: "Shop by category",
-    aislesMr: "विभागानुसार खरेदी",
     allAisles: (n: number) => `All ${n} categories`,
     usuals: "Your usuals",
     usualsTitle: "Buy it again",
     pastOrders: "Past orders",
     popular: "Popular in the shop",
-    popularMr: "दुकानातील लोकप्रिय",
     seeAll: "See all",
     savings: "Biggest savings",
-    savingsMr: "सर्वाधिक बचत",
     newIn: "New in store",
-    newInMr: "दुकानात नवीन",
     picked: "Picked for you",
-    pickedMr: "तुमच्यासाठी निवडलेले",
     storyEyebrow: "How delivery works",
     step1: (cutoff: string) => `Order before ${cutoff}`,
     step1Note: "Anything ordered after that goes out tomorrow.",
@@ -83,7 +76,6 @@ const copy = {
     dealEyebrow: "आजची सर्वात मोठी बचत",
     dealCta: "ऑफर पाहा",
     hubs: "विभाग पाहा",
-    hubsMr: "Explore the categories",
     productsCount: (n: number) => `${n} उत्पादने`,
     pinLabel: "तुमच्या पिन कोडवर वितरण तपासा",
     pinHint: "सहा अंक. फक्त वितरण उपलब्धता तपासण्यासाठी.",
@@ -93,7 +85,6 @@ const copy = {
     areasLabel: (areas: string) => `${areas} येथे वितरण`,
     benefitsLabel: "वितरण आणि पेमेंट माहिती",
     offers: "सध्याच्या ऑफर",
-    offersMr: "Offers running now",
     allOffers: "ऑफर पाहा",
     withCode: "कोड वापरा",
     automatic: "चेकआउटला आपोआप लागू",
@@ -102,20 +93,15 @@ const copy = {
     percentOff: (value: number) => `${value}% सूट`,
     amountOff: (amount: string) => `${amount} सूट`,
     aisles: "विभागानुसार खरेदी",
-    aislesMr: "Shop by category",
     allAisles: (n: number) => `सर्व ${n} विभाग`,
     usuals: "तुमच्या नेहमीच्या वस्तू",
     usualsTitle: "पुन्हा खरेदी करा",
     pastOrders: "मागील ऑर्डर",
     popular: "दुकानातील लोकप्रिय",
-    popularMr: "Popular in the shop",
     seeAll: "सर्व पाहा",
     savings: "सर्वाधिक बचत",
-    savingsMr: "Biggest savings",
     newIn: "दुकानात नवीन",
-    newInMr: "New in store",
     picked: "तुमच्यासाठी निवडलेले",
-    pickedMr: "Picked for you",
     storyEyebrow: "वितरण कसे चालते",
     step1: (cutoff: string) => `${cutoff} पूर्वी ऑर्डर करा`,
     step1Note: "त्यानंतरच्या ऑर्डर उद्या पाठवल्या जातात.",
@@ -142,7 +128,6 @@ function AisleTile({
   fallback?: string;
 }) {
   const photo = categoryImages[category.slug] ?? fallback;
-  const other = locale === "en" ? "mr" : "en";
   return (
     <Link
       href={`/catalog?category=${category.slug}`}
@@ -162,8 +147,7 @@ function AisleTile({
         )}
       </span>
       <span className="aisle-label">
-        <strong lang={locale}>{category[locale]}</strong>
-        <small lang={other}>{category[other]}</small>
+        <strong>{category[locale]}</strong>
       </span>
     </Link>
   );
@@ -173,7 +157,6 @@ function Section({
   id,
   title,
   subtitle,
-  subtitleLang,
   link,
   linkLabel,
   count,
@@ -181,9 +164,7 @@ function Section({
 }: {
   id: string;
   title: string;
-  subtitle: string;
-  /** the subtitle is usually the other language's name for the section */
-  subtitleLang?: string;
+  subtitle?: string;
   link: string;
   linkLabel: string;
   count?: number;
@@ -194,9 +175,7 @@ function Section({
       <div className="section-heading">
         <div>
           <h2 id={id}>{title}</h2>
-          <span className="muted" lang={subtitleLang}>
-            {subtitle}
-          </span>
+          {subtitle && <span className="muted">{subtitle}</span>}
         </div>
         <Link href={link}>
           {linkLabel}
@@ -284,7 +263,6 @@ export default async function Home() {
   if (deal) shown.add(deal.id);
   const dealVariant = deal?.variants[0];
   const dealOff = dealVariant ? discountPercent(dealVariant.pricePaise, dealVariant.mrpPaise) : 0;
-  const other = locale === "en" ? "mr" : "en";
   const hubs = categories
     .map((category) => ({
       category,
@@ -347,13 +325,9 @@ export default async function Home() {
         {deal && dealVariant && (
           <aside className="deal-card" aria-labelledby="deal-title">
             <span className="eyebrow">{t.dealEyebrow}</span>
-            <h2 id="deal-title" lang={locale}>
-              {deal.name[locale]}
-            </h2>
-            <p lang={other}>
-              {deal.name[other]} · {dealVariant.label}
-            </p>
-            <Link href={`/products/${deal.slug}?lang=${locale}`} className="deal-art">
+            <h2 id="deal-title">{deal.name[locale]}</h2>
+            <p>{dealVariant.label}</p>
+            <Link href={`/products/${deal.slug}`} className="deal-art">
               <Image
                 src={deal.image ?? productImages[deal.slug]}
                 alt={`Representative ${deal.name.en.toLowerCase()} photography`}
@@ -366,7 +340,7 @@ export default async function Home() {
               <strong>{formatPrice(dealVariant.pricePaise)}</strong>
               <del>{formatPrice(dealVariant.mrpPaise)}</del>
               <span className="deal-off">−{dealOff}%</span>
-              <Link href={`/products/${deal.slug}?lang=${locale}`}>
+              <Link href={`/products/${deal.slug}`}>
                 {t.dealCta} <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </p>
@@ -420,8 +394,6 @@ export default async function Home() {
         <Section
           id="aisles-title"
           title={t.aisles}
-          subtitle={t.aislesMr}
-          subtitleLang={other}
           link="/catalog"
           linkLabel={t.seeAll}
           count={categories.length}
@@ -450,8 +422,6 @@ export default async function Home() {
           <Section
             id="popular-title"
             title={t.popular}
-            subtitle={t.popularMr}
-            subtitleLang={other}
             link="/catalog"
             linkLabel={t.seeAll}
             count={products.length}
@@ -498,8 +468,6 @@ export default async function Home() {
           <Section
             id="savings-title"
             title={t.savings}
-            subtitle={t.savingsMr}
-            subtitleLang={other}
             link="/catalog?sort=discount"
             linkLabel={t.seeAll}
             count={savings.length}
@@ -559,8 +527,6 @@ export default async function Home() {
           <Section
             id="new-title"
             title={t.newIn}
-            subtitle={t.newInMr}
-            subtitleLang={other}
             link="/catalog?sort=new"
             linkLabel={t.seeAll}
           >
@@ -575,8 +541,6 @@ export default async function Home() {
           <Section
             id="picked-title"
             title={t.picked}
-            subtitle={t.pickedMr}
-            subtitleLang={other}
             link="/catalog"
             linkLabel={t.seeAll}
           >
@@ -592,9 +556,6 @@ export default async function Home() {
             <div className="section-heading">
               <div>
                 <h2 id="hubs-title">{t.hubs}</h2>
-                <span className="muted" lang={other}>
-                  {t.hubsMr}
-                </span>
               </div>
             </div>
             <div className="hubs">
@@ -604,12 +565,9 @@ export default async function Home() {
                   href={`/catalog?category=${category.slug}`}
                   className="hub-card"
                 >
-                  <span className="hub-eyebrow" lang={other}>
-                    {category[other]}
-                  </span>
-                  <strong lang={locale}>{category[locale]}</strong>
+                  <strong>{category[locale]}</strong>
                   {/* each line once: the sizes after the comma used to repeat one book three times */}
-                  <p lang={locale}>
+                  <p>
                     {[...new Set(items.map((product) => product.name[locale].split(",")[0].trim()))]
                       .slice(0, 3)
                       .join(" · ")}

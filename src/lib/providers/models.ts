@@ -20,6 +20,27 @@ const providerSchema = new Schema(
     decidedBy: { type: Schema.Types.ObjectId, ref: "User" },
     decidedAt: Date,
     declineReason: String,
+    /**
+     * Tax and billing (Providers → Tax and billing): with ownBills on, its items get a bill in its own name and
+     * GSTIN instead of Agarwal's. An owner's edits apply at once; an admin's wait in Approvals. Switching it on
+     * needs the checklist in billing.ts: a GST registration, the provider's written agreement and the owner's
+     * word that the CA confirmed Agarwal's e-commerce (TCS) registration.
+     */
+    billing: {
+      ownBills: { type: Boolean, default: false },
+      legalName: String,
+      registration: { type: String, enum: ["regular", "composition", "unregistered"] },
+      gstin: String,
+      address: String,
+      stateCode: String,
+      // "KT" gives bills KT/26-27/0001
+      prefix: String,
+      // a style from Customize → Bills, or "same" for Agarwal's
+      style: String,
+      // when the owner or an admin recorded the provider's written agreement to bills in its name
+      agreementAt: Date,
+      agreementBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
   },
   { timestamps: true, strict: "throw" },
 );

@@ -20,12 +20,8 @@ function CategoryFields({ category, all }: { category?: CategoryDoc; all: Catego
   return (
     <div className="staff-form-grid">
       <label>
-        English name
+        Name
         <input name="nameEn" defaultValue={category?.name.en} required />
-      </label>
-      <label>
-        Marathi name
-        <input name="nameMr" defaultValue={category?.name.mr} lang="mr" required />
       </label>
       <label>
         Web address <small>Lowercase words joined by dashes, like gift-wrap</small>
@@ -81,7 +77,7 @@ export default async function CategoriesPage({
       <PageHeading
         eyebrow="Run the store"
         title="Categories"
-        lead="The categories shoppers browse. Every category needs an English and a Marathi name."
+        lead="The categories shoppers browse, each with its name and web address."
       />
       <CatalogAdminNav />
       {editing && (
@@ -112,7 +108,7 @@ export default async function CategoriesPage({
       <FilterBar label="Find categories" submitLabel="Find" clearHref={term ? "/admin/categories" : undefined}>
         <label>
           Name or web address
-          <input name="q" defaultValue={q} maxLength={80} placeholder="Pens or पेन" />
+          <input name="q" defaultValue={q} maxLength={80} placeholder="Pens" />
         </label>
       </FilterBar>
       <p className="results-line" role="status">
@@ -122,7 +118,7 @@ export default async function CategoriesPage({
         </span>
       </p>
       <DataTable
-        caption="Categories with their Marathi name, web address and number of products"
+        caption="Categories with their web address and number of products"
         exportName="Categories"
         rows={shown}
         rowKey={(category) => String(category._id)}
@@ -133,9 +129,7 @@ export default async function CategoriesPage({
             cell: (category) => (
               <>
                 <Link href={`/admin/categories?edit=${category._id}#edit`}>{category.name.en}</Link>
-                <small>
-                  <span lang="mr">{category.name.mr}</span> · /catalog?category={category.slug}
-                </small>
+                <small>/catalog?category={category.slug}</small>
               </>
             ),
           },

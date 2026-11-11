@@ -71,10 +71,8 @@ test("Add product: several photos, put in order, go live with the product", asyn
   const results = await new AxeBuilder({ page }).include("#photos").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(results.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) }))).toEqual([]);
 
-  await main.getByLabel("English name").fill("Photo Pen Set");
-  await main.getByLabel("Marathi name").fill("फोटो पेन संच");
-  await main.getByLabel("English description").fill("Pens for the photo test");
-  await main.getByLabel("Marathi description").fill("फोटो चाचणीचे पेन");
+  await main.getByLabel("Name", { exact: true }).fill("Photo Pen Set");
+  await main.getByLabel("Description", { exact: true }).fill("Pens for the photo test");
   await main.getByLabel(/^Web address/).fill(slugFor());
   await main.getByLabel(/^Pack label/).fill("Pack of 5");
   await main.getByLabel(/^SKU/).fill(`PHOTO-PEN-${test.info().project.name.toUpperCase()}`);
@@ -137,7 +135,7 @@ test("Edit product: more photos, a new cover, a removal, and the shop follows", 
   expect(saved.image).toBe(expected[0]);
 
   // the details form no longer touches the photos
-  await page.locator("main").getByLabel("English name").fill("Photo Pen Set, blue");
+  await page.locator("main").getByLabel("Name", { exact: true }).fill("Photo Pen Set, blue");
   await page.locator("main").getByRole("button", { name: "Save product details" }).click();
   await expect(page.locator("main").getByText("Product details saved.")).toBeVisible();
   expect((await Product.findById(product._id)).images).toEqual(expected);

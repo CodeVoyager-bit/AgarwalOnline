@@ -306,9 +306,7 @@ export function SmartSearch({
             >
               <span>
                 <strong>{result.name.en}</strong>
-                <small>
-                  {result.name.mr} · {result.brand}
-                </small>
+                {result.brand && <small>{result.brand}</small>}
               </span>
               <b>{result.priceText ?? formatPrice(result.pricePaise)}</b>
             </Link>

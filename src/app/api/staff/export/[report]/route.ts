@@ -7,6 +7,7 @@ import { Order } from "@/lib/commerce/models";
 import { lowStockRows, lowStockWorkbook } from "@/lib/inventory/low-stock";
 import { xlsx, xlsxName } from "@/lib/xlsx";
 import { shopSettings } from "@/lib/settings/shop";
+import { providerBillsFile } from "@/lib/commerce/provider-bills-report";
 
 export const runtime = "nodejs";
 
@@ -84,9 +85,11 @@ const REPORTS: Record<string, { permission: Permission; title: string; build: (p
   // purchase prices only in an owner's copy
   "low-stock": { permission: "inventory:adjust", title: "Low stock", build: async (_, owner) => lowStockWorkbook(await lowStockRows({ withCost: owner }), owner) },
   orders: { permission: "analytics:read", title: "Orders", build: ordersFile },
+  // the bills providers gave in their own name in a month (?month=2026-11), for the CA
+  "provider-bills": { permission: "analytics:read", title: "Provider bills", build: providerBillsFile },
 };
 
-/** Excel downloads for staff: the low-stock report and the orders in a date range. */
+/** Excel downloads for staff: the low-stock report, the orders in a date range, and a month's provider bills. */
 export async function GET(request: Request, { params }: { params: Promise<{ report: string }> }) {
   const { report } = await params;
   const spec = Object.hasOwn(REPORTS, report) ? REPORTS[report] : undefined;

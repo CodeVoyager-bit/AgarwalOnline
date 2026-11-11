@@ -9,7 +9,6 @@ import { copy, type Locale } from "@/lib/locale-types";
 import { staffCopy } from "@/lib/staff/copy";
 import { navFor } from "@/lib/staff/nav";
 import { HashTarget } from "./hash-target";
-import { LocaleToggle } from "./locale-toggle";
 import { Modal } from "./modal";
 import { StaffCountsProvider } from "./staff-counts";
 import { StaffFinder } from "./staff-finder";
@@ -145,10 +144,6 @@ export default function StaffChrome({
                 </Link>
               </li>
             </ul>
-            <div className="more-sheet-language">
-              <span>{text.sheet.language}</span>
-              <LocaleToggle locale={locale} />
-            </div>
             <form action={logoutAction}>
               <button className="secondary-button more-sheet-signout">
                 <LogOut size={16} aria-hidden="true" />

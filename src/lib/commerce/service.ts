@@ -213,9 +213,10 @@ export async function checkout(customerId: string, input: unknown) {
       subtotal += linePaise;
       merchandiseSavingsPaise +=
         Math.max(0, variant.mrpPaise - variant.pricePaise) * line.quantity;
-      // the line keeps who provided it, named only once an owner approved the provider
+      // the line keeps who provided it, named only once an owner approved the provider, and who bills
+      // it: the provider itself when it bills in its own name (Providers → Tax and billing), else Agarwal
       const provider = product.providerId
-        ? await Provider.findOne({ _id: product.providerId, status: "active" }).select("name town").session(session)
+        ? await Provider.findOne({ _id: product.providerId, status: "active" }).select("name town billing.ownBills").session(session)
         : null;
       items.push({
         variantId: variant._id,
@@ -225,6 +226,7 @@ export async function checkout(customerId: string, input: unknown) {
         pricePaise: variant.pricePaise,
         linePaise,
         ...(provider ? { providerId: provider._id, providerName: provider.name, providerTown: provider.town } : {}),
+        ...(provider?.billing?.ownBills ? { billedBy: provider._id } : {}),
       });
     }
     const fee = deliveryFee(subtotal, area.feePaise, rules);

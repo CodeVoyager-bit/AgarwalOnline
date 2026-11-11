@@ -20,6 +20,9 @@
  *
  * 2026-11-07.1: Google Analytics, only after the shopper taps Allow: what it sees, its _ga cookies,
  * 2 months' retention at Google, and Cookie choices to change the answer.
+ *
+ * 2026-11-12.1: English only. The Marathi versions are gone, and with them the line that the English
+ * version prevails, the language cookie and "language" among account details.
  */
-export const POLICY_VERSION = "2026-11-07.1";
-export const LAST_UPDATED = { en: "7 November 2026", mr: "7 नोव्हेंबर 2026" } as const;
+export const POLICY_VERSION = "2026-11-12.1";
+export const LAST_UPDATED = { en: "12 November 2026", mr: "12 नोव्हेंबर 2026" } as const;
