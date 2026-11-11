@@ -1,3 +1,4 @@
+import { DEFAULT_THEME, THEME_CHOICES } from "./themes";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB } from "../db/connect";
@@ -233,6 +234,14 @@ export const SECTIONS = {
   },
   storefront: {
     fields: {
+      theme: {
+        kind: "choice",
+        label: "Colour theme",
+        group: "Colours",
+        hint: "The header, buttons and highlights of every page, for shoppers and staff. It changes as soon as you save.",
+        default: DEFAULT_THEME,
+        options: THEME_CHOICES,
+      },
       announcementOn: {
         kind: "check",
         label: "Show an announcement bar at the top of every shop page",
@@ -261,10 +270,10 @@ export const SECTIONS = {
         label: "Headline, first part",
         hint: "{cutoff} becomes the same-day time, like 3 PM.",
         max: 60,
-        own: { en: "Order by {cutoff},", mr: "{cutoff} पूर्वी ऑर्डर करा," },
+        own: { en: "What do you need", mr: "आज काय" },
       },
-      heroHighlight: { kind: "both", label: "Headline, the part in yellow", max: 60, own: { en: "at your door today.", mr: "आज दारात." } },
-      heroLead: { kind: "both", label: "Line under the headline", max: 240, long: true, own: { en: "Stationery, school supplies, toys and games at fair prices, carried to your door by the same people who serve you in store.", mr: "लेखन साहित्य, शालेय वस्तू, खेळणी आणि खेळ योग्य किमतीत, दुकानातील तीच माणसे तुमच्या दारापर्यंत पोहोचवतात." } },
+      heroHighlight: { kind: "both", label: "Headline, the highlighted part", max: 60, own: { en: "today?", mr: "हवे आहे?" } },
+      heroLead: { kind: "both", label: "Line under the headline (shown on computers, not phones)", max: 240, long: true, own: { en: "Stationery, school supplies, toys and games at fair prices, carried to your door by the same people who serve you in store.", mr: "लेखन साहित्य, शालेय वस्तू, खेळणी आणि खेळ योग्य किमतीत, दुकानातील तीच माणसे तुमच्या दारापर्यंत पोहोचवतात." } },
       storyTitle: { kind: "both", label: "“How delivery works” heading", max: 80, own: { en: "A counter you already know.", mr: "तुमच्या ओळखीचाच काउंटर." } },
       storyBody: { kind: "both", label: "“How delivery works” text", max: 500, long: true, own: { en: "Agarwal Online is the website of Agarwal General Stores (Agarwal Stores) in Bazar Peth, Nagothane, also written Agrawal or Aggarwal, serving the town from one counter for years. The same shelves and the same prices, with delivery added. Order in English or Marathi and pay in cash at the door.", mr: "अग्रवाल ऑनलाइन ही नागोठण्याच्या बाजारपेठेतील अग्रवाल जनरल स्टोअरची (Agarwal General Stores, Agarwal Stores, Agrawal, Aggarwal) वेबसाइट आहे, वर्षानुवर्षे एकाच काउंटरवरून सेवा देणारी. त्याच वस्तू आणि त्याच किमती, फक्त वितरणाची सोय जोडली आहे. इंग्रजी किंवा मराठीत ऑर्डर करा आणि दारात रोख द्या." } },
       footerTagline: {

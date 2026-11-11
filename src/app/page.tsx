@@ -23,7 +23,7 @@ import { familyOf } from "@/lib/family/service";
 import { childKits } from "@/lib/family/kits";
 import { classLabel } from "@/lib/family/models";
 import { liveOffers, runningAt } from "@/lib/promotions/service";
-import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display";
+import { formatPrice, minutesUntilCutoff } from "@/lib/display";
 import { taxProfile } from "@/lib/tax/profile";
 import { jsonLd, storeJsonLd, websiteJsonLd } from "@/lib/seo";
 import { getEnv } from "@/lib/env";
@@ -35,11 +35,10 @@ export const metadata = { alternates: { canonical: "/" } };
 
 const copy = {
   en: {
-    dealEyebrow: "Biggest saving today",
     kitEyebrow: (name: string) => `For ${name}`,
     kitTitle: (className: string) => `${className} kit from the store`,
     kitCta: "See the kit",
-    faces: "Popular in the shop",
+    andMore: " and more",
     faq: "Questions people ask",
     faqMr: "नेहमीचे प्रश्न",
     productsCount: (n: number) => (n === 1 ? "1 product" : `${n} products`),
@@ -75,11 +74,10 @@ const copy = {
     step3Note: (online: boolean) => (online ? "Pay in cash when it arrives, or online." : "Pay in cash when it arrives."),
   },
   mr: {
-    dealEyebrow: "आजची सर्वात मोठी बचत",
     kitEyebrow: (name: string) => `${name} साठी`,
     kitTitle: (className: string) => `${className} शालेय संच`,
     kitCta: "संच पाहा",
-    faces: "दुकानातील लोकप्रिय",
+    andMore: " आणि आणखी",
     faq: "नेहमीचे प्रश्न",
     faqMr: "Questions people ask",
     productsCount: (n: number) => `${n} उत्पादने`,
@@ -242,18 +240,6 @@ export default async function Home() {
   const kit = kitChild ? kits.find((info) => info.childId === String(kitChild._id))!.kit! : null;
   const areas = areaDocs.join(" · ");
   const bestsellers = products.filter((product) => product.bestseller);
-  const savings = products
-    .map((product) => ({
-      product,
-      off: Math.max(
-        ...product.variants.map((variant) =>
-          discountPercent(variant.pricePaise, variant.mrpPaise),
-        ),
-      ),
-    }))
-    .filter((row) => row.off > 0)
-    .sort((a, b) => b.off - a.off)
-    .map((row) => row.product);
   // 16 card slots used to be filled by 11 products, with four of them repeated
   // across three rows. Each row now takes the next unshown item, so the
   // catalogue reads as deep as it actually is.
@@ -277,17 +263,7 @@ export default async function Home() {
     for (const product of picked) shown.add(product.id);
     return spread(picked);
   };
-  // the deal card needs a photograph; the rails skip whatever it features
-  const deal = savings.find((product) => product.image ?? productImages[product.slug]);
-  if (deal) shown.add(deal.id);
-  const dealVariant = deal?.variants[0];
-  const dealOff = dealVariant ? discountPercent(dealVariant.pricePaise, dealVariant.mrpPaise) : 0;
   const other = locale === "en" ? "mr" : "en";
-  // the shop's map: every shelf under its section, a shelf repeated wherever it sits; one unnamed
-  // group while the shop has no sections
-  const groups = sections.length ? sections : [{ slug: "", en: "", mr: "", shelves: categories }];
-  // with no kit and no deal to show, the welcome card carries four of the shop's own products
-  const faces = (bestsellers.length ? bestsellers : products).filter((product) => product.image ?? productImages[product.slug]).slice(0, 4);
   const buyAgainRow = take(buyAgain, 5);
   const popular = take(bestsellers.length ? bestsellers : products, 10);
   const newRow = take(newest, 10);
@@ -312,20 +288,18 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd([websiteJsonLd(getEnv().APP_ORIGIN), storeJsonLd(shop, areaDocs, getEnv().APP_ORIGIN)]) }}
       />
-      <section className="welcome" aria-labelledby="welcome-title">
-        <div className="welcome-words">
-          <span className="hero-badge">{frontWords(front, "heroBadge", locale)}</span>
-          <h1 id="welcome-title">
-            {/* the owners' words from Customize → Shop front, or the shop's own */}
-            {fill(frontWords(front, "heroTitle", locale), { cutoff })}{" "}
-            <em>{fill(frontWords(front, "heroHighlight", locale), { cutoff })}</em>
-          </h1>
-          <p>{frontWords(front, "heroLead", locale)}</p>
-          <DeliveryPromise cutoffHour={rules.cutoffHour} initialMinutes={minutesUntilCutoff(rules.cutoffHour, now)} locale={locale} />
-        </div>
-        {/* one slot beside the words: a child's class kit, else today's biggest saving, else the shop's own products */}
-        {kit && kitChild ? (
-          <Link href="/account/family" className="welcome-slot kit-slot">
+      <section className="opener" aria-labelledby="welcome-title">
+        <span className="hero-badge">{frontWords(front, "heroBadge", locale)}</span>
+        <h1 id="welcome-title" className="big-q">
+          {/* the owners' words from Customize → Shop front, or the shop's own */}
+          {fill(frontWords(front, "heroTitle", locale), { cutoff })}{" "}
+          <em>{fill(frontWords(front, "heroHighlight", locale), { cutoff })}</em>
+        </h1>
+        <p>{frontWords(front, "heroLead", locale)}</p>
+        <DeliveryPromise cutoffHour={rules.cutoffHour} initialMinutes={minutesUntilCutoff(rules.cutoffHour, now)} locale={locale} />
+        {/* a child's class kit, for their family: one tap from the first screen */}
+        {kit && kitChild && (
+          <Link href="/account/family" className="kit-slot">
             <span className="eyebrow">{t.kitEyebrow(kitChild.name)}</span>
             <strong>{t.kitTitle(classLabel(kitChild.className, locale === "mr"))}</strong>
             <span className="slot-line">
@@ -335,73 +309,80 @@ export default async function Home() {
               {t.kitCta} <ArrowRight size={16} aria-hidden="true" />
             </span>
           </Link>
-        ) : deal && dealVariant ? (
-          <Link href={`/products/${deal.slug}?lang=${locale}`} className="welcome-slot deal-slot">
-            <span className="slot-art">
-              <Image src={deal.image ?? productImages[deal.slug]} alt="" fill sizes="(max-width: 760px) 30vw, 200px" priority />
-            </span>
-            <span className="eyebrow">{t.dealEyebrow}</span>
-            <strong lang={locale}>{deal.name[locale]}</strong>
-            <span className="slot-line">
-              <b>{formatPrice(dealVariant.pricePaise)}</b> <del>{formatPrice(dealVariant.mrpPaise)}</del>{" "}
-              <span className="deal-off">−{dealOff}%</span>
-            </span>
-          </Link>
-        ) : (
-          faces.length > 0 && (
-            <ul className="welcome-slot faces-slot" aria-label={t.faces}>
-              {faces.map((product) => (
-                <li key={product.id}>
-                  <Link href={`/products/${product.slug}?lang=${locale}`} aria-label={product.name[locale]}>
-                    <Image src={product.image ?? productImages[product.slug]} alt="" fill sizes="(max-width: 760px) 15vw, 110px" priority />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )
         )}
       </section>
       <div className="page-container home">
-        <section className="section shop-map" aria-labelledby="aisles-title">
-          <div className="section-heading">
-            <div>
-              <h2 id="aisles-title">{t.aisles}</h2>
-              <span className="muted" lang={other}>
-                {t.aislesMr}
-              </span>
-            </div>
-            <Link href="/catalog">
-              {t.seeAll} ({categories.length}) <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-          {groups.map((group, index) => (
-            <div className={group.en ? `aisle-group tint-${(index % 5) + 1}` : "aisle-group"} key={group.slug || "all"}>
-              {group.en && <h3 lang={locale}>{group[locale]}</h3>}
-              <div className="aisles">
-                {group.shelves.map((category, place) => (
-                  <AisleTile
-                    key={category.slug}
-                    category={category}
-                    locale={locale}
-                    eager={index === 0 && place < 8}
-                    fallback={photos.get(category.slug)}
-                    within={group.slug || undefined}
-                  />
-                ))}
-                {!group.en && (
-                  <Link href="/catalog" className="aisle-tile quiet">
-                    <span className="aisle-art">
-                      <AisleIcon slug="all" />
+        {sections.length > 0 ? (
+          // one big block per section: its name, a few of its shelves, their photos; it opens the section's first shelf
+          <section className="section shop-map" aria-labelledby="aisles-title">
+            <h2 id="aisles-title" className="sr-only">
+              {t.aisles}
+            </h2>
+            <div className="bento">
+              {sections.map((section, index) => {
+                // the first block spans the row; so does the last when it would otherwise sit alone
+                const big = index === 0 || (index === sections.length - 1 && sections.length % 2 === 0);
+                const names = section.shelves.map((shelf) => shelf[locale]);
+                const shown = big ? 3 : 2;
+                const shots = section.shelves
+                  .map((shelf) => categoryImages[shelf.slug] ?? photos.get(shelf.slug))
+                  .filter((photo): photo is string => Boolean(photo))
+                  .slice(0, big ? 4 : 2);
+                return (
+                  <Link
+                    key={section.slug || "more"}
+                    href={`/catalog?${new URLSearchParams({ category: section.shelves[0].slug, ...(section.slug ? { in: section.slug } : {}) })}`}
+                    className={`section-block tint-${(index % 5) + 1}${big ? " big" : ""}`}
+                  >
+                    <h3 lang={locale}>{section[locale]}</h3>
+                    <p lang={locale}>
+                      {names.slice(0, shown).join(", ")}
+                      {names.length > shown ? t.andMore : ""}
+                    </p>
+                    <span className="block-go">
+                      <ArrowRight size={16} aria-hidden="true" />
                     </span>
-                    <span className="aisle-label">
-                      <strong>{t.allAisles(categories.length)}</strong>
+                    <span className="block-stack">
+                      {shots.map((photo, place) => (
+                        <Image key={photo + place} src={photo} alt="" width={88} height={88} loading={index < 3 ? "eager" : "lazy"} />
+                      ))}
                     </span>
                   </Link>
-                )}
+                );
+              })}
+            </div>
+          </section>
+        ) : (
+          // no sections yet: every shelf as a picture tile
+          <section className="section shop-map" aria-labelledby="aisles-title">
+            <div className="section-heading">
+              <div>
+                <h2 id="aisles-title">{t.aisles}</h2>
+                <span className="muted" lang={other}>
+                  {t.aislesMr}
+                </span>
+              </div>
+              <Link href="/catalog">
+                {t.seeAll} ({categories.length}) <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="aisle-group">
+              <div className="aisles">
+                {categories.map((category, place) => (
+                  <AisleTile key={category.slug} category={category} locale={locale} eager={place < 8} fallback={photos.get(category.slug)} />
+                ))}
+                <Link href="/catalog" className="aisle-tile quiet">
+                  <span className="aisle-art">
+                    <AisleIcon slug="all" />
+                  </span>
+                  <span className="aisle-label">
+                    <strong>{t.allAisles(categories.length)}</strong>
+                  </span>
+                </Link>
               </div>
             </div>
-          ))}
-        </section>
+          </section>
+        )}
         {buyAgainRow.length > 0 && (
           <Section
             id="again-title"

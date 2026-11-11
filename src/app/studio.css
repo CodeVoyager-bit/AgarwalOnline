@@ -20,11 +20,12 @@
   --page: #f3f4f7; /* the grey the white cards float on */
   --ink: #1b1b1f; /* neutral black, not slate */
   --brand: #1d4ed8; /* ball-pen blue: buttons, ADD, links, the current menu item (white on it 6.7:1) */
-  --brand-strong: #1e40af;
-  --accent-soft: #eef2ff;
+  /* worked out from --brand, so a theme the owners pick (src/lib/settings/themes.ts) carries them along */
+  --brand-strong: color-mix(in oklab, var(--brand) 84%, #000);
+  --accent-soft: color-mix(in oklab, var(--brand) 7%, #fff);
   --offer: #ffd43b; /* pencil yellow: the header band, highlights, offers, the basket bar (text on it stays ink, 12:1) */
   --warning: #854d0e; /* deep amber, the warning tone in the --offer family */
-  --ring: 0 0 0 3px rgba(29, 78, 216, 0.3);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--brand) 30%, transparent);
   /* a pale tint behind each section's shelf tiles; backgrounds only, never text */
   --tint-1: #fff6d1;
   --tint-2: #e8eefc;

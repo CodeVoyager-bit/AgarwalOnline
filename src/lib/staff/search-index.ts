@@ -97,11 +97,11 @@ const customize: FinderEntry[] = [
   ),
   custom(
     "storefront",
-    "Announcement bar, home page words, footer and Google title",
-    "घोषणा पट्टी, मुख्य पानाचा मजकूर, तळटीप व गूगल शीर्षक",
+    "Colour theme, announcement bar, home page words, footer and Google title",
+    "रंगसंगती, घोषणा पट्टी, मुख्य पानाचा मजकूर, तळटीप व गूगल शीर्षक",
     ["Shop front", "दुकानाचे स्वरूप"],
-    ["announcement", "banner", "notice", "closed", "holiday notice", "home page", "headline", "hero", "footer", "seo", "google", "meta description"],
-    ["घोषणा", "सूचना", "मुख्य पान", "तळटीप"],
+    ["theme", "colour", "color", "colours", "look", "header colour", "announcement", "banner", "notice", "closed", "holiday notice", "home page", "headline", "hero", "footer", "seo", "google", "meta description"],
+    ["रंग", "रंगसंगती", "थीम", "घोषणा", "सूचना", "मुख्य पान", "तळटीप"],
   ),
   custom(
     "messages",

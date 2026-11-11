@@ -295,6 +295,21 @@ test("owner: Customize changes the bill and the shop front", async ({ browser },
   await page.goto("/");
   await expect(page.locator(".announcement-bar")).toHaveText("Closed on 1 November for Diwali");
   await shot(page, "announcement");
+  // the colour theme: the shop's own yellow header until an owner picks another, then every page follows at once
+  const band = () => page.locator("header.shop-header").evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await band()).toBe("rgb(255, 212, 59)");
+  await page.goto("/super-admin/customize#storefront");
+  await front.getByLabel("Colour theme").selectOption({ label: "School bus: navy header, amber buttons" });
+  await front.getByRole("button", { name: "Save shop front" }).click();
+  await expect(front.getByText("Shop front saved.")).toBeVisible();
+  await page.goto("/");
+  expect(await band()).toBe("rgb(30, 58, 138)");
+  // words on the navy band turn white, the strip's links included
+  expect(await page.locator(".shop-strip .top-strip-links > a").first().evaluate((el) => getComputedStyle(el).color)).toBe("rgb(255, 255, 255)");
+  // amber buttons carry dark words in this theme
+  const add = page.locator("main .add-button:not(:disabled)").first();
+  expect(await add.evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color])).toEqual(["rgb(251, 191, 36)", "rgb(27, 27, 31)"]);
+  await shot(page, "theme-school-bus");
   await SystemSetting.deleteMany({ key: /^shop-/ });
   await page.context().close();
 });

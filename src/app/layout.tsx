@@ -22,6 +22,7 @@ import { ServiceWorker } from "@/components/service-worker";
 import { pushPublicKey } from "@/lib/push/service";
 import { getEnv } from "@/lib/env";
 import { shopSettings } from "@/lib/settings/shop";
+import { themeOf, themeVars } from "@/lib/settings/themes";
 import { Analytics } from "@/components/analytics";
 
 const display = localFont({
@@ -93,14 +94,17 @@ async function storedBasket(userId?: string) {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [locale, categories, user, areas, onOffer] = await Promise.all([
+  const [locale, categories, user, areas, onOffer, front] = await Promise.all([
     currentLocale(),
     catalogCategories(),
     currentUser(),
     liveAreaNames(),
     // "Offers" and "Deals" only when something really sells below MRP
     anyOnOffer(),
+    shopSettings("storefront"),
   ]);
+  // the colours the owners picked in Customize → Shop front (src/lib/settings/themes.ts)
+  const theme = themeOf(front.theme);
   const staffRole = staffRoleOf(user?.roles ?? []);
   // staff aren't counted: their clicks would read as shoppers
   const gaId = staffRole ? undefined : getEnv().GA_MEASUREMENT_ID;
@@ -114,6 +118,9 @@ export default async function RootLayout({
       data-look="playful"
       // the studio look (src/app/studio.css); delete this line for the First Bench colours
       data-theme="studio"
+      // light-coloured buttons carry dark words (shop.css)
+      data-fill={theme.action ? "" : undefined}
+      style={themeVars(theme) as React.CSSProperties}
     >
       <body>
         <PlayfulFx />

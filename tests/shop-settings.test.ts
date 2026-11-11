@@ -40,6 +40,7 @@ describe("shop settings", () => {
     const store = valuesFromForm(
       "storefront",
       form({
+        theme: "bus",
         announcementOn: "on",
         announcementEn: "Closed on Diwali",
         announcementMr: "दिवाळीला बंद",
@@ -48,6 +49,7 @@ describe("shop settings", () => {
         seoDescription: "Stationery, toys and games delivered the same day in and around Nagothane, Raigad.",
       }),
     );
+    expect(store.theme).toBe("bus");
     expect(store.announcementOn).toBe(true);
     expect(store.showFreeDelivery).toBe(false);
     expect(store.announcement).toEqual({ en: "Closed on Diwali", mr: "दिवाळीला बंद" });
@@ -84,6 +86,9 @@ describe("shop settings", () => {
     const front = readValues("storefront", { heroLead: { en: "Our own words", mr: "" } });
     expect(frontWords(front, "heroLead", "en")).toBe("Our own words");
     expect(frontWords(front, "heroLead", "mr")).toMatch(/^लेखन साहित्य/);
-    expect(fill(frontWords(front, "heroTitle", "en"), { cutoff: "3 PM" })).toBe("Order by 3 PM,");
+    expect(frontWords(front, "heroTitle", "en")).toBe("What do you need");
+    // an owner's own headline can still name the same-day time
+    const timed = readValues("storefront", { heroTitle: { en: "Order by {cutoff},", mr: "" } });
+    expect(fill(frontWords(timed, "heroTitle", "en"), { cutoff: "3 PM" })).toBe("Order by 3 PM,");
   });
 });

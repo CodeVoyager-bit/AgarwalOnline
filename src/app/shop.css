@@ -8,17 +8,21 @@
    ============================================================================= */
 
 /* ---------- The header band ---------- */
-/* pencil yellow behind the strip and the header; set --band to var(--page) for a plain header */
-:root { --band: var(--offer); }
-.shop-strip, .shop-header { background: var(--band); color: var(--ink); }
+/* The band behind the strip and the header, and the words on it. Pencil yellow with ink by default;
+   the theme the owners pick (src/lib/settings/themes.ts) sets both on <html>. */
+:root { --band: var(--offer); --on-band: var(--ink); }
+.shop-strip, .shop-header { background: var(--band); color: var(--on-band); }
 .shop-header { border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
-.shop-strip .top-strip-links > a, .shop-strip .top-strip-links > a:hover { color: var(--ink); }
-.shop-strip .top-strip-links > a:hover { border-color: var(--ink); }
-.shop-strip :focus-visible { outline-color: var(--ink); }
-.shop-strip .offer-code { background: var(--ink); color: var(--paper); }
+/* (:root and :is() lift these over the trial look's own link colours, which are ink for a light band) */
+:root .shop-strip .top-strip-links > :is(a, a.school-door, a:hover) { color: var(--on-band); }
+:root .shop-strip .top-strip-links > a:hover { border-color: var(--on-band); }
+.shop-strip :focus-visible { outline-color: var(--on-band); }
+.shop-strip .offer-code { background: var(--on-band); color: var(--band); }
+.shop-strip .strip-truck { color: inherit; }
+.shop-header .brand { color: var(--on-band); }
 .shop-strip .locale-toggle { background: var(--paper); box-shadow: none; }
 /* the grey "Online" under the name fails on yellow (under 4.5:1); ink holds 12:1 */
-.shop-header .brand small { color: var(--ink); }
+.shop-header .brand small { color: var(--on-band); }
 .footer-wordmark::before { content: "Agarwal"; }
 .strip-brand, .strip-promise { display: none; }
 
@@ -38,7 +42,7 @@
     display: grid;
     align-content: center;
     min-height: 36px;
-    color: var(--ink);
+    color: var(--on-band);
     font-family: var(--font-display);
     font-size: 20px; /* px on purpose: enlarged text grows the content, not the wordmark */
     font-weight: 700;
@@ -55,7 +59,7 @@
     justify-items: end;
     min-width: 0;
     min-height: 36px;
-    color: var(--ink);
+    color: var(--on-band);
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0;
@@ -263,25 +267,12 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   .price-row .qty-stepper.compact output { min-width: 20px; }
 }
 
-/* ---------- Home: the welcome card, then the shop's map ---------- */
-/* The owners' words beside one slot: a child's class kit, else the biggest saving, else four of
-   the shop's own products. It replaced a dark banner with a stock photo that hid every shelf
-   until the second screen. */
-.welcome {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 68px;
-  align-items: center;
-  gap: 12px;
-  width: min(100% - 24px, var(--content));
-  margin: 8px auto 0;
-  padding: 10px 12px 10px 14px;
-  border-radius: 20px;
-  background: var(--paper);
-  box-shadow: var(--card, none);
-}
-.welcome:has(.kit-slot) { grid-template-columns: minmax(0, 1fr); }
-.welcome-words { display: grid; justify-items: start; gap: 6px; min-width: 0; }
-.welcome .hero-badge {
+/* ---------- Home: one question, then the shop in big blocks ---------- */
+/* The owners' headline as a question, then one large coloured block per section with its shelves'
+   photos stacked on it. It replaced a dark banner with a stock photo that hid every shelf until
+   the second screen. A family with a child's class kit gets it as a strip under the headline. */
+.opener { display: grid; justify-items: start; gap: 8px; width: min(100% - 24px, var(--content)); margin: 12px auto 0; padding: 0 4px; }
+.opener .hero-badge {
   margin: 0;
   padding: 2px 9px;
   border: 0;
@@ -293,23 +284,11 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   letter-spacing: 0.02em;
   text-transform: none;
 }
-.welcome h1 { margin: 0; font-size: 1.3125rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
-.welcome h1 em { color: var(--brand); font-style: normal; }
-.welcome-words > p { display: none; margin: 0; color: var(--ink-2); }
-.welcome .delivery-promise { margin: 2px 0 0; }
-.welcome-slot { min-width: 0; color: var(--ink); }
-.faces-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
-.faces-slot li { margin: 0; }
-.faces-slot a, .slot-art { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--brand-soft); }
-.faces-slot img, .slot-art img { object-fit: cover; }
-/* on a phone the deal is its photo, the saving on a corner, and the price; the name joins on desktop */
-.deal-slot { position: relative; display: grid; gap: 2px; }
-.deal-slot .eyebrow, .deal-slot > strong { display: none; }
-/* wraps at enlarged text instead of pushing the page sideways */
-.deal-slot .slot-line { font-size: 0.75rem; line-height: 1.3; overflow-wrap: anywhere; }
-.deal-slot del { color: var(--muted); font-size: 0.6875rem; }
-.deal-slot .deal-off { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--paper); font-size: 0.6875rem; font-weight: 700; }
-.kit-slot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 10px; padding: 10px 12px; border-radius: 14px; background: var(--tint-1, var(--offer-soft)); }
+.big-q { margin: 0; font-size: 1.5rem; font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; }
+.big-q em { color: var(--brand); font-style: normal; }
+/* the lead and the countdown have room on desktop only */
+.opener > p, .opener .delivery-promise { display: none; }
+.kit-slot { justify-self: stretch; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 10px; margin: 2px -4px 0; padding: 10px 12px; border-radius: 16px; background: var(--paper); box-shadow: var(--card, none); color: var(--ink); }
 .kit-slot > * { grid-column: 1; }
 .kit-slot .eyebrow { margin: 0; }
 .kit-slot strong { font-size: 0.95rem; line-height: 1.3; }
@@ -329,21 +308,30 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   font-weight: 700;
   white-space: nowrap;
 }
-/* every shelf as a tile under its section; a shelf in two sections shows in both */
-.aisle-group + .aisle-group { margin-top: 10px; }
-.aisle-group[class*="tint-"] { padding: 8px 10px 12px; border-radius: 18px; }
-.aisle-group.tint-1 { background: var(--tint-1, var(--brand-soft)); }
-.aisle-group.tint-2 { background: var(--tint-2, var(--brand-soft)); }
-.aisle-group.tint-3 { background: var(--tint-3, var(--brand-soft)); }
-.aisle-group.tint-4 { background: var(--tint-4, var(--brand-soft)); }
-.aisle-group.tint-5 { background: var(--tint-5, var(--brand-soft)); }
+.bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* the words sit at the top; the arrow and the stacked photos share the bottom edge, so nothing overlaps */
+.section-block { position: relative; display: block; min-width: 0; padding: 12px 12px 68px; overflow: hidden; border-radius: 22px; background: var(--brand-soft); color: var(--ink); }
+.section-block.big { grid-column: 1 / -1; padding-bottom: 92px; }
+.section-block.tint-1 { background: var(--tint-1, var(--brand-soft)); }
+.section-block.tint-2 { background: var(--tint-2, var(--brand-soft)); }
+.section-block.tint-3 { background: var(--tint-3, var(--brand-soft)); }
+.section-block.tint-4 { background: var(--tint-4, var(--brand-soft)); }
+.section-block.tint-5 { background: var(--tint-5, var(--brand-soft)); }
+.section-block h3 { margin: 0; font-size: 1.0625rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+.section-block.big h3 { font-size: 1.3125rem; }
+.section-block p { margin: 3px 0 0; color: var(--ink-2); font-size: 0.75rem; line-height: 1.35; }
+.block-go { position: absolute; left: 12px; bottom: 12px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--paper); transition: transform var(--fast); }
+.section-block:hover .block-go { transform: translateX(3px); }
+.block-stack { position: absolute; right: 10px; bottom: 10px; display: flex; }
+.block-stack img { width: 46px; height: 46px; margin-left: -14px; border: 2px solid var(--paper); border-radius: 14px; background: var(--paper); object-fit: cover; box-shadow: 0 6px 12px -6px rgba(0, 0, 0, 0.35); }
+.section-block.big .block-stack img { width: 70px; height: 70px; border-radius: 18px; }
+/* a shop with no sections yet shows its shelves as tiles, as before */
 .aisle-group h3 { margin: 0 0 8px; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
-.aisle-group[class*="tint-"] .aisle-art { background: var(--paper); }
 
 @media (max-width: 760px) {
   .home { padding-top: 0; }
   .home .section, .home .offer-ladder, .home .delivery-steps { margin-top: 24px; }
-  .home .section:first-child { margin-top: 10px; }
+  .home .section:first-child { margin-top: 12px; }
   .home .benefits { margin-top: 24px; }
   /* the other language's name for each section is a desktop nicety; here it costs a line per section */
   .home .section-heading { margin-bottom: 8px; padding-bottom: 0; }
@@ -352,28 +340,26 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   .shop-map .aisles { gap: 12px 8px; }
 }
 @media (min-width: 761px) {
-  .welcome { grid-template-columns: minmax(0, 1fr) 248px; gap: 40px; width: min(100% - 2 * var(--gutter), var(--content)); margin-top: 20px; padding: 28px 32px; border-radius: 28px; }
-  .welcome:has(.kit-slot) { grid-template-columns: minmax(0, 1fr) 300px; }
-  .welcome-words { gap: 12px; }
-  .welcome .hero-badge { padding: 4px 12px; font-size: 0.78rem; }
-  .welcome h1 { font-size: clamp(1.9rem, 3.2vw, 2.75rem); line-height: 1.1; letter-spacing: -0.035em; }
-  .welcome-words > p { display: block; max-width: 56ch; }
-  .faces-slot { gap: 8px; }
-  .faces-slot a, .slot-art { border-radius: 16px; }
-  .deal-slot .eyebrow { display: inline-flex; margin: 8px 0 0; }
-  .deal-slot > strong { display: block; font-size: 1rem; line-height: 1.3; }
-  .deal-slot .slot-line { font-size: 0.95rem; }
-  .deal-slot del { font-size: 0.85rem; }
-  .deal-slot .deal-off { left: 8px; top: 8px; padding: 2px 9px; font-size: 0.78rem; }
-  .kit-slot { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 22px; border-radius: 20px; }
-  .kit-slot strong { font-size: 1.2rem; }
-  .kit-slot .slot-cta { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 10px; }
-  .aisle-group + .aisle-group { margin-top: 16px; }
-  .aisle-group[class*="tint-"] { padding: 20px; border-radius: 24px; }
-  .aisle-group h3 { margin-bottom: 14px; font-size: 1.1rem; }
-}
-@media (min-width: 761px) {
-  /* desktop has the width for smaller tiles: a section reads in one or two rows */
+  .opener { gap: 12px; width: min(100% - 2 * var(--gutter), var(--content)); margin-top: 28px; padding: 0; }
+  .opener .hero-badge { padding: 4px 12px; font-size: 0.78rem; }
+  .big-q { font-size: clamp(2.1rem, 3.6vw, 3.1rem); line-height: 1.05; letter-spacing: -0.04em; }
+  .opener > p { display: block; max-width: 60ch; margin: 0; color: var(--ink-2); }
+  .opener .delivery-promise { display: inline-flex; margin: 0; }
+  .kit-slot { justify-self: start; min-width: 420px; margin: 4px 0 0; padding: 16px 20px; border-radius: 20px; }
+  .kit-slot strong { font-size: 1.1rem; }
+  .bento { display: flex; flex-wrap: wrap; gap: 16px; }
+  .section-block { flex: 1 1 200px; padding: 20px 20px 104px; border-radius: 28px; }
+  .section-block.big { flex: 2 1 340px; padding-bottom: 120px; }
+  .section-block h3 { font-size: 1.3rem; }
+  .section-block.big h3 { font-size: 1.75rem; }
+  .section-block p { font-size: 0.86rem; }
+  .block-go { left: 20px; bottom: 20px; width: 38px; height: 38px; }
+  .block-stack { right: 18px; bottom: 18px; }
+  .block-stack img { width: 64px; height: 64px; margin-left: -18px; border-radius: 18px; }
+  .section-block.big .block-stack img { width: 88px; height: 88px; border-radius: 22px; }
+  /* three photos leave the arrow its corner */
+  .section-block.big .block-stack img:nth-child(n + 4) { display: none; }
+  /* desktop has the width for smaller tiles */
   .shop-map .aisles { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 16px; }
 }
 
@@ -404,3 +390,10 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   /* the basket's pay bar: the same bar as the basket summary elsewhere, here leading to checkout */
   body:has(.pay-bar) .basket-bill > .primary-button { display: none; }
 }
+
+/* ---------- Themes with light buttons ---------- */
+/* Amber, saffron and highlighter can't carry white words, so in those themes (data-fill on <html>)
+   buttons take the light colour with dark words; links and icons keep the theme's dark --brand. */
+:root[data-fill] :is(.primary-button, .add-button, .qty-stepper.compact, .kit-slot .slot-cta, .in-basket) { border-color: var(--action); background: var(--action); color: var(--on-action); }
+:root[data-fill] :is(.primary-button, .add-button):hover:not(:disabled), :root[data-fill] .qty-stepper.compact button:hover:not(:disabled) { background: color-mix(in oklab, var(--action) 86%, #000); color: var(--on-action); }
+:root[data-fill] :is(.primary-button, .add-button):disabled { border-color: var(--line-strong); background: var(--paper); color: var(--muted); }
