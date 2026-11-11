@@ -46,14 +46,15 @@
   & .metric-list i { background: var(--brand); }
 
   /* ---------- the top strip and header sit on the grey; their controls are white pills ---------- */
-  & .top-strip { background: transparent; color: var(--ink-2); }
+  /* (the shop's own strip and header are the yellow band instead: .shop-strip and .shop-header in shop.css) */
+  & .top-strip:not(.shop-strip) { background: transparent; color: var(--ink-2); }
   & .top-strip-links > a, & .top-strip-links > a.school-door, & .top-strip-links > a:hover { color: var(--ink); }
   & .top-strip-links > a:hover { border-color: var(--ink); }
   & .top-strip :focus-visible { outline-color: var(--ink); }
   & .top-strip .locale-toggle { background: var(--paper); box-shadow: var(--card); }
   & .top-strip .locale-toggle button { color: var(--ink-2); }
   & .top-strip .locale-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-  & .header {
+  & .header:not(.shop-header) {
     background: rgba(238, 240, 243, 0.9);
     background: color-mix(in srgb, var(--page) 90%, transparent);
     border-bottom-color: transparent;

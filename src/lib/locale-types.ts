@@ -5,6 +5,8 @@ export const copy = {
     freeFrom: (amount: string) => `Free delivery from ${amount}`,
     /** The phone strip's version, beside a truck icon. */
     freeShort: (amount: string) => `Free from ${amount}`,
+    freeMore: (amount: string) => `${amount} more for free delivery`,
+    freeNow: "Free delivery on this basket",
     welcomeCode: (minimum: string) =>
       minimum ? `New here? Use code on a first basket of ${minimum}+` : "New here? Save on your first order with code",
     /** The phone strip's version: a few words before the code. */
@@ -30,6 +32,7 @@ export const copy = {
     deals: "Offers",
     home: "Home",
     explore: "Categories",
+    family: "Family",
     you: "You",
     orders: "Orders",
     saved: "Wishlist",
@@ -46,6 +49,8 @@ export const copy = {
   mr: {
     freeFrom: (amount: string) => `${amount} पासून मोफत वितरण`,
     freeShort: (amount: string) => `${amount} पासून मोफत`,
+    freeMore: (amount: string) => `मोफत वितरणासाठी आणखी ${amount}`,
+    freeNow: "या बास्केटवर मोफत वितरण",
     welcomeCode: (minimum: string) =>
       minimum ? `नवीन आहात? ${minimum}+ च्या पहिल्या बास्केटवर कोड वापरा` : "नवीन आहात? पहिल्या ऑर्डरवर हा कोड वापरून बचत करा",
     welcomeShort: (minimum: string) => (minimum ? `पहिली बास्केट ${minimum}+` : "पहिली ऑर्डर"),
@@ -69,6 +74,7 @@ export const copy = {
     deals: "ऑफर",
     home: "मुख्य",
     explore: "विभाग",
+    family: "कुटुंब",
     you: "तुम्ही",
     orders: "ऑर्डर",
     saved: "आवडते", // one word: it is a tab label

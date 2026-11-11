@@ -2,14 +2,15 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Grid2X2, Heart, ShoppingBag, UserRound } from "lucide-react";
+import { House, Grid2X2, ShoppingBag, UserRound, UsersRound } from "lucide-react";
 import { copy, type Locale } from "@/lib/locale-types";
 import { useBasket } from "./basket";
 
 /**
  * The phone's floating tab bar. Every tab shows its icon and its name and keeps its place; the
  * one you're on gets a tinted pill. The basket is a tab like the others: the sticky basket bar
- * above it is the action.
+ * above it is the action. Family has a tab of its own (kids, their class kits, what the household
+ * spends); the wishlist it replaced is under You, and the heart stays on every card.
  */
 export function MobileNav({ locale, unread = 0 }: { locale: Locale; unread?: number }) {
   const { count } = useBasket();
@@ -42,16 +43,16 @@ export function MobileNav({ locale, unread = 0 }: { locale: Locale; unread?: num
       {[
         { href: "/", label: text.home, Icon: House },
         { href: "/catalog", label: text.explore, Icon: Grid2X2 },
+        { href: "/account/family", label: text.family, Icon: UsersRound },
         { href: "/cart", label: text.basket, Icon: ShoppingBag },
-        { href: "/account/wishlist", label: text.saved, Icon: Heart },
         { href: "/account", label: text.you, Icon: UserRound },
       ].map(({ href, label, Icon }) => {
         const active =
           href === "/"
             ? pathname === "/"
             : href === "/account"
-              ? // the wishlist has its own tab; staff pages and the school marketplace have their own tab bars
-                pathname.startsWith("/account") && !pathname.startsWith("/account/wishlist")
+              ? // the family has its own tab; staff pages and the school marketplace have their own tab bars
+                pathname.startsWith("/account") && !pathname.startsWith("/account/family")
               : pathname.startsWith(href) || (href === "/catalog" && pathname.startsWith("/products"));
         const basket = href === "/cart";
         return (

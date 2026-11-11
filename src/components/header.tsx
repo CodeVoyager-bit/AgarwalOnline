@@ -94,9 +94,17 @@ export async function Header({
           {announcement}
         </p>
       )}
-      <div className="top-strip">
+      <div className="top-strip shop-strip">
         <div className="top-strip-inner">
+          {/* phones only: this strip is the header's first row there (name, the promise, the language) and the header keeps the search */}
+          <Link href="/" className="strip-brand" aria-label="Agarwal Online, home">
+            Agarwal<small>Online</small>
+          </Link>
           <p>
+            <Link href="/serviceability" className="strip-promise">
+              {text.promise(cutoff)}
+              <small>{text.area}</small>
+            </Link>
             {front.showFreeDelivery && (
               <span className="strip-free">
                 <Truck size={15} className="strip-truck" aria-hidden="true" />
@@ -141,7 +149,7 @@ export async function Header({
           </div>
         </div>
       </div>
-      <header className="header">
+      <header className="header shop-header">
         <div className="header-inner">
           <Link href="/" className="brand" aria-label="Agarwal Online, home">
             Agarwal<small>Online</small>
@@ -225,7 +233,7 @@ export async function Header({
         </div>
       </header>
       <MobileNav locale={locale} unread={unread} />
-      <CartBar locale={locale} />
+      <CartBar locale={locale} freeFromPaise={front.showFreeDelivery ? rules.freeThresholdPaise : undefined} />
       {shopper && <FeedbackPrompt order={toRate} locale={locale} />}
       {/* hidden until the store introduces it: SHOP_ASSISTANT=on */}
       {shopAssistantEnabled() && <ShopAssistant locale={locale} signedIn={Boolean(user)} />}

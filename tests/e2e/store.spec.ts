@@ -726,7 +726,8 @@ test("a family: start it, add a child, and a partner joins with the one-time lin
   await emailSignIn(page, "parent@e2e.test");
   await page.waitForURL((url) => url.pathname !== "/login");
   await page.goto("/account");
-  await page.getByRole("link", { name: /^Family/ }).click();
+  // the tile on the account page (phones also have a Family tab in the bottom bar)
+  await page.locator("main").getByRole("link", { name: /^Family/ }).click();
   await page.getByLabel("Family name").fill("Sharma family");
   await page.getByRole("button", { name: "Start the family" }).click();
   await expect(page.getByRole("heading", { name: "Sharma family", level: 1 })).toBeVisible();

@@ -7,6 +7,75 @@
    desktop look. Loaded after globals.css, playful.css and studio.css, so it has the last word.
    ============================================================================= */
 
+/* ---------- The header band ---------- */
+/* pencil yellow behind the strip and the header; set --band to var(--page) for a plain header */
+:root { --band: var(--offer); }
+.shop-strip, .shop-header { background: var(--band); color: var(--ink); }
+.shop-header { border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.shop-strip .top-strip-links > a, .shop-strip .top-strip-links > a:hover { color: var(--ink); }
+.shop-strip .top-strip-links > a:hover { border-color: var(--ink); }
+.shop-strip :focus-visible { outline-color: var(--ink); }
+.shop-strip .offer-code { background: var(--ink); color: var(--paper); }
+.shop-strip .locale-toggle { background: var(--paper); box-shadow: none; }
+/* the grey "Online" under the name fails on yellow (under 4.5:1); ink holds 12:1 */
+.shop-header .brand small { color: var(--ink); }
+.footer-wordmark::before { content: "Agarwal"; }
+.strip-brand, .strip-promise { display: none; }
+
+@media (max-width: 760px) {
+  /* Two rows, about 100px: the name, the delivery promise and the language (44px, scrolls away),
+     then the search (56px, stays pinned). The brand row that used to sit between them is gone;
+     the offer line moved to the home page and the basket bar. */
+  :root:has(.shop-header) { --header-h: 56px; --header-collapse: 0px; }
+  .shop-header { top: 0; }
+  .shop-header .header-inner { display: flex; gap: 8px; min-height: 0; padding: 2px var(--gutter) 8px; }
+  .shop-header .brand, .shop-header .location { display: none; }
+  .shop-header .smart-search { flex: 1 1 auto; min-width: 0; }
+  .shop-strip .top-strip-inner { flex-wrap: nowrap; gap: 8px; min-height: 44px; padding: 4px var(--gutter) 0; }
+  /* "Online" sits under "Agarwal", so the promise beside it has room for both of its lines */
+  .strip-brand {
+    flex: none;
+    display: grid;
+    align-content: center;
+    min-height: 36px;
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 20px; /* px on purpose: enlarged text grows the content, not the wordmark */
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .strip-brand small { margin-top: 2px; font-size: 8px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+  .shop-strip p { flex: 1 1 0; flex-wrap: nowrap; justify-content: flex-end; }
+  /* the offer line gives its place to the promise; it is on the home page and in the basket bar */
+  .shop-strip p > :not(.strip-promise) { display: none; }
+  .strip-promise {
+    display: grid;
+    align-content: center;
+    justify-items: end;
+    min-width: 0;
+    min-height: 36px;
+    color: var(--ink);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.25;
+    text-align: right;
+    text-decoration: none;
+  }
+  .strip-promise small { font-size: inherit; font-weight: 500; }
+  /* someone from a school keeps their door here; the promise steps aside for it */
+  .shop-strip:has(.school-door) p { display: none; }
+  .shop-strip:has(.school-door) .top-strip-links { margin-left: auto; }
+  .shop-strip .top-strip-links { flex: none; flex-wrap: nowrap; margin-left: 0; }
+  .shop-strip .locale-toggle button { min-height: 30px; padding: 2px 7px; }
+  .shop-strip .locale-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  /* the basket bar says how far the basket is from free delivery */
+  .cart-bar:has(.cart-free) b { font-size: 0.95rem; font-weight: 700; opacity: 1; }
+  .cart-bar .cart-free { color: var(--offer); font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600; }
+}
+
 /* ---------- Shelves: section tabs across the top, the section's shelves down a rail ---------- */
 .shelves {
   display: grid;
@@ -192,4 +261,116 @@ body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - va
   .price-row .add-button::after { content: ""; position: absolute; inset: -4px; }
   .price-row .qty-stepper.compact button { width: 30px; height: 36px; }
   .price-row .qty-stepper.compact output { min-width: 20px; }
+}
+
+/* ---------- Home: the welcome card, then the shop's map ---------- */
+/* The owners' words beside one slot: a child's class kit, else the biggest saving, else four of
+   the shop's own products. It replaced a dark banner with a stock photo that hid every shelf
+   until the second screen. */
+.welcome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px;
+  align-items: center;
+  gap: 12px;
+  width: min(100% - 24px, var(--content));
+  margin: 10px auto 0;
+  padding: 12px 12px 12px 14px;
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: var(--card, none);
+}
+.welcome:has(.kit-slot) { grid-template-columns: minmax(0, 1fr); }
+.welcome-words { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.welcome .hero-badge {
+  margin: 0;
+  padding: 2px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--offer);
+  color: var(--ink);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.welcome h1 { margin: 0; font-size: 1.3125rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+.welcome h1 em { color: var(--brand); font-style: normal; }
+.welcome-words > p { display: none; margin: 0; color: var(--ink-2); }
+.welcome .delivery-promise { margin: 2px 0 0; }
+.welcome-slot { min-width: 0; color: var(--ink); }
+.faces-slot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.faces-slot a, .slot-art { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: var(--brand-soft); }
+.faces-slot img, .slot-art img { object-fit: cover; }
+/* on a phone the deal is its photo, the saving on a corner, and the price; the name joins on desktop */
+.deal-slot { position: relative; display: grid; gap: 2px; }
+.deal-slot .eyebrow, .deal-slot > strong { display: none; }
+.deal-slot .slot-line { font-size: 0.75rem; line-height: 1.3; white-space: nowrap; }
+.deal-slot del { color: var(--muted); font-size: 0.6875rem; }
+.deal-slot .deal-off { position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--paper); font-size: 0.6875rem; font-weight: 700; }
+.kit-slot { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 10px; padding: 10px 12px; border-radius: 14px; background: var(--tint-1, var(--offer-soft)); }
+.kit-slot > * { grid-column: 1; }
+.kit-slot .eyebrow { margin: 0; }
+.kit-slot strong { font-size: 0.95rem; line-height: 1.3; }
+.kit-slot .slot-line { color: var(--ink-2); font-size: 0.8rem; }
+.kit-slot .slot-cta {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+  color: var(--paper);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* every shelf as a tile under its section; a shelf in two sections shows in both */
+.aisle-group + .aisle-group { margin-top: 10px; }
+.aisle-group[class*="tint-"] { padding: 10px 10px 12px; border-radius: 18px; }
+.aisle-group.tint-1 { background: var(--tint-1, var(--brand-soft)); }
+.aisle-group.tint-2 { background: var(--tint-2, var(--brand-soft)); }
+.aisle-group.tint-3 { background: var(--tint-3, var(--brand-soft)); }
+.aisle-group.tint-4 { background: var(--tint-4, var(--brand-soft)); }
+.aisle-group.tint-5 { background: var(--tint-5, var(--brand-soft)); }
+.aisle-group h3 { margin: 0 0 8px; font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.01em; }
+.aisle-group[class*="tint-"] .aisle-art { background: var(--paper); }
+
+@media (max-width: 760px) {
+  .home { padding-top: 4px; }
+  .home .section, .home .offer-ladder, .home .delivery-steps { margin-top: 24px; }
+  .home .section:first-child { margin-top: 12px; }
+  .home .benefits { margin-top: 24px; }
+  /* the other language's name for each section is a desktop nicety; here it costs a line per section */
+  .home .section-heading { margin-bottom: 8px; padding-bottom: 0; }
+  .home .section-heading h2 { font-size: 1.0625rem; letter-spacing: -0.01em; }
+  .home .section-heading > div > .muted { display: none; }
+  .shop-map .aisles { gap: 12px 8px; }
+}
+@media (min-width: 761px) {
+  .welcome { grid-template-columns: minmax(0, 1fr) 248px; gap: 40px; width: min(100% - 2 * var(--gutter), var(--content)); margin-top: 20px; padding: 28px 32px; border-radius: 28px; }
+  .welcome:has(.kit-slot) { grid-template-columns: minmax(0, 1fr) 300px; }
+  .welcome-words { gap: 12px; }
+  .welcome .hero-badge { padding: 4px 12px; font-size: 0.78rem; }
+  .welcome h1 { font-size: clamp(1.9rem, 3.2vw, 2.75rem); line-height: 1.1; letter-spacing: -0.035em; }
+  .welcome-words > p { display: block; max-width: 56ch; }
+  .faces-slot { gap: 8px; }
+  .faces-slot a, .slot-art { border-radius: 16px; }
+  .deal-slot .eyebrow { display: inline-flex; margin: 8px 0 0; }
+  .deal-slot > strong { display: block; font-size: 1rem; line-height: 1.3; }
+  .deal-slot .slot-line { font-size: 0.95rem; }
+  .deal-slot del { font-size: 0.85rem; }
+  .deal-slot .deal-off { left: 8px; top: 8px; padding: 2px 9px; font-size: 0.78rem; }
+  .kit-slot { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 22px; border-radius: 20px; }
+  .kit-slot strong { font-size: 1.2rem; }
+  .kit-slot .slot-cta { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 10px; }
+  .aisle-group + .aisle-group { margin-top: 16px; }
+  .aisle-group[class*="tint-"] { padding: 20px; border-radius: 24px; }
+  .aisle-group h3 { margin-bottom: 14px; font-size: 1.1rem; }
+}
+@media (min-width: 761px) {
+  /* desktop has the width for smaller tiles: a section reads in one or two rows */
+  .shop-map .aisles { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 16px; }
 }
