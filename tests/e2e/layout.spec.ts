@@ -30,9 +30,20 @@ const EMAILS = {
 };
 type Who = keyof typeof EMAILS | "guest";
 
-const routes = readdirSync("src/app", { recursive: true, encoding: "utf8" })
-  .filter((file) => file.endsWith("page.tsx"))
-  .map((file) => "/" + file.replace(/\\/g, "/").replace(/\/?page\.tsx$/, ""))
+/** Views of one page that lay out differently enough to check on their own: a name, and its address. */
+const VIEWS: Record<string, string> = {
+  // a shelf picked in a section's rail (the seed puts "Writing & Pens" under two sections)
+  "/catalog/shelf": "/catalog?category=stationery&in=work",
+};
+// ONLY=/catalog,/catalog/shelf checks just those: a quick look while working on a page
+const only = process.env.ONLY?.split(",");
+const routes = [
+  ...readdirSync("src/app", { recursive: true, encoding: "utf8" })
+    .filter((file) => file.endsWith("page.tsx"))
+    .map((file) => "/" + file.replace(/\\/g, "/").replace(/\/?page\.tsx$/, "")),
+  ...Object.keys(VIEWS),
+]
+  .filter((route) => !only || only.includes(route))
   .sort();
 
 function whoFor(route: string): Who {
@@ -383,7 +394,7 @@ test("every page holds its layout", async ({ browser }, info) => {
   const report: Record<string, string[]> = {};
   const links = new Map<string, { who: Who; from: string }>();
   for (const route of routes) {
-    const path = route.includes("[") ? samples[route] : route;
+    const path = VIEWS[route] ?? (route.includes("[") ? samples[route] : route);
     if (!path) {
       report[route] = ["dynamic segment without a sample: add one in layout.spec.ts"];
       continue;

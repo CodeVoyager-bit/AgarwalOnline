@@ -10,6 +10,7 @@ import {
   SearchSynonym,
 } from "../src/lib/db/models";
 import { categories, seedProducts } from "../src/lib/catalog/seed-data";
+import { groupShelves } from "./migrate-shelves";
 import { productImages } from "../src/lib/catalog/images";
 import { Address, DeliverySlot, Order } from "../src/lib/commerce/models";
 import { Notification } from "../src/lib/engagement/models";
@@ -54,6 +55,13 @@ for (const c of categories)
     { $setOnInsert: { name: { en: c.en, mr: c.mr }, symbol: c.symbol } },
     { upsert: true },
   );
+// the demo shop's sections: "Writing & Pens" and "Notebooks & Paper" each sit under two, and
+// Toys & Games under none, so the tests see a shared shelf and the "More" group
+await groupShelves(true, [
+  { slug: "desk", en: "Stationery", mr: "स्टेशनरी", shelves: ["stationery", "paper", "school", "art-craft"] },
+  { slug: "work", en: "Office", mr: "कार्यालय", shelves: ["office", "stationery", "paper"] },
+  { slug: "gifting", en: "Gifts and party", mr: "भेटवस्तू व पार्टी", shelves: ["gift-sets", "gift-wrap", "cards", "decor", "party"] },
+]);
 for (const [index, p] of seedProducts.entries()) {
   const c = await Category.findOne({ slug: p.category });
   const product = await Product.findOneAndUpdate(

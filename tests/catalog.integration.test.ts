@@ -7,7 +7,7 @@ import {
   ProductVariant,
   InventoryItem,
 } from "../src/lib/db/models";
-import { anyOnOffer, catalog } from "../src/lib/catalog/queries";
+import { anyOnOffer, catalog, catalogCategories, catalogSections } from "../src/lib/catalog/queries";
 const uri = process.env.TEST_MONGODB_URI;
 describe.skipIf(!uri)("MongoDB catalog", () => {
   beforeAll(async () => {
@@ -91,6 +91,54 @@ describe.skipIf(!uri)("MongoDB catalog", () => {
   it("finds products by their aisle's name, in English or Marathi", async () => {
     expect(await slugs("notebooks paper")).toEqual(["a5-notebook"]);
     expect(await slugs("वह्या")).toEqual(["a5-notebook"]);
+  });
+  it("lists what can be bought before what is sold out, and still lists the rest", async () => {
+    // browsing goes aisle by aisle, so the paper aisle's notebook leads
+    expect((await catalog())[0].slug).toBe("a5-notebook");
+    const pack = await ProductVariant.findOne({ sku: "a5-notebook" });
+    await InventoryItem.updateOne({ variantId: pack!._id }, { $set: { onHand: 0 } });
+    try {
+      expect((await catalog()).at(-1)!.slug).toBe("a5-notebook");
+      expect(await slugs("note")).toEqual(["a5-notebook"]);
+    } finally {
+      await InventoryItem.updateOne({ variantId: pack!._id }, { $set: { onHand: 5 } });
+    }
+  });
+  it("shows a product on its extra shelves too, without moving it from its own", async () => {
+    await Product.updateOne({ slug: "gel-pen-set" }, { $set: { alsoOn: ["paper"] } });
+    const on = async (category: string) => (await catalog({ category })).map((item) => item.slug);
+    try {
+      expect(await on("paper")).toEqual(["a5-notebook", "gel-pen-set"]);
+      expect(await on("staples")).toContain("gel-pen-set");
+      // found by either shelf's name
+      expect((await slugs("notebooks paper")).sort()).toEqual(["a5-notebook", "gel-pen-set"]);
+      expect((await catalog({ slug: "gel-pen-set" }))[0].alsoOn).toEqual(["paper"]);
+    } finally {
+      await Product.updateOne({ slug: "gel-pen-set" }, { $unset: { alsoOn: 1 } });
+    }
+  });
+  it("groups shelves under sections, and lets one shelf sit in two", async () => {
+    const [staples, paper] = await Promise.all([Category.findOne({ slug: "staples" }), Category.findOne({ slug: "paper" })]);
+    const [office, school] = await Category.create([
+      { slug: "for-office", name: { en: "Office", mr: "कार्यालय" } },
+      { slug: "for-school", name: { en: "School", mr: "शाळा" } },
+    ]);
+    try {
+      // before any shelf is grouped, there are no sections: one list of shelves
+      expect(await catalogSections()).toEqual([]);
+      await Category.updateOne({ _id: paper!._id }, { $set: { parentIds: [school._id, office._id] } });
+      // saved before a shelf could sit in several sections: its one parent still counts
+      await Category.updateOne({ _id: staples!._id }, { $set: { parentId: school._id } });
+      expect((await catalogSections()).map((section) => [section.slug, section.shelves.map((shelf) => shelf.slug)])).toEqual([
+        ["for-office", ["paper"]],
+        ["for-school", ["paper", "staples"]],
+      ]);
+      // a section is not a shelf: menus, the footer and the sitemap list shelves only
+      expect((await catalogCategories()).map((category) => category.slug)).toEqual(["paper", "staples"]);
+    } finally {
+      await Category.deleteMany({ _id: { $in: [office._id, school._id] } });
+      await Category.updateMany({}, { $unset: { parentIds: 1, parentId: 1 } });
+    }
   });
   it("keeps working when Atlas Search is switched on but unavailable", async () => {
     process.env.ATLAS_SEARCH_ENABLED = "true";

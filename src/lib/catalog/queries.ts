@@ -6,6 +6,7 @@ import {
   InventoryItem,
   SearchSynonym,
   Category,
+  parentsOf,
 } from "../db/models";
 import {
   normalizeSearch,
@@ -40,6 +41,8 @@ export type CatalogItem = {
   featured: boolean;
   bestseller: boolean;
   categorySlug: string;
+  /** Other shelves it also shows on; `categorySlug` is its own. */
+  alsoOn: string[];
   /** Another shop that supplies it, once an owner approved it: "Provided by …". None for our own stock. */
   provider?: ProviderLabel;
   /** School catalogue only. */
@@ -83,8 +86,14 @@ export async function catalog(
 export async function catalogForSchools(input: { q?: string; category?: string } = {}) {
   return catalogFor("schools", { q: input.q, category: input.category });
 }
-/** The shop's aisles in display order: menus, the aisle tiles and browsing follow it; unlisted aisles come after, by name. */
+/** The shop's sections, then its aisles, in display order: menus, the aisle tiles and browsing follow it; unlisted ones come after, by name. */
 const AISLE_ORDER = [
+  // the sections shelves are grouped under (scripts/migrate-shelves.ts)
+  "stationery",
+  "office",
+  "toys-games",
+  "gifts-party",
+  "home-pooja",
   "pens",
   "pencils",
   "colours-markers",
@@ -109,6 +118,8 @@ const AISLE_ORDER = [
   "party-gifting",
 ];
 const aisleRank = (slug: string) => (AISLE_ORDER.indexOf(slug) + 1 || 99);
+/** Every shelf a product shows on: its own first, then the extra ones. */
+const shelvesOf = (product: Doc): string[] => [product.categorySlug, ...(product.alsoOn ?? [])];
 /** Far more than the shop lists today. */
 const SHELF_LIMIT = 2000;
 /** A search returns its best matches, up to this many. */
@@ -232,7 +243,7 @@ async function searchMatches(query: string, match: Record<string, unknown>, list
     const regex = new RegExp(pattern, "i");
     const slugs = new Set(aisles.filter((aisle) => regex.test(aisle.en) || regex.test(aisle.mr)).map((aisle) => aisle.slug));
     return (product: Doc) =>
-      slugs.has(product.categorySlug) ||
+      shelvesOf(product).some((slug) => slugs.has(slug)) ||
       [product.name?.en, product.name?.mr, product.brand, ...(product.aliases ?? [])].some(
         (text) => typeof text === "string" && regex.test(text),
       );
@@ -266,12 +277,12 @@ async function catalogFor(
   const match: Record<string, unknown> = {
     ...(forSchools ? schoolVisible : shopperVisible),
     ...(filters.slug ? { slug: filters.slug } : {}),
-    ...(filters.category ? { categorySlug: filters.category } : {}),
+    ...(filters.category ? { $or: [{ categorySlug: filters.category }, { alsoOn: filters.category }] } : {}),
   };
   const query = normalizeSearch(filters.q);
   const shelf = await shelfFor(audience);
   let listed = shelf.products.filter(
-    (p) => (!filters.slug || p.slug === filters.slug) && (!filters.category || p.categorySlug === filters.category),
+    (p) => (!filters.slug || p.slug === filters.slug) && (!filters.category || shelvesOf(p).includes(filters.category)),
   );
   if (filters.sort === "new")
     listed = listed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -296,6 +307,7 @@ async function catalogFor(
         featured: Boolean(p.featured),
         bestseller: Boolean(p.bestseller),
         categorySlug: p.categorySlug,
+        alsoOn: p.alsoOn ?? [],
         ...(p.providerId && shelf.providers.has(String(p.providerId))
           ? { provider: shelf.providers.get(String(p.providerId)) }
           : {}),
@@ -332,15 +344,21 @@ async function catalogFor(
     );
   // a search keeps its best-match order; browsing goes aisle by aisle, bestsellers first, then by
   // name with numbers read as numbers: one brand's books sit together, 72 pages before 172. Import
-  // order used to show through (172, 72, 280, 380).
+  // order used to show through (172, 72, 280, 380). On one shelf the aisle is left out of it, or a
+  // product that is only also shown there would jump ahead of the shelf's own.
   if (filters.sort === "featured" && !query)
     result.sort(
       (a, b) =>
-        aisleRank(a.categorySlug) - aisleRank(b.categorySlug) ||
-        a.categorySlug.localeCompare(b.categorySlug) ||
+        (filters.category
+          ? 0
+          : aisleRank(a.categorySlug) - aisleRank(b.categorySlug) || a.categorySlug.localeCompare(b.categorySlug)) ||
         Number(b.bestseller) - Number(a.bestseller) ||
         a.name.en.localeCompare(b.name.en, "en", { numeric: true }),
     );
+  // what can be bought now comes first, in the order the list already has (the sort keeps ties as
+  // they were); sold-out products stay listed after it. Shoppers only: a school asks for a quotation.
+  const buyable = (product: CatalogItem) => product.variants.some((variant) => variant.available > 0);
+  if (!forSchools) result.sort((a, b) => Number(buyable(b)) - Number(buyable(a)));
   return result;
 }
 /** Memoised per request: the page and its metadata both ask. */
@@ -354,8 +372,34 @@ export const schoolProductBySlug = cache(async (slug: string) => {
   return all[0] ?? null;
 });
 
-/** The aisles, in the shop's order; from the shop cache, since every page's menu and footer list them. */
-export const catalogCategories = () => shared("categories", readCategories);
+const allCategories = () => shared("categories", readCategories);
+/**
+ * The shelves products sit on, in the shop's order; from the shop cache, since every page's menu and
+ * footer list them. Sections are left out: a section only groups shelves and has no page of its own.
+ */
+export const catalogCategories = async () => {
+  const all = await allCategories();
+  const sections = new Set(all.flatMap((category) => category.parentIds));
+  return all.filter((category) => !sections.has(category.id));
+};
+/**
+ * The sections with the shelves under each, both in the shop's order; a shelf can be under several.
+ * Shelves in no section come last under "More". Empty until some shelf is put in a section: the
+ * shop is then one list of shelves, as it was.
+ */
+export const catalogSections = async () => {
+  const all = await allCategories();
+  const sectionIds = new Set(all.flatMap((category) => category.parentIds));
+  if (!sectionIds.size) return [];
+  const shelves = all.filter((category) => !sectionIds.has(category.id));
+  const loose = shelves.filter((shelf) => !shelf.parentIds.length);
+  return [
+    ...all
+      .filter((category) => sectionIds.has(category.id))
+      .map((section) => ({ ...section, shelves: shelves.filter((shelf) => shelf.parentIds.includes(section.id)) })),
+    ...(loose.length ? [{ id: "", slug: "", en: "More", mr: "आणखी", symbol: "", parentIds: [] as string[], shelves: loose }] : []),
+  ];
+};
 
 /**
  * Whether anything sells below its MRP, for the header's Offers and the footer's Deals links. Answered
@@ -369,15 +413,13 @@ export const anyOnOffer = cache(async () => {
 });
 async function readCategories() {
   await connectDB();
-  const rows = await Category.find({})
-    .sort({ parentId: 1, "name.en": 1 })
-    .limit(200);
+  const rows = await Category.find({}).limit(200);
   return rows.map((row) => ({
     id: String(row._id),
     slug: row.slug,
     en: row.name.en,
     mr: row.name.mr,
     symbol: row.symbol ?? "",
-    parentId: row.parentId ? String(row.parentId) : undefined,
+    parentIds: parentsOf(row),
   })).sort((a, b) => aisleRank(a.slug) - aisleRank(b.slug) || a.en.localeCompare(b.en));
 }

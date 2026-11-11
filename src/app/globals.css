@@ -597,6 +597,14 @@ input[type="checkbox"], input[type="radio"] {
 /* the cards after an analytics grid keep the grid's own gap */
 .analytics-grid + .panel { margin-top: 16px; }
 .staff-form-grid .checkbox-label { grid-column: 1 / -1; }
+/* tick boxes: the sections a category shows under, and the extra categories a product also shows on */
+.tick-list { grid-column: 1 / -1; min-width: 0; margin: 0; padding: 0; border: 0; }
+.tick-list legend { padding: 0; font-size: 0.86rem; font-weight: 600; }
+.tick-list legend small, .also-on > summary small { display: block; color: var(--muted); font-weight: 400; }
+.tick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0 16px; margin-top: 6px; }
+.staff-form-grid .tick-grid .checkbox-label { grid-column: auto; }
+.tick-note { grid-column: 1 / -1; margin: 0; }
+.also-on > summary { min-height: 44px; padding: 10px 0; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
 .field-wide { grid-column: 1 / -1; }
 .settings-grid .panel, .analytics-grid .panel { margin: 0; }
 .settings-grid { margin-bottom: 16px; }

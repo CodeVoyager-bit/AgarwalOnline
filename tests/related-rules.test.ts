@@ -17,6 +17,7 @@ function item(id: string, over: Partial<CatalogItem> & { stock?: number; price?:
     featured: false,
     bestseller: false,
     categorySlug: "books",
+    alsoOn: [],
     variants: [{ id: `${id}-pack`, label: "1", pricePaise: price, mrpPaise: price, available: stock, maxQuantity: 10 }],
     rating: 0,
     reviewCount: 0,

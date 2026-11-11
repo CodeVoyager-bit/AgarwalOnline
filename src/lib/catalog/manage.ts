@@ -9,6 +9,7 @@ import {
   Product,
   ProductVariant,
   User,
+  parentsOf,
 } from "../db/models";
 import { objectId } from "../commerce/service";
 import { gstRateField, hsnField, optionalField } from "../tax/gst";
@@ -36,25 +37,34 @@ const categoryInput = z.object({
   nameEn: z.string().trim().min(2).max(80),
   nameMr: z.string().trim().min(2).max(80),
   symbol: z.string().trim().max(12).default(""),
-  parentId: z.union([objectId, z.literal("")]).optional(),
+  /** The sections it shows under; none makes it a top-level category. */
+  parentIds: z.array(objectId).max(10).default([]),
 });
 
 export async function saveCategory(actorId: string, input: unknown) {
   await authorize(actorId);
   const data = categoryInput.parse(input);
-  if (data.parentId && data.parentId === data.categoryId)
-    throw Error("A category cannot be its own parent.");
+  const parentIds = [...new Set(data.parentIds)];
+  if (data.categoryId && parentIds.includes(data.categoryId)) throw Error("A category cannot be inside itself.");
   await mongoose.connection.transaction(async (session) => {
-    if (
-      data.parentId &&
-      !(await Category.exists({ _id: data.parentId }).session(session))
-    )
-      throw Error("Parent category not found.");
+    if (parentIds.length) {
+      // two levels and no deeper: sections at the top, shelves inside them (so there are no loops to look for)
+      const parents = await Category.find({ _id: { $in: parentIds } }).session(session);
+      if (parents.length !== parentIds.length) throw Error("Parent category not found.");
+      if (parents.some((parent) => parentsOf(parent).length)) throw Error("A category can only sit inside a top-level one.");
+      if (
+        data.categoryId &&
+        (await Category.exists({ $or: [{ parentIds: data.categoryId }, { parentId: data.categoryId }] }).session(session))
+      )
+        throw Error("A category that holds others can’t sit inside one itself.");
+    }
     const payload = {
       slug: data.slug,
       name: { en: data.nameEn, mr: data.nameMr },
       symbol: data.symbol,
-      ...(data.parentId ? { parentId: data.parentId } : { parentId: null }),
+      parentIds,
+      // the single "inside" from before a shelf could sit in several sections
+      parentId: null,
     };
     const before = data.categoryId
       ? await Category.findById(data.categoryId).session(session).lean()
@@ -67,12 +77,15 @@ export async function saveCategory(actorId: string, input: unknown) {
         )
       : (await Category.create([payload], { session }))[0];
     if (!category) throw Error("Category not found.");
-    if (before && before.slug !== data.slug)
+    if (before && before.slug !== data.slug) {
       await Product.updateMany(
         { categoryId: category._id },
         { $set: { categorySlug: data.slug } },
         { session },
       );
+      // and on the products that show here as an extra shelf
+      await Product.updateMany({ alsoOn: before.slug }, { $set: { "alsoOn.$": data.slug } }, { session });
+    }
     await AuditLog.create(
       [
         {
@@ -92,6 +105,8 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
   // the "Provided by" choice; a caller that sends none leaves the provider as it is
   const raw = (input ?? {}) as Record<string, unknown>;
   const providerChosen = "providerId" in raw;
+  // the extra shelves it also shows on; a caller that sends none leaves them as they are
+  const alsoOnChosen = Array.isArray(raw.alsoOn) ? [...new Set(raw.alsoOn.map(String))] : undefined;
   const data = z
     .object({
       productId: objectId,
@@ -119,6 +134,13 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
     if (!product || !category) throw Error("Product or category not found.");
     const before = product.toObject();
     const providerId = providerChosen ? await chosenProvider(actorId, raw, session) : product.providerId;
+    // its own shelf is never an extra one, also after the product moves to a shelf it was extra on
+    const alsoOn = (alsoOnChosen ?? (product.alsoOn as string[]) ?? []).filter((slug) => slug !== category.slug);
+    if (alsoOnChosen) {
+      if (alsoOn.length > 2) throw Error("Tick at most two extra categories.");
+      if ((await Category.countDocuments({ slug: { $in: alsoOn } }).session(session)) !== alsoOn.length)
+        throw Error("Category not found.");
+    }
     const enHighlights = data.highlightsEn.split("\n").map((item) => item.trim()).filter(Boolean);
     const mrHighlights = data.highlightsMr.split("\n").map((item) => item.trim()).filter(Boolean);
     const specifications = data.specifications
@@ -135,6 +157,7 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
       brand: data.brand,
       categoryId: category._id,
       categorySlug: category.slug,
+      alsoOn,
       providerId,
       aliases: [
         ...new Set(

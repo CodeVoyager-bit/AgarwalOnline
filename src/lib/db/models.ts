@@ -77,10 +77,19 @@ const categorySchema = new Schema(
     slug: { type: String, required: true, unique: true },
     name: localized,
     symbol: String,
+    /**
+     * The sections this shelf shows under: Pens under Stationery and under Office. A section is
+     * simply a category some shelf names here, and has none of its own (two levels, no deeper).
+     */
+    parentIds: [{ type: Schema.Types.ObjectId, ref: "Category" }],
+    /** From before a shelf could sit in several sections; read through `parentsOf`, cleared on the next save. */
     parentId: { type: Schema.Types.ObjectId, ref: "Category" },
   },
   opts,
 );
+/** The ids of the sections a category sits in, whichever way it was saved. */
+export const parentsOf = (category: { parentIds?: unknown[] | null; parentId?: unknown }): string[] =>
+  category.parentIds?.length ? category.parentIds.map(String) : category.parentId ? [String(category.parentId)] : [];
 const productSchema = new Schema(
   {
     slug: { type: String, required: true, unique: true },
@@ -89,6 +98,11 @@ const productSchema = new Schema(
     brand: String,
     categoryId: ref("Category"),
     categorySlug: { type: String, required: true },
+    /**
+     * Other shelves it also shows on, by slug (a pen gift set on Pens and on Party and Gifting).
+     * `categorySlug` stays its own shelf: the breadcrumb, the web address and its icon follow that one.
+     */
+    alsoOn: [String],
     /** Another shop that supplies it ("Provided by …"); missing means our own stock. Agarwal still sells it. */
     providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
     aliases: [String],

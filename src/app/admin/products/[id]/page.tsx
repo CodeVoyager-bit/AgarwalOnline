@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, ExternalLink, Plus } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
-import { Category, InventoryItem, Product, ProductVariant } from "@/lib/db/models";
+import { Category, InventoryItem, Product, ProductVariant, parentsOf } from "@/lib/db/models";
 import { objectId } from "@/lib/commerce/service";
 import { productImages } from "@/lib/catalog/images";
 import { formatPrice } from "@/lib/display";
@@ -80,6 +80,10 @@ export default async function EditProduct({
     return `${pack?.label ?? "Pack"}: stock ${Number(request.after.delta) > 0 ? "+" : ""}${Number(request.after.delta)}`;
   };
   const photos = orderedPhotos(product);
+  // products sit on shelves; a section only groups them (its own category stays offered, whatever it is)
+  const sectionIds = new Set(categories.flatMap((item) => parentsOf(item)));
+  const shelves = categories.filter((item) => !sectionIds.has(String(item._id)) || String(item._id) === String(product.categoryId));
+  const alsoOn = (product.alsoOn ?? []) as string[];
   const category = categories.find((item) => String(item._id) === String(product.categoryId));
   const live = product.status === "published";
   const inShop = isShopperVisible(product);
@@ -138,7 +142,7 @@ export default async function EditProduct({
               <label>
                 Category
                 <select name="categoryId" defaultValue={String(product.categoryId)}>
-                  {categories.map((item) => (
+                  {shelves.map((item) => (
                     <option value={String(item._id)} key={String(item._id)}>
                       {item.name.en}
                     </option>
@@ -155,6 +159,21 @@ export default async function EditProduct({
                 providers={providers.map((p) => ({ id: String(p._id), name: p.name, town: p.town, status: p.status }))}
               />
             </div>
+            <details className="also-on" open={alsoOn.length > 0}>
+              <summary>
+                Also show it on <small>{alsoOn.length ? "" : "Optional: up to two more categories, for a product people look for in two places"}</small>
+              </summary>
+              <div className="tick-grid">
+                {shelves
+                  .filter((item) => String(item._id) !== String(product.categoryId))
+                  .map((item) => (
+                    <label className="checkbox-label" key={String(item._id)}>
+                      <input type="checkbox" name="alsoOn" value={item.slug} defaultChecked={alsoOn.includes(item.slug)} />
+                      {item.name.en}
+                    </label>
+                  ))}
+              </div>
+            </details>
             <label>
               Other words shoppers type <small>Separated by commas, English or Marathi</small>
               <input name="aliases" defaultValue={product.aliases.join(", ")} />

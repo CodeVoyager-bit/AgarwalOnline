@@ -23,6 +23,7 @@
     "migrate:phone-index": "tsx --env-file=.env scripts/migrate-phone-index.ts",
     "migrate:product-photos": "tsx --env-file=.env scripts/migrate-product-photos.ts",
     "migrate:photo-order": "tsx --env-file=.env scripts/migrate-photo-order.ts",
+    "migrate:shelves": "tsx --env-file=.env scripts/migrate-shelves.ts",
     "test:e2e": "playwright test",
     "reservations:expire": "tsx --env-file=.env scripts/expire-reservations.ts",
     "approvals:publish": "tsx --env-file=.env scripts/publish-scheduled.ts",

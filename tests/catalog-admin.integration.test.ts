@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db/connect";
-import { Category, InventoryItem, Product, ProductVariant, User } from "../src/lib/db/models";
+import { Category, InventoryItem, Product, ProductVariant, User, parentsOf } from "../src/lib/db/models";
 import { CartLine } from "../src/lib/commerce/models";
-import { setProductVisibility, updateVariant } from "../src/lib/catalog/manage";
+import { saveCategory, setProductVisibility, updateProductMetadata, updateVariant } from "../src/lib/catalog/manage";
 import { catalog } from "../src/lib/catalog/queries";
 import { basketFor, setCartLine } from "../src/lib/commerce/service";
 
@@ -76,5 +76,57 @@ describe.skipIf(!uri)("Showing, hiding and changing packs", () => {
     expect(basket.lines).toHaveLength(0);
     expect(basket.unavailable[0]?.label).toBe("100-page notebook");
     await expect(setCartLine(customer, variantId, 1)).rejects.toThrow("unavailable");
+  });
+
+  const paperFields = { slug: "paper", nameEn: "Paper", nameMr: "कागद" };
+  it("puts a shelf in two sections, and keeps the shop two levels deep", async () => {
+    const paper = String((await Category.findOne({ slug: "paper" }))!._id);
+    const [school, office] = (
+      await Category.create([
+        { slug: "for-school", name: { en: "School", mr: "शाळा" } },
+        { slug: "for-office", name: { en: "Office", mr: "कार्यालय" } },
+      ])
+    ).map((section: { _id: unknown }) => String(section._id));
+    await saveCategory(admin, { ...paperFields, categoryId: paper, parentIds: [school, office] });
+    expect(parentsOf((await Category.findById(paper))!)).toEqual([school, office]);
+    // a section that holds shelves can't go inside another, and nothing goes inside a shelf
+    await expect(
+      saveCategory(admin, { categoryId: school, slug: "for-school", nameEn: "School", nameMr: "शाळा", parentIds: [office] }),
+    ).rejects.toThrow("holds others");
+    await expect(saveCategory(admin, { slug: "pens", nameEn: "Pens", nameMr: "पेन", parentIds: [paper] })).rejects.toThrow("top-level");
+    await expect(saveCategory(admin, { ...paperFields, categoryId: paper, parentIds: [paper] })).rejects.toThrow("inside itself");
+    // unticking every section makes it a plain shelf again
+    await saveCategory(admin, { ...paperFields, categoryId: paper, parentIds: [] });
+    expect(parentsOf((await Category.findById(paper))!)).toEqual([]);
+  });
+
+  it("saves a product's extra shelves and keeps them through a shelf's new web address", async () => {
+    const paper = String((await Category.findOne({ slug: "paper" }))!._id);
+    const craft = await Category.create({ slug: "craft", name: { en: "Craft", mr: "हस्तकला" } });
+    await Category.create({ slug: "gifts", name: { en: "Gifts", mr: "भेटवस्तू" } });
+    await Category.create({ slug: "office", name: { en: "Office", mr: "कार्यालय" } });
+    const details = {
+      productId,
+      nameEn: "Notebook",
+      nameMr: "वही",
+      descriptionEn: "A ruled notebook",
+      descriptionMr: "रेघी वही",
+      brand: "",
+      categoryId: paper,
+      aliases: "",
+      featured: false,
+      bestseller: false,
+    };
+    // its own shelf isn't an extra one, and a slug that isn't a shelf is refused
+    await updateProductMetadata(admin, { ...details, alsoOn: ["craft", "paper"] });
+    expect((await Product.findById(productId))!.alsoOn).toEqual(["craft"]);
+    await expect(updateProductMetadata(admin, { ...details, alsoOn: ["craft", "gifts", "office"] })).rejects.toThrow();
+    await expect(updateProductMetadata(admin, { ...details, alsoOn: ["nowhere"] })).rejects.toThrow("Category not found");
+    await saveCategory(admin, { categoryId: String(craft._id), slug: "art-craft", nameEn: "Craft", nameMr: "हस्तकला" });
+    expect((await Product.findById(productId))!.alsoOn).toEqual(["art-craft"]);
+    expect((await catalog({ category: "art-craft" })).map((item) => item.slug)).toEqual(["notebook"]);
+    // a form that doesn't send the extra shelves (an older page) leaves them alone
+    await updateProductMetadata(admin, details);
+    expect((await Product.findById(productId))!.alsoOn).toEqual(["art-craft"]);
   });
 });

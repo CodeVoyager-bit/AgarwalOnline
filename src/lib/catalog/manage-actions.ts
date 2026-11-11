@@ -46,10 +46,12 @@ export async function catalogManagementAction(
     // only an owner prices for schools or sees purchase prices; the services check again
     if (operation === "school-price" || operation === "cost") await requirePermission("settings:write");
     const raw = formWithPaise(form);
-    if (operation === "category") await saveCategory(user.id, raw);
+    // tick boxes send one value each, and `raw` keeps only the last of a repeated name
+    if (operation === "category") await saveCategory(user.id, { ...raw, parentIds: form.getAll("parentIds") });
     else if (operation === "product")
       await updateProductMetadata(user.id, {
         ...raw,
+        alsoOn: form.getAll("alsoOn"),
         featured: form.get("featured") === "on",
         bestseller: form.get("bestseller") === "on",
       });

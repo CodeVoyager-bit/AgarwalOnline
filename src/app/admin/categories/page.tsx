@@ -9,14 +9,25 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { requirePage } from "@/lib/auth/session";
 import { catalogManagementAction } from "@/lib/catalog/manage-actions";
-import { Category, Product } from "@/lib/db/models";
+import { Category, Product, parentsOf } from "@/lib/db/models";
 import { notDeleted } from "@/lib/catalog/deleted";
 export const metadata = { title: "Categories", robots: { index: false } };
 
-type CategoryDoc = { _id: unknown; slug: string; name: { en: string; mr: string }; symbol?: string; parentId?: unknown };
+type CategoryDoc = {
+  _id: unknown;
+  slug: string;
+  name: { en: string; mr: string };
+  symbol?: string | null;
+  parentIds?: unknown[] | null;
+  parentId?: unknown;
+};
 
-/** The same five fields for adding and editing, so the two forms can never drift apart. */
-function CategoryFields({ category, all }: { category?: CategoryDoc; all: CategoryDoc[] }) {
+/**
+ * The same fields for adding and editing, so the two forms can never drift apart. `sections` are
+ * the categories this one can show under; `holds` is how many sit inside it (a section).
+ */
+function CategoryFields({ category, sections, holds = 0 }: { category?: CategoryDoc; sections: CategoryDoc[]; holds?: number }) {
+  const inside = category ? parentsOf(category) : [];
   return (
     <div className="staff-form-grid">
       <label>
@@ -38,22 +49,32 @@ function CategoryFields({ category, all }: { category?: CategoryDoc; all: Catego
         />
       </label>
       <label>
-        Inside another category
-        <select name="parentId" defaultValue={String(category?.parentId ?? "")}>
-          <option value="">No, a top-level category</option>
-          {all
-            .filter((item) => String(item._id) !== String(category?._id))
-            .map((item) => (
-              <option value={String(item._id)} key={String(item._id)}>
-                {item.name.en}
-              </option>
-            ))}
-        </select>
-      </label>
-      <label>
         Short symbol <small>Optional, one character</small>
-        <input name="symbol" defaultValue={category?.symbol} maxLength={12} />
+        <input name="symbol" defaultValue={category?.symbol ?? ""} maxLength={12} />
       </label>
+      {holds > 0 ? (
+        <p className="muted tick-note">
+          A section: {holds} {holds === 1 ? "category sits" : "categories sit"} inside it, so it can’t go inside another.
+        </p>
+      ) : (
+        <fieldset className="tick-list">
+          <legend>
+            Shows under <small>Tick every section shoppers would look in. Pens can sit under Stationery and under Office.</small>
+          </legend>
+          {sections.length ? (
+            <div className="tick-grid">
+              {sections.map((item) => (
+                <label className="checkbox-label" key={String(item._id)}>
+                  <input type="checkbox" name="parentIds" value={String(item._id)} defaultChecked={inside.includes(String(item._id))} />
+                  {item.name.en}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">No sections yet. Add a category such as “Stationery” first, with no products in it, then tick it here.</p>
+          )}
+        </fieldset>
+      )}
     </div>
   );
 }
@@ -66,22 +87,35 @@ export default async function CategoriesPage({
   await requirePage("catalog:write");
   const { edit, q = "" } = await searchParams;
   const term = q.trim().toLowerCase().slice(0, 80);
-  const [categories, counts] = await Promise.all([
+  const [categories, counts, extra] = await Promise.all([
     Category.find({}).sort({ "name.en": 1 }),
     Product.aggregate<{ _id: unknown; count: number }>([{ $match: notDeleted }, { $group: { _id: "$categoryId", count: { $sum: 1 } } }]),
+    // products that also show here, on top of the category's own
+    Product.aggregate<{ _id: string; count: number }>([
+      { $match: notDeleted },
+      { $unwind: "$alsoOn" },
+      { $group: { _id: "$alsoOn", count: { $sum: 1 } } },
+    ]),
   ]);
-  const countFor = (id: unknown) => counts.find((row) => String(row._id) === String(id))?.count ?? 0;
+  const ownCount = (id: unknown) => counts.find((row) => String(row._id) === String(id))?.count ?? 0;
+  const countFor = (category: CategoryDoc) => ownCount(category._id) + (extra.find((row) => row._id === category.slug)?.count ?? 0);
+  const held = (id: unknown) => categories.filter((item) => parentsOf(item).includes(String(id)));
+  // what a category can show under: top-level ones with no products of their own (a section lists only its shelves)
+  const sectionsFor = (category?: CategoryDoc) =>
+    categories.filter(
+      (item) => String(item._id) !== String(category?._id) && !parentsOf(item).length && (held(item._id).length > 0 || !ownCount(item._id)),
+    );
   const editing = edit && mongoose.isValidObjectId(edit) ? categories.find((item) => String(item._id) === edit) : undefined;
   const shown = term
     ? categories.filter((item) => [item.name.en, item.name.mr, item.slug].some((text) => text.toLowerCase().includes(term)))
     : categories;
-  const nested = categories.some((item) => item.parentId);
+  const nested = categories.some((item) => parentsOf(item).length);
   return (
     <section className="page-container">
       <PageHeading
         eyebrow="Run the store"
         title="Categories"
-        lead="The categories shoppers browse. Every category needs an English and a Marathi name."
+        lead="The categories shoppers browse. A category can show under more than one section, such as Pens under Stationery and Office."
       />
       <CatalogAdminNav />
       {editing && (
@@ -98,7 +132,7 @@ export default async function CategoriesPage({
           <ActionForm action={catalogManagementAction} submit="Save category">
             <input type="hidden" name="operation" value="category" />
             <input type="hidden" name="categoryId" value={String(editing._id)} />
-            <CategoryFields category={editing} all={categories} />
+            <CategoryFields category={editing} sections={sectionsFor(editing)} holds={held(editing._id).length} />
           </ActionForm>
         </div>
       )}
@@ -106,7 +140,7 @@ export default async function CategoriesPage({
         <summary>Add a category</summary>
         <ActionForm action={catalogManagementAction} submit="Add category">
           <input type="hidden" name="operation" value="category" />
-          <CategoryFields all={categories} />
+          <CategoryFields sections={sectionsFor()} />
         </ActionForm>
       </details>
       <FilterBar label="Find categories" submitLabel="Find" clearHref={term ? "/admin/categories" : undefined}>
@@ -142,13 +176,17 @@ export default async function CategoriesPage({
           ...(nested
             ? [
                 {
-                  header: "Inside",
-                  cell: (category: (typeof categories)[number]) =>
-                    categories.find((item) => String(item._id) === String(category.parentId))?.name.en ?? "—",
+                  header: "Shows under",
+                  cell: (category: (typeof categories)[number]) => {
+                    const shelves = held(category._id).length;
+                    if (shelves) return <small>Section · {shelves} inside</small>;
+                    const inside = parentsOf(category);
+                    return categories.filter((item) => inside.includes(String(item._id))).map((item) => item.name.en).join(", ") || "—";
+                  },
                 },
               ]
             : []),
-          { header: "Products", numeric: true, cell: (category) => countFor(category._id) },
+          { header: "Products", numeric: true, cell: (category) => countFor(category) },
         ]}
         empty={
           <EmptyState icon={FolderTree} title="No categories yet" body="Add the first category above so products have somewhere to live." heading="h3" />
