@@ -47,6 +47,8 @@ export function CatalogFilterPanel({
           />
         </label>
         {params.category && <input type="hidden" name="category" value={params.category} />}
+        {/* the section the shelf was opened from: its rail stays */}
+        {params.in && <input type="hidden" name="in" value={params.in} />}
         <label>
           {locale === "mr" ? "क्रमवारी" : "Sort by"}
           <select name="sort" defaultValue={params.sort ?? "featured"} onChange={submit}>

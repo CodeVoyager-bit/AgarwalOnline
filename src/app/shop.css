@@ -1,0 +1,195 @@
+/* =============================================================================
+   THE SHOP ON A PHONE
+   Nineteen of twenty shoppers order from a phone, so the shop's own screens are written here
+   for the phone first and widened for desktop at 761px. Parts that are new (the shelf rail, the
+   section tabs) start from the phone. Parts other pages share (the product card) are tightened
+   inside a phone-only block, so the school pages, shared lists and staff pages keep their
+   desktop look. Loaded after globals.css, playful.css and studio.css, so it has the last word.
+   ============================================================================= */
+
+/* ---------- Shelves: section tabs across the top, the section's shelves down a rail ---------- */
+.shelves {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 10px;
+  padding-top: 8px;
+  padding-left: 0;
+  padding-right: 10px;
+}
+/* a search spans the whole shop: no tabs, no rail */
+.shelves.searching { display: block; padding-left: var(--gutter); padding-right: var(--gutter); }
+.section-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  margin-right: -10px;
+  padding: 2px 10px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.section-tabs::-webkit-scrollbar, .shelf-rail::-webkit-scrollbar { display: none; }
+.section-tabs a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.section-tabs a[aria-current] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.shelf-rail {
+  /* under the pinned search row, above the tab bar; it scrolls on its own when the shelves outrun it */
+  --rail-top: calc(var(--header-h) - var(--header-collapse, 0px) + 6px);
+  position: sticky;
+  top: var(--rail-top);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--rail-top) - var(--bottom-nav-h) - 12px);
+  max-height: calc(100dvh - var(--rail-top) - var(--bottom-nav-h) - 12px - env(safe-area-inset-bottom));
+  padding: 4px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  border-radius: 0 16px 16px 0;
+  background: var(--paper);
+}
+/* the basket bar sits above the tab bar */
+body:has(.cart-bar) .shelf-rail { max-height: calc(100dvh - var(--rail-top) - var(--bottom-nav-h) - 76px - env(safe-area-inset-bottom)); }
+.shelf-rail a {
+  position: relative;
+  flex: none;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.shelf-rail a[aria-current] { color: var(--ink); font-weight: 700; }
+.shelf-rail a[aria-current]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand);
+}
+.rail-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--brand-soft);
+}
+.rail-art img { object-fit: cover; }
+.rail-art .aisle-icon { width: 22px; height: 22px; color: var(--ink-2); }
+.shelf-rail a[aria-current] .rail-art { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--brand); }
+.shelf-main { min-width: 0; }
+.shelf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px 8px; margin: 2px 0 10px; }
+.shelf-head h1 { margin: 0; font-size: 1.0625rem; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+.shelf-head .results-line { display: block; margin: 2px 0 0; font-size: 0.75rem; line-height: 1.45; }
+.shelf-head .results-line a { display: inline-flex; align-items: center; min-height: 24px; margin-left: 6px; }
+.shelf-head .filter-toggle-row { margin: 0; }
+.shelf-head .filter-toggle { width: auto; min-height: 36px; gap: 6px; padding: 0 12px; font-size: 0.78rem; }
+.shelf-head .catalog-filters { grid-column: 1 / -1; margin: 0; }
+.shelves .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.shelves .load-more { margin: 16px 0 8px; }
+
+@media (min-width: 761px) {
+  .shelves { grid-template-columns: 232px minmax(0, 1fr); column-gap: 32px; padding-top: 24px; padding-left: var(--gutter); padding-right: var(--gutter); }
+  .section-tabs { flex-wrap: wrap; gap: 8px; margin: 0; padding: 0 0 20px; overflow: visible; }
+  .section-tabs a { min-height: 40px; padding: 0 18px; font-size: 0.9rem; }
+  .section-tabs a:hover { border-color: var(--ink); }
+  .shelf-rail {
+    --rail-top: calc(var(--header-h) + 16px);
+    max-height: calc(100vh - var(--rail-top) - 16px);
+    padding: 8px;
+    border-radius: 16px;
+    box-shadow: var(--card, none);
+  }
+  body:has(.cart-bar) .shelf-rail { max-height: calc(100vh - var(--rail-top) - 16px); }
+  .shelf-rail a {
+    grid-template-columns: 40px minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    text-align: left;
+  }
+  .shelf-rail a:hover, .shelf-rail a[aria-current] { background: var(--brand-soft); color: var(--ink); }
+  .shelf-rail a[aria-current]::before { top: 12px; bottom: 12px; }
+  .shelf-rail a[aria-current] .rail-art { box-shadow: none; }
+  .rail-art { width: 40px; height: 40px; border-radius: 10px; }
+  .shelf-head { margin: 0 0 20px; }
+  .shelf-head h1 { font-size: 1.75rem; letter-spacing: -0.03em; }
+  .shelf-head .results-line { margin-top: 6px; font-size: 0.9rem; }
+  .shelves .product-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px 20px; }
+  .shelves .load-more { margin: 28px 0 32px; }
+}
+
+/* ---------- Product card ---------- */
+/* nothing left of it to buy: the photo steps back, the words stay readable */
+.product-card.sold-out .product-photo { filter: grayscale(1); opacity: 0.55; }
+.product-card.sold-out .price strong { color: var(--muted); }
+.pack-options { margin-left: 6px; color: var(--brand); font-weight: 600; }
+.in-basket {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+  color: var(--paper);
+  font-size: 0.6875rem;
+  letter-spacing: 0;
+}
+/* the packs of one product, in the sheet its ADD opens */
+.pack-choices { margin: 8px 0 0; padding: 0; list-style: none; }
+.pack-choices li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.pack-choices li > span:first-child { display: grid; gap: 2px; min-width: 0; }
+.price-row .pack-choices strong { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
+.price-row .pack-choices .price { flex-direction: row; align-items: baseline; gap: 8px; color: var(--ink-2); font-size: 0.9rem; }
+.price-row .pack-choices del { font-size: 0.8rem; }
+
+@media (max-width: 760px) {
+  /* photo, name, pack, then the price and ADD on one line: about 260px tall, so four fit a screen */
+  .product-card { border-radius: 14px; }
+  .product-link { padding: 0 8px; }
+  .product-art { margin: 0 -8px 6px; border-bottom: 0; }
+  .product-card h3 { min-height: 2.5em; font-size: 0.8125rem; font-weight: 600; line-height: 1.25; }
+  .product-rating { margin: 0 0 2px; font-size: 0.72rem; }
+  .pack { display: block; margin: 2px 0 0; overflow: hidden; font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+  .discount, .stock-badge { left: 6px; top: 6px; padding: 2px 7px; font-size: 0.6875rem; }
+  .discount { padding-left: 13px; }
+  .price-row { flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; min-height: 0; margin: 6px 8px 8px; padding-top: 0; border-top: 0; }
+  .price { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 1px; }
+  .price-row strong { font-size: 0.9375rem; line-height: 1.2; }
+  .price-row del { font-size: 0.6875rem; line-height: 1.2; }
+  .price-row .quick-add { margin-left: auto; }
+  .price-row .add-button, .price-row .qty-stepper.compact { width: auto; min-height: 36px; }
+  .price-row .add-button { position: relative; min-width: 60px; padding: 0 12px; font-size: 0.78rem; }
+  /* a 36px button with a 44px tap area */
+  .price-row .add-button::after { content: ""; position: absolute; inset: -4px; }
+  .price-row .qty-stepper.compact button { width: 30px; height: 36px; }
+  .price-row .qty-stepper.compact output { min-width: 20px; }
+}

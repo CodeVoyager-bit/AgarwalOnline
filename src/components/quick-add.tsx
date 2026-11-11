@@ -105,6 +105,13 @@ export function QuickAdd({
   );
 }
 
+/** How many of a product's packs are in the basket: shown on the card button that opens its pack list. */
+export function InBasket({ ids }: { ids: string[] }) {
+  const { lines } = useBasket();
+  const count = ids.reduce((sum, id) => sum + (lines[id]?.quantity ?? 0), 0);
+  return count ? <b className="in-basket">{count}</b> : null;
+}
+
 const PRODUCT_WORDS = {
   en: {
     add: "Add to basket",

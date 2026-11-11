@@ -8,28 +8,42 @@
 
    Colour, borders, corners and shadow only; the few spacing changes (the menu capsules) are
    desktop-only, so every phone layout in globals.css keeps working. Motion stays in playful.css.
+
+   Since the phone rebuild (2026-11-12) it carries the "Pencil and pen" colours: pencil yellow
+   for the header band and highlights, ball-pen blue for every action, on the same grey page and
+   white cards. The reel's black pills and orange were calm but cold for a shop that sells toys,
+   and white text failed on that orange (3:1). Every pair here was measured: ink on yellow 12:1,
+   white on blue 6.7:1.
    ============================================================================= */
 
 :root[data-theme="studio"] {
-  --page: #eef0f3; /* the grey the white cards float on */
-  --ink: #18181b; /* neutral black, not slate */
-  --brand: var(--ink); /* buttons, links, the current menu item */
-  --accent-soft: #eeeff1;
-  --offer: #f26b3a; /* the reel's orange: highlights, offers, the basket bar (text on it stays ink) */
-  --warning: #9a3412; /* deep orange, the warning tone in the --offer family */
+  --page: #f3f4f7; /* the grey the white cards float on */
+  --ink: #1b1b1f; /* neutral black, not slate */
+  --brand: #1d4ed8; /* ball-pen blue: buttons, ADD, links, the current menu item (white on it 6.7:1) */
+  --brand-strong: #1e40af;
+  --accent-soft: #eef2ff;
+  --offer: #ffd43b; /* pencil yellow: the header band, highlights, offers, the basket bar (text on it stays ink, 12:1) */
+  --warning: #854d0e; /* deep amber, the warning tone in the --offer family */
+  --ring: 0 0 0 3px rgba(29, 78, 216, 0.3);
+  /* a pale tint behind each section's shelf tiles; backgrounds only, never text */
+  --tint-1: #fff6d1;
+  --tint-2: #e8eefc;
+  --tint-3: #fde8ef;
+  --tint-4: #efe9fb;
+  --tint-5: #fdeee0;
   --faint: var(--muted); /* the lighter grey drops under 4.5:1 on the grey page */
   --r: 12px;
   --r-md: 16px;
   --r-lg: 24px;
   --card: 0 1px 2px rgba(24, 24, 27, 0.04), 0 12px 32px -20px rgba(24, 24, 27, 0.22);
-  /* white on it holds 3:1 for the big number at the top and 4.5:1 for the label at the bottom */
-  --orange-card: linear-gradient(165deg, #ea6630, #b93d0b);
+  /* the first number tile: white on it holds 5:1 at the top and 10:1 at the bottom */
+  --orange-card: linear-gradient(165deg, #2563eb, #1e3a8a);
 
   &, & body { background: var(--page); }
   & :is(h1, h2, h3, h4) { font-weight: 600; letter-spacing: -0.03em; }
   & :is(.governance-stats span, .analytics-cards strong, .needs-count, .active-order-card strong) { font-weight: 600; }
-  & :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--offer); }
-  & .metric-list i { background: var(--offer); }
+  & :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--brand); }
+  & .metric-list i { background: var(--brand); }
 
   /* ---------- the top strip and header sit on the grey; their controls are white pills ---------- */
   & .top-strip { background: transparent; color: var(--ink-2); }
@@ -77,7 +91,7 @@
   /* ---------- buttons are pills ---------- */
   & :is(.primary-button, .secondary-button, .orange-button, .filter-toggle, .add-button, .google-button) { border-radius: var(--r-pill); }
   & .secondary-button:not(.hero-actions *) { border-color: var(--line); background: var(--paper); }
-  & .add-button { border-color: var(--ink); }
+  & .add-button { border-color: var(--brand); }
 
   /* ---------- cards: white, borderless, floating; no rules under headings ---------- */
   & :is(
@@ -99,7 +113,7 @@
     & .benefits { background: transparent; box-shadow: none; }
   }
 
-  /* ---------- the first number tile is the reel's orange card ---------- */
+  /* ---------- the first number tile is a blue card ---------- */
   & :is(.governance-stats, .analytics-cards) > :first-child { background: var(--orange-card); }
   & :is(.governance-stats, .analytics-cards) > :first-child :is(span, strong, small) { color: var(--paper); }
 

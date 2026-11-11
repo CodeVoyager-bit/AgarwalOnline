@@ -194,6 +194,14 @@ const shelfFor = cache(async (audience: "customers" | "schools"): Promise<Shelf>
 /** What shoppers can buy now, with packs and stock: the basket reads its lines from here too. */
 export const shopShelf = () => shelfFor("customers");
 
+/** A photo for each shelf: its most popular product's own. For the shelf rail and the home tiles. */
+export const shelfPhotos = cache(async () => {
+  const photos = new Map<string, string>();
+  for (const product of (await shelfFor("customers")).products)
+    if (product.image && !photos.has(product.categorySlug)) photos.set(product.categorySlug, product.image);
+  return photos;
+});
+
 /** The owner's synonym groups ("copy" = "notebook"), from the shop cache. */
 const searchSynonyms = () =>
   shared("synonyms", async () =>

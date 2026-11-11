@@ -3,7 +3,8 @@ import Link from "next/link";
 import { productImages } from "@/lib/catalog/images";
 import type { CatalogItem } from "@/lib/catalog/queries";
 import { discountPercent, formatPrice } from "@/lib/display";
-import { QuickAdd } from "./quick-add";
+import { InBasket, QuickAdd } from "./quick-add";
+import { ShareSheet } from "./share-sheet";
 import { WishlistButton } from "./wishlist-button";
 import { AisleIcon } from "./aisle-icon";
 import { ProviderLine } from "./provider-line";
@@ -22,11 +23,14 @@ export async function ProductCard({
   eager?: boolean;
 }) {
   const isSaved = saved ?? (await savedProductIds()).has(p.id);
-  const v = p.variants[0];
+  // the pack the card shows and adds: the first that can be bought now, else the first
+  const v = p.variants.find((pack) => pack.available > 0) ?? p.variants[0];
   const image = p.image ?? productImages[p.slug];
   const off = discountPercent(v.pricePaise, v.mrpPaise);
+  const mr = locale === "mr";
+  const name = p.name[locale];
   return (
-    <article className="product-card">
+    <article className={v.available ? "product-card" : "product-card sold-out"}>
       <WishlistButton productId={p.id} name={p.name[locale]} saved={isSaved} mr={locale === "mr"} />
       <Link href={`/products/${p.slug}?lang=${locale}`} className="product-link">
         <div className={`product-art${image ? "" : " quiet"}`}>
@@ -57,14 +61,48 @@ export async function ProductCard({
           </span>
         )}
         <ProviderLine provider={p.provider} mr={locale === "mr"} />
-        <span className="pack">{v.label}</span>
+        <span className="pack">
+          {v.label}
+          {p.variants.length > 1 && <b className="pack-options">{mr ? `${p.variants.length} पर्याय` : `${p.variants.length} options`}</b>}
+        </span>
       </Link>
       <div className="price-row">
         <div className="price">
           <strong>{formatPrice(v.pricePaise)}</strong>
           {off > 0 && <del>{formatPrice(v.mrpPaise)}</del>}
         </div>
-        <QuickAdd variantId={v.id} pricePaise={v.pricePaise} available={v.available} max={v.maxQuantity} name={p.name[locale]} mr={locale === "mr"} />
+        {p.variants.length > 1 && v.available ? (
+          // several packs: ADD opens the list of them, each with its own price and stepper
+          <ShareSheet
+            label={mr ? `${name}: पॅक निवडा` : `Choose a pack of ${name}`}
+            title={name}
+            closeLabel={mr ? "बंद करा" : "Close"}
+            triggerClassName="add-button"
+            trigger={
+              <>
+                {mr ? "जोडा" : "Add"}
+                <InBasket ids={p.variants.map((pack) => pack.id)} />
+              </>
+            }
+          >
+            <ul className="pack-choices">
+              {p.variants.map((pack) => (
+                <li key={pack.id}>
+                  <span>
+                    <strong>{pack.label}</strong>
+                    <span className="price">
+                      {formatPrice(pack.pricePaise)}
+                      {pack.pricePaise < pack.mrpPaise && <del>{formatPrice(pack.mrpPaise)}</del>}
+                    </span>
+                  </span>
+                  <QuickAdd variantId={pack.id} pricePaise={pack.pricePaise} available={pack.available} max={pack.maxQuantity} name={`${name}, ${pack.label}`} mr={mr} />
+                </li>
+              ))}
+            </ul>
+          </ShareSheet>
+        ) : (
+          <QuickAdd variantId={v.id} pricePaise={v.pricePaise} available={v.available} max={v.maxQuantity} name={name} mr={mr} />
+        )}
       </div>
     </article>
   );

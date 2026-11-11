@@ -126,13 +126,36 @@ test("catalogue: Load more shows the rest under the first page", async ({ page }
   await page.goto("/catalog");
   const main = page.locator("main");
   await expect(main.locator(".results-line")).toContainText("Showing 48 of");
-  const total = Number(/of (\d+)/.exec(await main.locator(".results-line p").innerText())![1]);
+  const total = Number(/of (\d+)/.exec(await main.locator(".results-line").innerText())![1]);
   expect(total).toBeGreaterThan(48);
   await expect(main.locator(".product-grid > *")).toHaveCount(48);
   await main.getByRole("link", { name: `Load ${total - 48} more` }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(main.locator(".product-grid > *")).toHaveCount(total);
   await expect(main.getByRole("link", { name: /^Load \d+ more/ })).toHaveCount(0);
+});
+
+test("catalogue: a shelf in two sections shows in each one's rail, and a shelf leads on to the next", async ({ page }) => {
+  // the seed puts "Writing & Pens" under Stationery and under Office
+  await page.goto("/catalog?category=stationery&in=work");
+  const rail = page.getByRole("navigation", { name: "Browse product categories" });
+  const tabs = page.getByRole("navigation", { name: "Sections" });
+  await expect(tabs.getByRole("link", { name: "Office", exact: true })).toHaveAttribute("aria-current", "true");
+  await expect(rail.getByRole("link")).toHaveText(["Writing & Pens", "Office Supplies", "Notebooks & Paper"]);
+  await expect(rail.getByRole("link", { name: "Writing & Pens" })).toHaveAttribute("aria-current", "page");
+  // the other section opens at its first shelf, the same one, with its own neighbours
+  await tabs.getByRole("link", { name: "Stationery", exact: true }).click();
+  await expect(page).toHaveURL(/category=stationery&in=desk/);
+  await expect(rail.getByRole("link")).toHaveCount(4);
+  await expect(page.getByRole("heading", { level: 1, name: "Writing & Pens" })).toBeVisible();
+  // one address per shelf for search engines, whichever section it was opened from
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/catalog\?category=stationery$/);
+  await page.locator("main").getByRole("link", { name: /^Next: / }).click();
+  await expect(page).toHaveURL(/in=desk/);
+  await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
+  // a search looks through the whole shop: the rail steps aside
+  await page.goto("/catalog?q=pen");
+  await expect(rail).toHaveCount(0);
 });
 
 test("search: popular searches before typing, then your recent ones", async ({ page }) => {

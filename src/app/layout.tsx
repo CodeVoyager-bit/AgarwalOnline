@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import "./playful.css";
 import "./studio.css";
+import "./shop.css";
 import { PlayfulFx } from "@/components/playful";
 import { NavProgress } from "@/components/nav-progress";
 import { Suspense } from "react";
