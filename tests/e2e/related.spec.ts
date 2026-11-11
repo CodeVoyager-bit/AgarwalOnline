@@ -189,10 +189,8 @@ test("an item with too few sales shows popular items, with no Add all", async ({
   await shot(page, "popular");
 });
 
-test("works in Marathi", async ({ page }) => {
+test("stays in English when an old link asks for Marathi", async ({ page }) => {
   await page.goto("/products/long-book?lang=mr");
-  await expect(page.getByRole("heading", { name: "अनेकदा एकत्र घेतल्या जातात" })).toBeVisible();
-  await expect(box(page).getByRole("button", { name: "सर्व 3 जोडा · ₹75" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "अशाच वस्तू" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "इतर वस्तू" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Similar items" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Other items" })).toBeVisible();
 });

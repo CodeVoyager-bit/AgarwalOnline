@@ -26,6 +26,7 @@ describe("Back when there is no earlier page of the shop", () => {
     expect(parentPath("/delivery/orders/66f0c0ffee")).toBe("/delivery");
     expect(parentPath("/lists/shared-token")).toBe("/");
     expect(parentPath("/q/quotation-link-code-0001")).toBe("/");
+    expect(parentPath("/b/bill-link-code-000000001")).toBe("/");
   });
 
   it("otherwise goes one level up, and never past the home page", () => {

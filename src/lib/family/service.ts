@@ -4,6 +4,7 @@ import { User } from "../db/models";
 import { Order } from "../commerce/models";
 import { objectId } from "../commerce/service";
 import { istDate } from "../commerce/delivery";
+import { AGARWAL, orderBillList } from "../commerce/bill-split";
 import { Refund } from "../payments/models";
 import { notify } from "../engagement/service";
 import { hasPermission, type Role } from "../auth/permissions";
@@ -169,6 +170,8 @@ type SpendRow = {
   forName: string | null;
   netPaise: number;
   at: Date;
+  /** The order's bills given so far: Agarwal's, and a provider's that bills in its own name once delivered. */
+  bills: { key: string; seller: string | null }[];
 };
 
 /**
@@ -186,7 +189,9 @@ export async function familySpend(family: { _id: unknown; adults: unknown[] }, n
     createdAt: { $gte: since },
   })
     .sort({ createdAt: -1 })
-    .select("number customerId forPerson totalPaise createdAt");
+    .select(
+      "number customerId forPerson totalPaise createdAt items.linePaise items.billedBy deliveryPaise promotionDiscountPaise providerBills bill.revision bill.seller.legalName",
+    );
   const [refunds, buyers] = await Promise.all([
     Refund.find({ orderId: { $in: orders.map((o) => o._id) }, status: "processed" }).select("orderId amountPaise"),
     User.find({ _id: { $in: orders.map((o) => o.customerId) } }).select("name"),
@@ -202,6 +207,9 @@ export async function familySpend(family: { _id: unknown; adults: unknown[] }, n
     forName: order.forPerson?.name ?? null,
     netPaise: Math.max(0, order.totalPaise - refunded(order._id)),
     at: order.createdAt,
+    bills: orderBillList(order)
+      .filter((bill) => bill.issued)
+      .map((bill) => ({ key: bill.key, seller: bill.key === AGARWAL ? (order.bill?.seller?.legalName ?? null) : bill.sellerName })),
   }));
   const months: { month: string; totalPaise: number; orders: SpendRow[] }[] = [];
   const people = new Map<string, { key: string; name: string | null; totalPaise: number }>();

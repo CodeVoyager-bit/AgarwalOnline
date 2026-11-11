@@ -2,9 +2,9 @@ import Image from "next/image";
 
 const labels: Record<string, string> = {
   slug: "Web address",
-  nameEn: "English name",
+  nameEn: "Name",
   nameMr: "Marathi name",
-  descriptionEn: "English description",
+  descriptionEn: "Description",
   descriptionMr: "Marathi description",
   brand: "Brand",
   categoryId: "Category",
@@ -28,6 +28,26 @@ const labels: Record<string, string> = {
   hsnCode: "HSN code",
   schoolPricePaise: "School price (before GST)",
   images: "Photos (the first is the cover)",
+  // a provider's tax and billing details
+  ownBills: "Bills its items in its own name",
+  legalName: "Legal name on its bills",
+  registration: "GST registration",
+  gstin: "GSTIN",
+  address: "Address on its bills",
+  prefix: "Bill number prefix",
+  style: "Bill style",
+  agreement: "Agreed in writing to bills in its name",
+};
+/** Values shown in words rather than as stored. */
+const VALUE_WORDS: Record<string, Record<string, string>> = {
+  registration: { regular: "Regular", composition: "Composition", unregistered: "Not registered" },
+  style: {
+    same: "Same as Agarwal's bills",
+    modern: "Modern",
+    ledger: "Parchment ledger",
+    bilingual: "Marathi and English",
+    shree: "Shree festive",
+  },
 };
 /** Keys the reviewer doesn't need to read (the product is already named in the title). */
 const HIDDEN = new Set(["productId"]);
@@ -65,6 +85,8 @@ export function ApprovalDetails({
               ? categoryName
               : key === "providerId" && providerName
               ? providerName
+              : typeof value === "string" && VALUE_WORDS[key]?.[value]
+              ? VALUE_WORDS[key][value]
               : key.endsWith("Paise") && typeof value === "number"
                 ? new Intl.NumberFormat("en-IN", {
                     style: "currency",

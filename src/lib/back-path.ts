@@ -12,6 +12,8 @@ const PARENTS: [RegExp, string][] = [
   [/^\/lists\/[^/]+$/, "/"],
   // a quotation's view-only link, often opened from WhatsApp or email
   [/^\/q\/[^/]+$/, "/"],
+  // an order's view-only bill link, sent on WhatsApp
+  [/^\/b\/[^/]+$/, "/"],
   [/^\/family\/[^/]+$/, "/"],
   [/^\/school\/join\/[^/]+$/, "/"],
   [/^\/school\/products\/[^/]+$/, "/school/catalog"],

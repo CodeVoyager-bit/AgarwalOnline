@@ -7,6 +7,7 @@ import { PageHeading } from "@/components/page-heading";
 import Link from "next/link";
 import { ProviderLine } from "@/components/provider-line";
 import { ChevronRight, Printer, ReceiptText } from "lucide-react";
+import { OrderBills } from "@/components/order-bills";
 import { requirePage } from "@/lib/auth/session";
 import { hasPermission } from "@/lib/auth/permissions";
 import { Order, OrderTimelineEvent } from "@/lib/commerce/models";
@@ -28,7 +29,7 @@ import { RecordHistory } from "@/components/record-history";
 import { When } from "@/components/when";
 import { FocusOnHash } from "@/components/focus-on-hash";
 import { operationAction } from "@/lib/operations/actions";
-import { billAction } from "@/lib/commerce/bill-actions";
+import { billAction, billLinkAction } from "@/lib/commerce/bill-actions";
 import { billNumber } from "@/lib/commerce/bill";
 import { taxProfile } from "@/lib/tax/profile";
 import { evidenceAction } from "@/lib/evidence/actions";
@@ -295,15 +296,10 @@ export default async function ManageOrder({
             <Link href={`/admin/orders/${id}/slip`} className="secondary-button compact-button">
               <Printer size={16} aria-hidden="true" /> Packing slip
             </Link>
+            {/* the bills (and the kaccha bill before delivery) are printed and shared from the Bill panel */}
             {!cancelled && (
-              <a className="secondary-button compact-button" href={`/api/invoices/${id}`} target="_blank" rel="noreferrer">
-                <ReceiptText size={16} aria-hidden="true" /> Bill
-              </a>
-            )}
-            {/* the "kaccha bill": an estimate before delivery, marked as not a bill; the real bill always follows */}
-            {!cancelled && o.deliveryStatus !== "delivered" && (
-              <a className="secondary-button compact-button" href={`/api/invoices/${id}?kind=estimate`} target="_blank" rel="noreferrer">
-                Estimate (kaccha bill)
+              <a className="secondary-button compact-button" href="#bill">
+                <ReceiptText size={16} aria-hidden="true" /> Bills
               </a>
             )}
           </div>
@@ -892,6 +888,30 @@ export default async function ManageOrder({
                 "given on delivery"
               )}
             </p>
+            {/* Print bill and Share PDF on WhatsApp: on a computer, WhatsApp opens on the customer's own chat.
+                The "kaccha bill" is an estimate before delivery, marked as not a bill; the real bill always follows */}
+            <OrderBills
+              order={o}
+              shopName={shop.legalName}
+              phone={o.address.phone}
+              estimate={!cancelled && o.deliveryStatus !== "delivered" && !o.bill?.issuedAt}
+            />
+            {/* a view-only link sent to the wrong person can be turned off by making a new one */}
+            {!cancelled && o.billShareToken && (
+              <ActionForm
+                action={billLinkAction}
+                submit="Make a new bill link"
+                buttonClassName="secondary-button"
+                className="form-stack bill-link-reset"
+                confirmMessage="The link already sent stops opening the bills, for whoever has it. Share a bill again to send the new one."
+              >
+                <input type="hidden" name="orderId" value={id} />
+                <p className="muted">
+                  A view-only link to these bills has been shared. If it went to the wrong person, make a new one: the old link
+                  stops working.
+                </p>
+              </ActionForm>
+            )}
             {!cancelled && (
               <ActionForm action={billAction} submit="Save bill details">
                 <input type="hidden" name="orderId" value={id} />

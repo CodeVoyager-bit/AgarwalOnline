@@ -66,9 +66,6 @@ export default async function SchoolProduct({
             <span className="eyebrow">{aisle?.en ?? "School item"}</span>
           </div>
           <h1>{p.name.en}</h1>
-          <p className="muted" lang="mr">
-            {p.name.mr}
-          </p>
           <div className="product-assurance-row">
             <span>
               <FileText size={14} aria-hidden="true" /> Priced on your quotation

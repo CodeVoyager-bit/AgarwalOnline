@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { LocaleToggle } from "./locale-toggle";
 import type { CategoryLink } from "./header";
 import type { Locale } from "@/lib/locale-types";
 import { LEGAL_PAGES, POLICIES_HOME } from "@/lib/legal/pages";
@@ -147,7 +146,6 @@ export async function SiteFooter({
               </>
             )}
           </ul>
-          <LocaleToggle locale={locale} />
         </div>
         <nav className="footer-shop" aria-label={mr ? "खरेदी" : "Shop"}>
           <h2>{mr ? "खरेदी" : "Shop"}</h2>

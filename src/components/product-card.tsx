@@ -28,7 +28,7 @@ export async function ProductCard({
   return (
     <article className="product-card">
       <WishlistButton productId={p.id} name={p.name[locale]} saved={isSaved} mr={locale === "mr"} />
-      <Link href={`/products/${p.slug}?lang=${locale}`} className="product-link">
+      <Link href={`/products/${p.slug}`} className="product-link">
         <div className={`product-art${image ? "" : " quiet"}`}>
           {image ? (
             <Image
@@ -45,7 +45,6 @@ export async function ProductCard({
           {off > 0 && <span className="discount">−{off}%</span>}
           {!v.available && <span className="stock-badge">{locale === "mr" ? "संपले" : "Sold out"}</span>}
         </div>
-        {/* the shopper's chosen language only; the product page shows both names */}
         <h3 lang={locale}>{p.name[locale]}</h3>
         {/* one or two reviews say little; the card shows a rating from three */}
         {p.reviewCount >= 3 && (

@@ -18,7 +18,6 @@ import { istDatePlus, quoteTotals } from "../../src/lib/schools/quote-math";
 import { DEFAULT_TAX_PROFILE } from "../../src/lib/tax/gst";
 import { Family, SchoolKit } from "../../src/lib/family/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
-import { LEGAL_PAGES, POLICIES_HOME } from "../../src/lib/legal/pages";
 
 const uri = "mongodb://127.0.0.1:27028/ags_test_e2e?replicaSet=ags-local";
 const out = process.env.SHOT_DIR;
@@ -198,6 +197,11 @@ test.beforeAll(async () => {
   samples["/super-admin/quotations/[id]"] = `/super-admin/quotations/${quote._id}`;
   // the quotation's view-only link, opened signed out
   samples["/q/[code]"] = `/q/${quote.shareToken}`;
+  // an order's view-only bill link, opened signed out from WhatsApp
+  const billed = (await Order.findOne({ deliveryStatus: "delivered", orderStatus: { $ne: "cancelled" } }))!;
+  const billCode = "LayoutSampleBillLink0000"; // 24 characters, like a real one
+  await Order.updateOne({ _id: billed._id }, { $set: { billShareToken: billCode } });
+  samples["/b/[code]"] = `/b/${billCode}`;
   samples["/super-admin/schools/[id]"] = `/super-admin/schools/${school._id}`;
   // a family with a child, and the demo orders in its spend, so /account/family has every part
   const home = await Family.create({
@@ -426,24 +430,10 @@ test("every page holds its layout", async ({ browser }, info) => {
         fullPage: true,
       });
   }
-  // the shop and the policies come in full Marathi too: longer words, same layout rules
-  const marathi = await signedIn(browser, "guest", info.project.use);
-  await marathi.context().addCookies([{ name: "ags_locale", value: "mr", url: info.project.use.baseURL! }]);
-  for (const href of ["/", "/catalog", samples["/products/[slug]"], "/cart", "/login", POLICIES_HOME.href, ...LEGAL_PAGES.map((policy) => policy.href)]) {
-    await marathi.goto(href);
-    await marathi.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
-    const problems = await problemsOn(marathi);
-    if (problems.length) report[`${href} (mr)`] = problems;
-    if (out)
-      await marathi.screenshot({
-        path: `${out}/${info.project.name}${href.replace(/\//g, "_")}_mr.png`,
-        fullPage: true,
-      });
-  }
   if (out) {
     // every link a page offers should lead somewhere, opened as the person who saw it
     for (const [href, { who, from }] of links) {
-      const page = pages.get(who) ?? marathi;
+      const page = pages.get(who) ?? [...pages.values()][0];
       const status = (await page.request.get(href, { maxRedirects: 0 }).catch(() => null))?.status() ?? 0;
       if (status === 404 || status >= 500 || !status) note(from, `link to ${href} answers ${status || "nothing"}`);
     }

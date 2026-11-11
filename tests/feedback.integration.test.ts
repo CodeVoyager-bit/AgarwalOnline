@@ -300,7 +300,7 @@ describe.skipIf(!uri)("Order ratings and feedback", () => {
       await expect(markFeedbackRead(owner, { feedbackId: String(new Types.ObjectId()), read: true })).rejects.toThrow("FEEDBACK_NOT_FOUND");
     });
 
-    it("sends one reply: saved, audited, and told to the customer in their language", async () => {
+    it("sends one reply: saved, audited, and told to the customer in English, even feedback left in Marathi before", async () => {
       const id = await order(asha);
       await submitFeedback(asha, { orderId: id, rating: 2, tags: ["late"], locale: "mr" });
       const feedback = await OrderFeedback.findOne({ orderId: id });
@@ -315,7 +315,7 @@ describe.skipIf(!uri)("Order ratings and feedback", () => {
       expect(await AuditLog.findOne({ action: "feedback.reply" }).lean()).toMatchObject({ target: String(feedback._id), details: { rating: 2 } });
       const notes = await Notification.find({ userId: asha }).lean<{ type: string; title: string; body: string; href: string }[]>();
       expect(notes).toHaveLength(1);
-      expect(notes[0]).toMatchObject({ type: "support", title: "तुमच्या रेटिंगला दुकानाने उत्तर दिले", href: `/account/orders/${id}#feedback` });
+      expect(notes[0]).toMatchObject({ type: "support", title: "The shop replied to your rating", href: `/account/orders/${id}#feedback` });
       expect(notes[0].body).toContain("Sorry about the delay");
       expect((await feedbackForOrder(id))?.reply?.body).toBe("Sorry about the delay. We have spoken to the rider.");
       expect((await feedbackCard(owner, String(feedback._id)))?.reply?.body).toContain("Sorry about the delay");

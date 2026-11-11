@@ -1,7 +1,10 @@
 import "server-only";
-import { cookies } from "next/headers";
 import type { Locale } from "./locale-types";
 
+/**
+ * The site is English only (2026-11-12): the language switch is gone and an old "ags_locale" cookie is
+ * ignored. The Marathi words still in the dictionaries are never shown.
+ */
 export async function currentLocale(): Promise<Locale> {
-  return (await cookies()).get("ags_locale")?.value === "mr" ? "mr" : "en";
+  return "en";
 }

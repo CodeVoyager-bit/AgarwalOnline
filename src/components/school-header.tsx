@@ -5,7 +5,6 @@ import { schoolCopy } from "@/lib/schools/copy";
 import { switchHref } from "@/lib/schools/access";
 import { AccountMenu } from "./account-menu";
 import { BackButton } from "./back-button";
-import { LocaleToggle } from "./locale-toggle";
 import { Popover } from "./popover";
 import { SmartSearch } from "./smart-search";
 
@@ -48,7 +47,6 @@ export function SchoolHeader({
             <Link href="/" className="school-door">
               <Store size={14} aria-hidden="true" /> {text.backToShop}
             </Link>
-            <LocaleToggle locale={locale} />
           </div>
         </div>
       </div>
@@ -139,7 +137,6 @@ export function SchoolHeader({
                 workspace={[]}
                 workspaceLabel={shop.workspace}
                 signOutLabel={shop.signOut}
-                extra={<LocaleToggle locale={locale} />}
               />
             ) : (
               <Link href="/login?then=%2Fschool" className="header-action" title={shop.signIn}>
