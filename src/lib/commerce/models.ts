@@ -113,6 +113,26 @@ const itemSchema = new Schema(
     providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
     providerName: String,
     providerTown: String,
+    // set when that provider bills its items in its own name (decided at checkout, so a later switch
+    // doesn't move an order's lines from one bill to another); missing means Agarwal bills it
+    billedBy: { type: Schema.Types.ObjectId, ref: "Provider" },
+  },
+  { _id: false },
+);
+/** A provider's own bill on an order, issued at delivery with the provider's details as they were then. */
+const providerBillSchema = new Schema(
+  {
+    providerId: { type: Schema.Types.ObjectId, ref: "Provider", required: true },
+    number: { type: String, required: true },
+    issuedAt: { type: Date, required: true },
+    seller: {
+      legalName: String,
+      address: String,
+      gstin: String,
+      stateCode: String,
+      registration: { type: String, enum: ["regular", "composition"] },
+      style: String,
+    },
   },
   { _id: false },
 );
@@ -142,6 +162,10 @@ const orderSchema = new Schema(
       issuedAt: Date,
       seller: { legalName: String, address: String, phone: String, gstin: String },
     },
+    // bills of the providers that bill their items in their own name (bill-split.ts)
+    providerBills: { type: [providerBillSchema], default: undefined },
+    // the long secret code of the view-only bill link (/b/<code>), made the first time a bill is shared
+    billShareToken: String,
     slotId: ref("DeliverySlot"),
     deliveryDate: String,
     deliveryWindow: String,
@@ -228,6 +252,9 @@ orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ assignedTo: 1, deliveryStatus: 1 });
 // "Often bought together" on the product page reads the recent orders with a product in them
 orderSchema.index({ "items.variantId": 1, createdAt: -1 });
+orderSchema.index({ billShareToken: 1 }, { unique: true, sparse: true });
+// the monthly "Provider bills" export for the CA
+orderSchema.index({ "providerBills.issuedAt": 1 }, { sparse: true });
 const reservationSchema = new Schema(
   {
     orderId: ref("Order"),

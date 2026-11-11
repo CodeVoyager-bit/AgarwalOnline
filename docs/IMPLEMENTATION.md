@@ -14,7 +14,7 @@ This ledger describes the launch-first implementation. The complete website flow
 ## Customer website
 
 - Responsive home, catalog, product, basket, checkout, payment, order tracking, profile, address, wishlist and notification journeys.
-- Catalog and navigation support English and Marathi. Homepage collections use catalog, inventory and customer purchase data.
+- Catalog and navigation are in English only (since 2026-11-12, see "English only" below); search still matches Marathi words. Homepage collections use catalog, inventory and customer purchase data.
 - Saved addresses can be created, edited and deleted. Reorder revalidates live variants, availability and price before adding items.
 - Authenticated invoice downloads and customer-owned complaint, evidence, support and return/refund flows are implemented.
 - COD and Razorpay share transaction-safe inventory reservation, slot capacity, idempotency and immutable order snapshots.
@@ -52,8 +52,8 @@ This ledger describes the launch-first implementation. The complete website flow
 - It replaced "Paper & Ink, warmed" (Instrument Serif on oat with espresso and marigold), which had been the approved look since 19 September. The swap was almost entirely a `:root` token diff plus the font change, which is what the stylesheet was built for.
 - One token-based stylesheet, `src/app/globals.css`. Base colours are a handful of tokens; tints, shades, neutrals, the staff shell and the focus ring derive from them with relative colour syntax and `color-mix()`. Every page styles itself through the same semantic classes, so account, checkout, staff and admin screens follow the storefront automatically.
 - Header: wordmark, compact search, delivery area, sign-in and basket on the first row; a second row lists a fixed set of aisle groups whose labels come from the catalogue (scrolls horizontally on tablets, hidden on phones where the bottom tab bar has Aisles); the offer strip shows the free-delivery threshold and the live welcome code from the promotions collection. Footer links are generated from the catalogue.
-- Fonts are self-hosted through `next/font/local`: Plus Jakarta Sans for everything Latin (headings 700-800 with tracking -0.025em, body 400-600), and **Mukta for Devanagari**. Latin never reaches Mukta because it sits behind Jakarta in the stack and the Latin faces carry no Devanagari glyphs, so Marathi finally renders in a real face instead of a system fallback.
-- Guests can add to basket from product pages; basket lines use a quantity stepper with remove; checkout is a two-column form with a sticky order summary. Home and catalog copy is bilingual and follows the saved locale cookie.
+- Fonts are self-hosted through `next/font/local`: Plus Jakarta Sans for everything Latin (headings 700-800 with tracking -0.025em, body 400-600). Mukta, for Devanagari, was dropped on 2026-11-12 when the site went English only; Marathi typed into search shows in the phone's own font.
+- Guests can add to basket from product pages; basket lines use a quantity stepper with remove; checkout is a two-column form with a sticky order summary. Home and catalog copy is English (it followed a language cookie until 2026-11-12).
 - Polish pass (same day): hero photo shown at near-full strength under a graded espresso scrim instead of a flat wash; aisle and product photos share one muted grade (`saturate(.85)`, product photos multiply-blended into the sand art box with an inset hairline) so mixed stock photography reads as one set; wishlist hearts appear on hover on pointer devices; section headings carry the other-language subtitle on the same baseline; catalogue filters sit between hairlines instead of in a box; footer column labels are small caps; nav, top strip and footer text use the derived ink tones rather than hard-coded hex.
 - Quick-commerce patterns (borrowed from Zepto, Blinkit and Instamart, keeping our palette): delivery promise over the area in the phone header; search box cycles example queries; offer and delivery banners sit directly under the header (a swipe rail on phones); phone aisles are a four-column tile grid and phone product sections are swipe rails; the editorial hero is desktop-only; product cards use an outlined ADD that becomes an in-place ink stepper (`QuickAdd` calls the quick-add and set-quantity actions directly); a sticky "N items · total · View basket" bar (`CartBar`) appears on phones whenever the basket has items, except on basket, checkout and staff routes. Discount tags stay marigold, the equivalent of Blinkit's yellow tags.
 - Customer sign-up now asks for the password twice and can reveal it. The confirm field blocks submission natively through `setCustomValidity`, and `verifyOTPAction` re-checks the match on the server because the client is not the authority. Every password box in the auth form carries a reveal toggle with an `aria-pressed` label. The customer minimum moved from 12 characters to 8, which matches the NIST SP 800-63B floor for user-chosen passwords. Staff passwords were kept at 12 at first, then lowered to 8 on 2026-09-23 at the owner's request, so every account now uses the same 8-character minimum.
@@ -76,7 +76,7 @@ This ledger describes the launch-first implementation. The complete website flow
 - Mobile-first: sticky search header, bottom tab bar, wrapping facts row, two-column product grid at 375px, 44px touch targets, `prefers-reduced-motion` and print styles.
 - Customer sign-up stores the chosen password as a Better Auth credential record directly (the previous session-bound `setPassword` call always failed with `Unauthorized`); masked authentication errors are logged as `auth.unexpected-error`. The Playwright customer helper follows the real sign-up / OTP flow and the suite runs green on desktop and mobile.
 - Light appearance only, by the owner's choice (2026-10-05): no dark mode. `prefers-contrast: more` turns hairlines into 3:1 boundaries and darkens grey text. The phone tab bar labels every tab and keeps each in place; with a basket it steps aside while scrolling down.
-- Not yet done: Marathi copy for basket, checkout and account pages, `next/image` optimisation for remote photos (images stay `unoptimized`).
+- Not yet done: `next/image` optimisation for remote photos (images stay `unoptimized`).
 
 ## Deferred scope
 
@@ -281,7 +281,7 @@ Customize → Bills has a **Bill style** choice. Modern, the open layout bills h
 
 ## Providers: other shops' items (October 2026)
 
-Other local shops can supply items that Agarwal sells. Agarwal stays the only seller: one basket, one bill in its name, its riders and its cash; the owner settles with each shop separately. Shoppers see only the shop's name and town.
+Other local shops can supply items that Agarwal sells. Unless a provider is switched to its own bills (below), Agarwal stays the only seller: one basket, one bill in its name, its riders and its cash; the owner settles with each shop separately. Shoppers see only the shop's name and town.
 
 - **Record:** `Provider` (`src/lib/providers/models.ts`): name, town, a slug, status `pending` / `active` / `declined`, and staff-only phone and notes. Its writes empty the shop cache.
 - **Who adds and decides** (`src/lib/providers/service.ts`): anyone with `catalog:write` adds one; an owner's is live at once, staff's waits and the owners are told. Owners (`approval:review`) approve or decline (with a reason; whoever added it is told). Adding a shop that's already there (same name and town, any capitals) finds it instead.
@@ -290,7 +290,7 @@ Other local shops can supply items that Agarwal sells. Agarwal stays the only se
 - **Orders** keep `providerId`, `providerName` and `providerTown` on each line at checkout, so a rename later doesn't change history. They show on the customer and staff order pages; the packing slip groups lines by shop ("Our shelves", then "From …").
 - **Staff:** `/admin/providers` (a tab beside Categories, in the workspace search), a provider filter on Products, "Sales by provider" (delivered orders) in Analytics, and a "Provided by" column in the order-lines export.
 - **Policies** (2026-10-31.1): Terms say such items are still sold, billed, delivered and refunded by Agarwal; Privacy says those shops don't receive customers' details.
-- **Not built:** provider pages, contact details or a catalogue filter for shoppers; provider logins; an agreed price per provider. If providers ever bill in their own name, that's a marketplace (one bill per seller, seller details by law, GST TCS): ask the CA first.
+- **Not built:** provider pages, contact details or a catalogue filter for shoppers; provider logins; an agreed price per provider. A provider can now bill in its own name: see "Providers' own bills" below.
 
 ## Pack settings, removing stock and deleting (November 2026)
 
@@ -303,6 +303,18 @@ The Packs and prices card on Edit product is a list of settings rows (`pack-card
 - **Staff lists and saves** spread `notDeleted` (`src/lib/catalog/deleted.ts`) into their filters. A new staff list of packs or products must do the same.
 - **Not built:** an Undo or Restore page. A deleted record stays in the database, so it can be restored by hand.
 
+## English only (November 2026)
+
+The owner asked on 2026-11-12 for the whole website in English. The English and मराठी switch is gone and nothing Marathi is shown; Marathi search still works.
+
+- **One language:** `currentLocale()` (`src/lib/i18n.ts`) always answers `"en"`, so an old `ags_locale=mr` cookie is ignored. The switch (`locale-toggle.tsx`, `locale-action.ts`) is deleted from the top strip, footer, school header and staff menus. `?lang=mr` no longer switches a page, and links stop adding `?lang=`. `<html lang="en">`, and the Mukta font is no longer loaded.
+- **Top strip:** the same dark strip without the switch. Phones show "Free from ₹500" on the left and the welcome code on the right.
+- **Shop pages:** the Marathi line under home section headings, category tiles, the deal card and product titles is gone, and search suggestions show the brand instead of the Marathi name.
+- **Staff forms:** Add and Edit product, Categories and Customize ask for English only. Specifications are "label | value". The database still keeps `mr` (the `localized` schema requires it): a new record gets the English words, and an edit keeps the Marathi already saved, because search matches it (typing वही still finds notebooks). "Other words shoppers type" still takes Marathi words.
+- **Policies:** English only, version `2026-11-12.1`: the Marathi texts, the "English version prevails" line, the language cookie and "language" among account details are gone.
+- **Unchanged on purpose:** bills (the Marathi and English and Shree styles, the shop's Marathi name, Noto Devanagari in PDFs), and Marathi search (aliases, `name.mr`, synonyms).
+- **Left for a clean-up:** the dictionaries' Marathi halves (`copy`, `staffCopy`, `schoolCopy` and others, about 130 files) are never shown now, and can be deleted with the `Locale` type in a later change.
+
 ## What goes under a product page (November 2026)
 
 The bottom of the shop's product page has up to three rows, chosen by `relatedFor` (`src/lib/catalog/related.ts`) with the rules in `related-rules.ts`. Only what's in stock shows, no item appears twice, and a row with nothing to show is left out, so a shop with few stock counts still looks short.
@@ -313,3 +325,42 @@ The bottom of the shop's product page has up to three rows, chosen by `relatedFo
 - **Other items:** other categories, in `recommendationsFor`'s personal order, with a link to the catalogue.
 - **Reads:** the orders and units sold are kept for a minute by `shared()`, and `{ "items.variantId": 1, createdAt: -1 }` is a new index on orders.
 - **Screens:** rows use `MiniProduct` in `.mini-grid.related-row`: 5 across on a computer, swiping at tablet width and below. The school product page isn't changed.
+
+## Providers' own bills, and Print or Share PDF on every bill (November 2026)
+
+A provider can bill its items in its own name. The customer still places one order and pays once, but gets one bill per seller: Agarwal's (its own items and the delivery fee) and the provider's. Every bill, wherever it shows, has **Print bill** and **Share PDF on WhatsApp**.
+
+- **Switching a provider on** (`/admin/providers`, Tax and billing; `src/lib/providers/billing.ts`, `billing-rules.ts`):
+  - **Details:** a legal name, registration (Regular, Composition or Not registered), GSTIN (checked; it sets the state), address, a 1–3 letter bill prefix, a bill style ("Same as Agarwal's" by default) and the provider's written agreement.
+  - **Who can change them:** an owner's changes apply at once. An admin's become a `provider-billing` request on Approvals, showing the old and new values (`submitProviderBilling` in `governance/service.ts`).
+  - **The checklist:** the switch stays locked until the provider is live, registered, has a GSTIN in the shop's own state (IGST isn't supported) and the details and agreement are in. The owner also records once, for the whole shop, that the CA confirmed Agarwal's e-commerce (TCS) registration (`SystemSetting` `provider-billing`). Taking that back switches every provider off for new orders.
+- **Splitting an order:**
+  - **Who bills a line:** checkout records `billedBy` on each line of a provider that bills in its own name, so a later switch doesn't move a placed order's lines.
+  - **Numbers:** at delivery, in the same step as Agarwal's bill, `issueProviderBills` (`commerce/provider-bills.ts`) numbers each provider's bill in its own series per financial year (`KT/26-27/0001`, `Sequence` key `provider-bill:<id>:<year>`, at most 16 characters). It saves the provider's details as they were on `order.providerBills`. If those details went missing since checkout, its lines go back on Agarwal's bill.
+  - **Sharing the money** (`commerce/bill-split.ts`): the delivery fee is on Agarwal's bill, and a coupon is shared across the bills by value, to the paisa.
+- **The provider's bill** (`documents/order-bills.ts`):
+  - **What it carries:** the provider's name, address and GSTIN; its style; a signature box; and "Sold through Agarwal Online (… GSTIN …), which delivered it and collected the payment".
+  - **Composition providers:** a "Bill of supply" with the composition line, and no tax.
+  - **Agarwal's bill:** names the provider's bill it left out.
+- **Print and Share** (`components/bill-actions.tsx`, `documents/bill-bar.ts`). **Where:** on the customer's order page (one row per bill), each delivered order in the history, each order in Family → Spent here (one pair per bill on another adult's order, whose page they can't open), the staff order page (with the kaccha bill), the packing slip and the bill page itself.
+  - **Print** opens the bill and prints it.
+  - **Share on a phone** (and the Android app) hands the PDF to the share list, where WhatsApp is. If making the PDF took longer than the browser lets a share wait, a second tap shares it.
+  - **Share on a computer** saves the PDF and opens WhatsApp Web with the view-only link. From staff pages, it opens the customer's own chat.
+  - **Never printed:** the buttons don't appear on paper or in the PDF.
+- **The PDF** (`/api/invoices/[id]/pdf`, `documents/pdf.ts`):
+  - **How it's made:** the same bill page, printed by Chromium on the server. That's `playwright-core` with `@sparticuz/chromium` on Vercel, and Playwright's own Chromium (or `PDF_CHROME_PATH`) elsewhere.
+  - **Fonts:** Noto, including Devanagari, from Google Fonts.
+  - **Speed:** one Chromium is shared and closes after a minute idle, so a PDF takes about 1 second (3 seconds cold).
+  - **Limits:** 40 PDFs an hour per person.
+  - **Check on a Vercel preview:** the function's size and memory.
+- **View-only link** `/b/<code>`:
+  - **What it shows:** the order's bills to view or download, without signing in (noindex). The code is a 24-character secret on `order.billShareToken`, made by `POST /api/invoices/[id]/link` the first time a bill is shared.
+  - **Turning it off:** staff can make a new code (`?reset=1`), which turns the old one off (audited).
+  - **Elsewhere:** `/api/invoices/[id]` and `/pdf` accept `?code=` in place of a sign-in.
+- **For the CA:** the monthly "Provider bills" export (`commerce/provider-bills-report.ts`, `?month=YYYY-MM`). It has a sheet by provider and one by bill: taxable value and CGST/SGST from the inclusive prices, with zero for composition bills.
+- **Not built:**
+  - a settlements page per provider;
+  - credit notes for returns of a provider's items (refunds work as before);
+  - bills on the rider's pages (riders can't open bills yet);
+  - Agarwal's own business details proposed by admins (they stay owner-only).
+- **Before real use:** have the CA check one finished provider bill and the TCS position.

@@ -27,6 +27,9 @@ const LOOKS: Record<BoxedTheme, Look> = {
 const MARATHI: Record<string, string> = {
   "Tax invoice": "कर बीजक",
   "Tax invoice-cum-bill of supply": "कर बीजक तथा पुरवठा बिल",
+  "Bill of supply": "पुरवठा बिल",
+  "Composition taxable person, not eligible to collect tax on supplies.":
+    "कंपोझिशन योजनेतील करपात्र व्यक्ती, पुरवठ्यावर कर आकारण्यास पात्र नाही.",
   "Cash memo": "रोख पावती",
   Estimate: "अंदाजपत्रक",
   "Original for recipient": "मूळ प्रत",
@@ -108,7 +111,8 @@ export type BoxedBill = {
   greeting: string;
   logo: string | null;
   paper: "a4" | "a5";
-  printButton: boolean;
+  /** Print bill and Share PDF on WhatsApp (bill-bar.ts), or "" for none. */
+  bar: string;
   sample: boolean;
   /** Staff only: products on the bill with no GST rate. */
   missingNames: string[];
@@ -192,14 +196,17 @@ export function renderBoxed(bill: BoxedBill) {
   const shopLines = [
     seller.address,
     [seller.phone && `Mobile: ${seller.phone}`, seller.email].filter(Boolean).join(" · "),
-    bill.taxed && seller.gstin ? `GSTIN ${seller.gstin}` : "",
+    // on a tax invoice, and on a composition seller's bill of supply, which must carry it too
+    (bill.taxed || bill.kind === "bill-of-supply") && seller.gstin ? `GSTIN ${seller.gstin}` : "",
   ]
     .filter(Boolean)
     .map((text) => `<div>${escape(text)}</div>`)
     .join("");
-  const shopName = two
-    ? `<span lang="mr">${escape(bill.shopNameMr)}</span> · ${escape(seller.legalName)}`
-    : escape(seller.legalName);
+  // a provider's own bill has no Marathi shop name: only Agarwal's is set in Customize → Bills
+  const shopName =
+    two && bill.shopNameMr
+      ? `<span lang="mr">${escape(bill.shopNameMr)}</span> · ${escape(seller.legalName)}`
+      : escape(seller.legalName);
   const mark = bill.logo
     ? `<img class="logo" src="${escape(bill.logo)}" alt="">`
     : `<span class="mono">${escape(seller.legalName.trim().charAt(0).toUpperCase())}</span>`;
@@ -271,7 +278,7 @@ export function renderBoxed(bill: BoxedBill) {
   const boxes = [
     `<div class="pre"><b class="label">${say("Terms and conditions")}</b>E. &amp; O.E.${bill.terms ? `\n${escape(bill.terms)}` : ""}</div>`,
     bankLines.length && !estimate ? `<div class="pre"><b class="label">${say("Bank and UPI")}</b>${escape(bankLines.join("\n"))}</div>` : "",
-    `<div class="sign"><b>${two ? `<span lang="mr">${escape(bill.shopNameMr)}साठी</span><br>` : ""}For ${escape(seller.legalName)}</b><span>${
+    `<div class="sign"><b>${two && bill.shopNameMr ? `<span lang="mr">${escape(bill.shopNameMr)}साठी</span><br>` : ""}For ${escape(seller.legalName)}</b><span>${
       bill.signature ? escape(bill.signature) : ""
     }</span></div>`,
   ].filter(Boolean);
@@ -306,7 +313,7 @@ export function renderBoxed(bill: BoxedBill) {
           bill.missingNames.length === 1 ? "it" : "them"
         }. Set it on the product (Catalog → the product → Tax). Customers don’t see this line.</p>`
       : "",
-    bill.printButton ? '<button class="print" type="button" onclick="window.print()">Print or save as PDF</button>' : "",
+    bill.bar,
     `<div class="sheet">${toran}${strip}${banner}${shop}${parties}<div class="items">${table}${filler}</div>${totalRow}<div class="words">${words}</div>${foot}${
       after ? `<div class="after">${after}</div>` : ""
     }</div>`,

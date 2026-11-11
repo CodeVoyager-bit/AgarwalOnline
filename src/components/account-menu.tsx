@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, UserRound } from "lucide-react";
@@ -20,7 +20,6 @@ export function AccountMenu({
   workspace,
   workspaceLabel,
   signOutLabel,
-  extra,
 }: {
   /** "My account", in the shopper’s language. */
   label: string;
@@ -31,8 +30,6 @@ export function AccountMenu({
   workspace: MenuLink[];
   workspaceLabel: string;
   signOutLabel: string;
-  /** Shown above Sign out, e.g. the language switch on staff pages, which have no top strip. */
-  extra?: ReactNode;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const firstName = name.split(" ")[0];
@@ -91,7 +88,6 @@ export function AccountMenu({
             </ul>
           </>
         )}
-        {extra && <div className="account-menu-extra">{extra}</div>}
         <form action={logoutAction}>
           <button className="account-menu-signout">
             <LogOut size={16} aria-hidden="true" />

@@ -23,6 +23,9 @@
  *
  * 2026-11-07.2: no cookie question after all (the owner's call: the shop serves Raigad only):
  * Google Analytics runs for every shopper, and the policy says how to block it.
+ *
+ * 2026-11-12.1: English only. The Marathi versions are gone, and with them the line that the English
+ * version prevails, the language cookie and "language" among account details.
  */
-export const POLICY_VERSION = "2026-11-07.2";
-export const LAST_UPDATED = { en: "7 November 2026", mr: "7 नोव्हेंबर 2026" } as const;
+export const POLICY_VERSION = "2026-11-12.1";
+export const LAST_UPDATED = { en: "12 November 2026", mr: "12 नोव्हेंबर 2026" } as const;

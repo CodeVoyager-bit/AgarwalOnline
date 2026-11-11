@@ -21,6 +21,8 @@ import { photoFields, photoList } from "../catalog/photos";
 import { Provider } from "../providers/models";
 import { chosenProvider } from "../providers/service";
 import { deletedName, notDeleted } from "../catalog/deleted";
+import { billingInput } from "../providers/billing-rules";
+import { applyProviderBilling, billingValues, checkBilling } from "../providers/billing";
 
 /** Photos chosen for a product waiting for approval are kept this long; a rejected request's then go. */
 const PENDING_PHOTO_DAYS = 60;
@@ -43,9 +45,10 @@ export const productInput = z
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
       .max(80),
     nameEn: z.string().trim().min(2).max(100),
-    nameMr: z.string().trim().min(2).max(100),
+    // the site is English only; Marathi still sent by an older form is kept for search
+    nameMr: z.string().trim().max(100).optional(),
     descriptionEn: z.string().trim().min(5).max(2000),
-    descriptionMr: z.string().trim().min(5).max(2000),
+    descriptionMr: z.string().trim().max(2000).optional(),
     brand: z.string().trim().max(60),
     categoryId: objectId,
     // another shop that supplies it ("Provided by …"); none means our own stock
@@ -490,8 +493,8 @@ async function publish(
         {
           _id: request.targetId,
           slug: data.slug,
-          name: { en: data.nameEn, mr: data.nameMr },
-          description: { en: data.descriptionEn, mr: data.descriptionMr },
+          name: { en: data.nameEn, mr: data.nameMr || data.nameEn },
+          description: { en: data.descriptionEn, mr: data.descriptionMr || data.descriptionEn },
           brand: data.brand,
           categoryId: category._id,
           categorySlug: category.slug,
@@ -525,6 +528,8 @@ async function publish(
     await createPack(data, data.productId, request.targetId, actorId, session);
   } else if (kind === "delete-pack" || kind === "delete-product") {
     await applyDelete(kind, request.targetId, actorId, session);
+  } else if (kind === "provider-billing") {
+    await applyProviderBilling(request.targetId, billingInput.parse(after), String(request.requesterId), actorId, session);
   } else if (!(await ProductVariant.exists({ _id: request.targetId, ...notDeleted }).session(session))) {
     throw Error("This pack was deleted, so the change can't be applied.");
   } else if (kind === "price") {
@@ -577,6 +582,7 @@ const KIND_NAMES: Record<string, string> = {
   stock: "stock change",
   "delete-pack": "request to delete a pack",
   "delete-product": "request to delete a product",
+  "provider-billing": "change to a provider's tax details",
 };
 function describe(request: { kind: string; after: Record<string, unknown> }) {
   const what = KIND_NAMES[request.kind] ?? "change";
@@ -650,9 +656,30 @@ export async function reviewApproval(actorId: string, input: unknown) {
         data.decision === "rejected"
           ? `Reason: ${data.comment}`
           : data.comment || "An owner approved it.",
-      href: result.kind === "stock" ? "/admin/inventory" : "/admin/products",
+      href: result.kind === "stock" ? "/admin/inventory" : result.kind === "provider-billing" ? "/admin/providers" : "/admin/products",
     }).catch((error) => log("warn", "approval.notify-failed", { error }));
   }
+}
+/**
+ * A provider's tax and billing details (Providers → Tax and billing). An owner's apply at once; an
+ * admin's wait in Approvals, and bills don't change until an owner approves. Checked now as well, so
+ * whoever asks hears straight away what the checklist still needs.
+ */
+export async function submitProviderBilling(actorId: string, input: unknown) {
+  await authorize(actorId, "approval:request");
+  const { providerId, ...fields } = (input ?? {}) as Record<string, unknown>;
+  const id = objectId.parse(providerId);
+  const data = billingInput.parse(fields);
+  let live = false;
+  await mongoose.connection.transaction(async (session) => {
+    const provider = await Provider.findById(id).session(session);
+    if (!provider) throw Error("Provider not found.");
+    if (await ApprovalRequest.exists({ kind: "provider-billing", targetId: id, state: "pending" }).session(session))
+      throw Error("A change to this provider's tax details is already waiting for an owner. Withdraw it or wait for the decision.");
+    await checkBilling(id, data, session);
+    live = await openRequest({ kind: "provider-billing", targetId: id, before: billingValues(provider), after: data }, actorId, session);
+  });
+  return { live };
 }
 /** The person who asked (or an owner) takes back a change that is still waiting. */
 export async function withdrawRequest(actorId: string, input: unknown) {

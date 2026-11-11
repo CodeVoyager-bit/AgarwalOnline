@@ -175,6 +175,26 @@ describe.skipIf(!uri)("Transactional COD checkout", () => {
       { name: "Sharma Stationers, Roha", quantity: o.items[0].quantity, revenuePaise: o.items[0].linePaise },
     ]);
   });
+  it("records who bills a line: a provider set to bill in its own name, else Agarwal", async () => {
+    const provider = await Provider.create({
+      name: "Kale Toys",
+      town: "Pali",
+      slug: "kale-toys-pali",
+      status: "active",
+      createdBy: customer,
+      billing: { ownBills: true, legalName: "Kale Toys and Games" },
+    });
+    await Product.updateOne({ slug: "rice" }, { $set: { providerId: provider._id } });
+    const own = await Order.findById(await checkout(customer, input()));
+    expect(String(own.items[0].billedBy)).toBe(String(provider._id));
+    // switched back to Agarwal: the next order's line is Agarwal's, the first keeps its own
+    await Provider.updateOne({ _id: provider._id }, { $set: { "billing.ownBills": false } });
+    await InventoryItem.updateOne({ variantId: variant }, { $set: { onHand: 5 } });
+    await CartLine.create({ customerId: customer, variantId: variant, quantity: 1 });
+    const next = await Order.findById(await checkout(customer, input()));
+    expect(next.items[0].billedBy).toBeUndefined();
+    expect(String((await Order.findById(own._id)).items[0].billedBy)).toBe(String(provider._id));
+  });
   it("doesn't name a provider an owner hasn't approved yet", async () => {
     const provider = await Provider.create({ name: "Kale Toys", town: "Pali", slug: "kale-toys-pali", status: "pending", createdBy: customer });
     await Product.updateOne({ slug: "rice" }, { $set: { providerId: provider._id } });

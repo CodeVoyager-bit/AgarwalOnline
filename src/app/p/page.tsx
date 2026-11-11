@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /** The policies' home: each of the five with a one-line summary, in reading order. */
 export default async function Policies() {
   const [locale, facts] = await Promise.all([currentLocale(), legalFacts()]);
-  const docs = LEGAL_PAGES.map((page) => ({ key: page.key, lead: LEGAL_DOCS[page.key][locale](facts).lead }));
+  const docs = LEGAL_PAGES.map((page) => ({ key: page.key, lead: LEGAL_DOCS[page.key].en(facts).lead }));
   return (
     <section className="page-container legal-page">
       <PageHeading eyebrow={facts.business.legalName} title={POLICIES_HOME.title[locale]} lead={LEAD[locale]} />

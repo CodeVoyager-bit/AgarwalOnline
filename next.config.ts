@@ -11,6 +11,12 @@ const config: NextConfig = {
   // titles, canonicals and share images go in <head> for every visitor, Googlebot included; streamed
   // into <body> instead, a canonical link is ignored. Pages already wait on the database before they render.
   htmlLimitedBots: /.*/,
+  // bill PDFs (src/lib/documents/pdf.ts) are drawn by a real Chromium: these load from node_modules at run
+  // time, and the serverless Chromium's compressed browser files go along with the PDF route on Vercel
+  serverExternalPackages: ["playwright-core", "@sparticuz/chromium"],
+  outputFileTracingIncludes: {
+    "/api/invoices/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+  },
   experimental: {
     // photo uploads go through server actions, which refuse bodies over 1 MB by default;
     // photos are shrunk in the browser first (components/photo-input.tsx), this is the safety net.

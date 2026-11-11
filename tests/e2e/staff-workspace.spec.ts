@@ -86,8 +86,10 @@ test.describe("desktop", () => {
   test("an admin only finds what they may open", async ({ page }) => {
     await signIn(page, ADMIN);
     await expect(page.getByRole("navigation", { name: "Staff workspace" }).getByRole("button", { name: /^Setup/ })).toHaveCount(0);
+    // the shop's own GSTIN and tax details are the owner's; a provider's GSTIN is on Providers, which admins may open
     await finder(page).fill("gstin");
-    await expect(page.getByText("No setting or page called “gstin”")).toBeVisible();
+    await expect(page.getByRole("option").first()).toContainText("Providers");
+    await expect(page.getByRole("option").filter({ hasText: "Business name on bills" })).toHaveCount(0);
     const counts = await page.evaluate(() => fetch("/api/staff/counts").then((response) => response.json()));
     expect(counts.counts).not.toHaveProperty("approvals");
     expect(counts.counts.chats).toBeGreaterThanOrEqual(1);
@@ -97,14 +99,11 @@ test.describe("desktop", () => {
     expect((await request.get("/api/staff/counts")).status()).toBe(401);
   });
 
-  test("works in Marathi", async ({ page }) => {
+  test("the account menu has no language switch", async ({ page }) => {
     await signIn(page, OWNER);
     await page.locator(".staff-header .account-menu summary").click();
-    await page.getByRole("banner").getByRole("button", { name: "मराठी" }).click();
-    const menu = page.getByRole("navigation", { name: "दुकानाच्या कामाचा मेनू" });
-    await expect(menu.getByRole("link", { name: "आढावा व ऑर्डर" })).toBeVisible();
-    await page.getByRole("combobox", { name: "कामात शोधा" }).fill("मोफत");
-    await expect(page.getByRole("option", { name: /मोफत वितरण/ })).toBeVisible();
+    await expect(page.locator(".staff-header .account-menu").getByRole("button", { name: "Sign out" })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("button", { name: "मराठी" })).toHaveCount(0);
   });
 
   test("overview and settings pass the automated accessibility check", async ({ page }) => {

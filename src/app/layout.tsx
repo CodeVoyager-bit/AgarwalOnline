@@ -28,28 +28,6 @@ const display = localFont({
   variable: "--font-jakarta",
   display: "swap",
 });
-/** Devanagari for Marathi. Latin never reaches it: it sits behind Jakarta in the stack. */
-const devanagari = localFont({
-  src: [
-    {
-      path: "../../node_modules/@fontsource/mukta/files/mukta-devanagari-400-normal.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/mukta/files/mukta-devanagari-600-normal.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/@fontsource/mukta/files/mukta-devanagari-700-normal.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-mukta",
-  display: "swap",
-});
 
 // a function, not a constant: the site's address comes from the environment at request time, and the
 // title and description from Customize → Shop front
@@ -107,7 +85,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${display.variable} ${devanagari.variable}`}
+      className={display.variable}
       data-scroll-behavior="smooth"
       // the playful skin (src/app/playful.css); delete this line for the classic look
       data-look="playful"

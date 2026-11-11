@@ -83,6 +83,10 @@ export default async function Approvals({
   const provider = reviewing?.after?.providerId
     ? await Provider.findById(reviewing.after.providerId).select("name town status")
     : null;
+  // tax and billing requests point at a provider
+  const billedProviders = await Provider.find({
+    _id: { $in: all.filter((r) => r.kind === "provider-billing").map((r) => r.targetId) },
+  }).select("name town");
   const reviewingProvider = provider
     ? `${provider.name}, ${provider.town}${provider.status === "pending" ? " (new: approve it on the Providers page first)" : provider.status === "declined" ? " (declined)" : ""}`
     : undefined;
@@ -95,6 +99,10 @@ export default async function Approvals({
     }
     if (r.kind === "delete-product")
       return `Delete product: ${products.find((item) => String(item._id) === String(r.targetId))?.name.en ?? "a product"}`;
+    if (r.kind === "provider-billing") {
+      const shop = billedProviders.find((item) => String(item._id) === String(r.targetId));
+      return `Provider tax details: ${shop ? `${shop.name}, ${shop.town}` : "a provider"}`;
+    }
     const pack = packs.find((item) => String(item._id) === String(r.targetId));
     const product = products.find((item) => String(item._id) === String(pack?.productId));
     const change = r.kind === "price" ? "Price change" : r.kind === "delete-pack" ? "Delete pack" : "Stock change";
@@ -110,7 +118,7 @@ export default async function Approvals({
       <PageHeading
         eyebrow="Owner"
         title="Approvals"
-        lead="Your own changes apply at once. New products, packs, prices, stock removals, large stock additions and deletes your staff ask for wait here for you."
+        lead="Your own changes apply at once. New products, packs, prices, stock removals, large stock additions, deletes and providers' tax details your staff ask for wait here for you."
         aside={<span className="live-chip">{counts[0]} waiting</span>}
       />
       {waitingProviders > 0 && (
@@ -261,7 +269,7 @@ export default async function Approvals({
           <EmptyState
             icon={ClipboardCheck}
             title={view === "waiting" ? "Nothing waiting" : "Nothing here"}
-            body="New products, new packs, price changes, stock changes and deletes appear here when someone asks for them."
+            body="New products, new packs, price changes, stock changes, deletes and providers' tax details appear here when someone asks for them."
             heading="h3"
           />
         }

@@ -1,4 +1,3 @@
-import type { Locale } from "../locale-types";
 
 /**
  * A paragraph, a bulleted list, or label/value rows. Inside any text, `[label](/href)` is a link
@@ -40,4 +39,5 @@ export type LegalFacts = {
   auditDays: number;
 };
 
-export type LegalBuilder = Record<Locale, (facts: LegalFacts) => LegalDoc>;
+/** The site is English only (2026-11-12): each policy has one text. */
+export type LegalBuilder = { en: (facts: LegalFacts) => LegalDoc };

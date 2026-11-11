@@ -35,7 +35,6 @@ export function CatalogFilterPanel({
         className={`catalog-filters${open ? " is-open" : ""}`}
         action="/catalog"
       >
-        <input type="hidden" name="lang" value={locale} />
         <label>
           {locale === "mr" ? "शोधा" : "Search"}
           <input

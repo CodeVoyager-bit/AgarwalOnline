@@ -8,8 +8,16 @@ import { getEnv } from "../env";
 import { renderInvoice, type InvoiceLine } from "./invoice";
 import { lineFacts } from "./line-facts";
 
-/** One sample to draw: a bill style to try (else the saved one), the kaccha bill, or a small thumbnail. */
-export type SampleBill = { style?: string; estimate?: boolean; thumb?: boolean };
+/**
+ * One sample to draw: a bill style to try (else the saved one), the kaccha bill, or a small thumbnail.
+ * With `provider`, the bill a provider that bills in its own name gives, as Providers → Tax and billing previews it.
+ */
+export type SampleBill = {
+  style?: string;
+  estimate?: boolean;
+  thumb?: boolean;
+  provider?: { legalName: string; address?: string; gstin?: string; composition?: boolean };
+};
 
 /**
  * Bills for a made-up order of three products from the shelves, with the bill settings saved now:
@@ -38,10 +46,15 @@ export async function sampleBills(samples: SampleBill[]) {
   const now = new Date();
   const day = istDate(now).replaceAll("-", "");
   const state = GST_STATES.find((entry) => entry.code === shop.stateCode);
-  return samples.map(({ style, estimate = false, thumb = false }) => {
+  return samples.map(({ style, estimate = false, thumb = false, provider }) => {
     const tryStyle = BILL_STYLES.find((option) => option.value === style)?.value;
-    // a thumbnail has no print button or notes over it
-    const bill = { ...saved, ...(tryStyle ? { style: tryStyle } : {}), ...(thumb ? { openAs: "download" } : {}) };
+    const bill = {
+      ...saved,
+      ...(tryStyle ? { style: tryStyle } : {}),
+      // a provider's bill carries its own name and signature, not Agarwal's logo, bank, terms or Marathi name
+      ...(provider ? { showLogo: false, showBankDetails: false, terms: "", shopNameMr: "", showSignature: true } : {}),
+    };
+    const delivery = provider ? 0 : 3000;
     return renderInvoice({
       order: {
         number: `SAMPLE-${day}-00001`,
@@ -54,12 +67,20 @@ export async function sampleBills(samples: SampleBill[]) {
         orderStatus: "confirmed",
         subtotalPaise: subtotal,
         merchandiseSavingsPaise: 0,
-        deliveryPaise: 3000,
-        totalPaise: subtotal + 3000,
+        deliveryPaise: delivery,
+        totalPaise: subtotal + delivery,
       },
-      seller: { legalName: shop.legalName, address: shop.address, phone: shop.phone, gstin: shop.gstin, email: shop.email },
+      seller: provider
+        ? { legalName: provider.legalName, address: provider.address, gstin: provider.gstin }
+        : { legalName: shop.legalName, address: shop.address, phone: shop.phone, gstin: shop.gstin, email: shop.email },
+      composition: provider?.composition,
+      extraNotes: provider
+        ? [`Sold through Agarwal Online (${shop.legalName}${shop.gstin ? `, GSTIN ${shop.gstin}` : ""}), which delivered it and collected the payment, order SAMPLE-${day}-00001.`]
+        : [],
+      // a thumbnail has no buttons or notes over it; a sample page can be printed
+      bar: thumb ? null : {},
       stateName: state ? `${state.name} (${state.code})` : shop.stateCode,
-      number: estimate ? `EST-SAMPLE-${day}-00001` : `${day}-00001`,
+      number: estimate ? `EST-SAMPLE-${day}-00001` : provider ? "AB/26-27/0001" : `${day}-00001`,
       date: now,
       bill,
       facts,

@@ -6,7 +6,6 @@ import { copy, type Locale } from "@/lib/locale-types";
 import { staffCopy } from "@/lib/staff/copy";
 import { AccountMenu } from "./account-menu";
 import { BackButton } from "./back-button";
-import { LocaleToggle } from "./locale-toggle";
 import { highlightTarget } from "./hash-target";
 import { OrderAlerts } from "./order-alerts";
 import { useStaffCounts } from "./staff-counts";
@@ -80,7 +79,6 @@ export function StaffHeader({
             workspace={[]}
             workspaceLabel={shop.workspace}
             signOutLabel={shop.signOut}
-            extra={<LocaleToggle locale={locale} />}
           />
         </div>
       </div>

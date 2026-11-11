@@ -30,20 +30,13 @@ function Input({ name, spec, value }: { name: string; spec: FieldSpec; value: un
     case "both": {
       const both = value as { en: string; mr: string };
       const Box = spec.long ? "textarea" : "input";
+      // the site is English only: one box, and the Marathi saved before rides along unchanged
       return (
-        <fieldset className="customize-both">
-          <legend>
-            {spec.label} <Hint spec={spec} />
-          </legend>
-          <label>
-            English
-            <Box name={`${name}En`} defaultValue={both.en} placeholder={spec.own?.en} maxLength={spec.max} />
-          </label>
-          <label>
-            मराठी
-            <Box name={`${name}Mr`} defaultValue={both.mr} placeholder={spec.own?.mr} maxLength={spec.max} lang="mr" />
-          </label>
-        </fieldset>
+        <label>
+          {spec.label} <Hint spec={spec} />
+          <Box name={`${name}En`} defaultValue={both.en} placeholder={spec.own?.en} maxLength={spec.max} />
+          <input type="hidden" name={`${name}Mr`} value={both.mr} />
+        </label>
       );
     }
     case "choice":

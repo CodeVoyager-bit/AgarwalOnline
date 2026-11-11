@@ -19,7 +19,7 @@ export async function generateMetadata({
   const params = await searchParams;
   const category = (await catalogCategories()).find((item) => item.slug === params.category);
   if (params.q) return { title: `Results for “${params.q.slice(0, 60)}”`, robots: { index: false } };
-  // sort, page and lang only reorder or translate the same list: one address per aisle for search engines
+  // sort and page only reorder the same list: one address per aisle for search engines
   if (category)
     return {
       title: `${category.en} online in Nagothane`,
@@ -40,12 +40,7 @@ export default async function Catalog({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const savedLocale = await currentLocale();
-  const locale = params.lang
-    ? params.lang === "mr"
-      ? "mr"
-      : "en"
-    : savedLocale;
+  const locale = await currentLocale();
   const [products, categories] = await Promise.all([
     catalog(params),
     catalogCategories(),
@@ -90,7 +85,7 @@ export default async function Catalog({
       </div>
       <nav className="catalog-chips" aria-label="Browse product categories">
         <Link
-          href={`/catalog?${new URLSearchParams({ lang: locale })}`}
+          href="/catalog"
           aria-current={!params.category ? "page" : undefined}
         >
           {locale === "mr" ? "सर्व" : "All"}
@@ -98,7 +93,7 @@ export default async function Catalog({
         {categories.map((category) => (
           <Link
             key={category.slug}
-            href={`/catalog?${new URLSearchParams({ lang: locale, category: category.slug })}`}
+            href={`/catalog?${new URLSearchParams({ category: category.slug })}`}
             aria-current={
               params.category === category.slug ? "page" : undefined
             }
@@ -117,7 +112,7 @@ export default async function Catalog({
           {params.q ? (locale === "mr" ? ` “${params.q}” साठी` : ` for “${params.q}”`) : ""}
         </p>
         {(params.q || params.category || params.inStock || params.sort) && (
-          <Link href={`/catalog?lang=${locale}`}>{locale === "mr" ? "फिल्टर काढा" : "Clear filters"}</Link>
+          <Link href="/catalog">{locale === "mr" ? "फिल्टर काढा" : "Clear filters"}</Link>
         )}
       </div>
       {products.length ? (
@@ -150,7 +145,7 @@ export default async function Catalog({
             {locale === "mr" ? "उत्पादने सापडली नाहीत" : "No products found"}
           </h2>
           <p>{locale === "mr" ? "इंग्रजी किंवा मराठीत दुसरे नाव वापरून पाहा, किंवा फिल्टर काढा." : "Try another name in English or Marathi, or clear your filters."}</p>
-          <Link href={`/catalog?lang=${locale}`} className="primary-button">{locale === "mr" ? "सर्व उत्पादने पाहा" : "Show all products"}</Link>
+          <Link href="/catalog" className="primary-button">{locale === "mr" ? "सर्व उत्पादने पाहा" : "Show all products"}</Link>
         </div>
       )}
     </section>
