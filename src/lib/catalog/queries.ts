@@ -356,6 +356,17 @@ export const schoolProductBySlug = cache(async (slug: string) => {
 
 /** The aisles, in the shop's order; from the shop cache, since every page's menu and footer list them. */
 export const catalogCategories = () => shared("categories", readCategories);
+
+/**
+ * Whether anything sells below its MRP, for the header's Offers and the footer's Deals links. Answered
+ * from the shelf the page already holds; the layout used to build the whole catalogue on every page for it.
+ */
+export const anyOnOffer = cache(async () => {
+  const shelf = await shelfFor("customers");
+  return shelf.products.some((p) =>
+    (shelf.variants.get(String(p._id)) ?? []).some((v) => v.pricePaise < v.mrpPaise),
+  );
+});
 async function readCategories() {
   await connectDB();
   const rows = await Category.find({})

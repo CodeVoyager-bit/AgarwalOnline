@@ -35,6 +35,8 @@ import { isShopperVisible } from "@/lib/catalog/visibility";
 import { canStillRate, feedbackForOrder } from "@/lib/feedback/service";
 import { OrderFeedbackCard } from "@/components/order-feedback-card";
 import { currentLocale } from "@/lib/i18n";
+import { PushSettings } from "@/components/push-settings";
+import { pushPublicKey } from "@/lib/push/service";
 export const metadata = { title: "Order details", robots: { index: false } };
 
 const STAGE_ICONS: Record<string, LucideIcon> = {
@@ -113,7 +115,9 @@ export default async function OrderDetail({
   const deliveredAt = tracker?.[3].at;
   // a delivered order can be rated here for a month; once rated, the rating and the shop's reply show instead
   const delivered = o.deliveryStatus === "delivered" && o.orderStatus !== "cancelled";
-  const [feedback, locale] = delivered ? await Promise.all([feedbackForOrder(o._id), currentLocale()]) : [null, "en" as const];
+  const [feedback, locale] = await Promise.all([delivered ? feedbackForOrder(o._id) : null, currentLocale()]);
+  // still to arrive: the moment to offer notifications on this phone
+  const onItsWay = notCancelled && !delivered && !["failed", "returned"].includes(o.deliveryStatus);
   const showFeedback = delivered && (feedback !== null || canStillRate(deliveredAt ?? o.updatedAt));
   const headline: Record<string, string> = {
     delivered: deliveredAt ? `Delivered on ${formatIst(deliveredAt, SHORT)}` : "Delivered to you",
@@ -191,6 +195,7 @@ export default async function OrderDetail({
 
       <div className="order-layout">
         <div className="order-main">
+          {onItsWay && <PushSettings publicKey={pushPublicKey()} account={user.id} mr={locale === "mr"} prompt />}
           {showFeedback && (
             <OrderFeedbackCard
               order={{

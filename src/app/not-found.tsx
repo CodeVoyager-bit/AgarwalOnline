@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { currentLocale } from "@/lib/i18n";
+import { catalogCategories } from "@/lib/catalog/queries";
 
 export default async function NotFound() {
-  const mr = (await currentLocale()) === "mr";
+  const [locale, aisles] = await Promise.all([currentLocale(), catalogCategories()]);
+  const mr = locale === "mr";
   return (
     <div className="auth-card empty-state">
       <span className="eyebrow">404</span>
@@ -16,6 +18,16 @@ export default async function NotFound() {
           {mr ? "मुख्य पानावर जा" : "Go home"}
         </Link>
       </div>
+      {/* most people here followed an old link to a product or aisle: put the aisles one tap away */}
+      {aisles.length > 0 && (
+        <nav className="catalog-chips notfound-aisles" aria-label={mr ? "विभाग" : "Aisles"}>
+          {aisles.map((aisle) => (
+            <Link key={aisle.slug} href={`/catalog?category=${aisle.slug}`}>
+              {aisle[locale]}
+            </Link>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

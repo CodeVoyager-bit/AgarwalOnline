@@ -172,6 +172,10 @@ export async function SiteFooter({
           <p>© {new Date().getFullYear()} Agarwal Online</p>
         </div>
       </div>
+      {/* the name, large and faded, as the page's last line; decoration only, the brand link is above */}
+      <div className="footer-wordmark" aria-hidden="true">
+        Agarwal
+      </div>
     </footer>
   );
 }

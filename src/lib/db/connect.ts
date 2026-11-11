@@ -20,7 +20,10 @@ export function mongoClient(uri = getEnv().MONGODB_URI): MongoClient {
     // Mongoose's own driver class: `setClient` only accepts that one
     client = new mongoose.mongo.MongoClient(uri, {
       serverSelectionTimeoutMS: 5000,
-      maxPoolSize: 10,
+      // 5, not 10: under a rush Vercel runs many copies, and at 10 each about 50 copies filled the free
+      // cluster's 500 connections; then every page failed for ~5 minutes (load test 2026-10-24). A guest
+      // page needs 0–3 queries and a signed-in one ~13 short ones, so 5 at a time is plenty per copy.
+      maxPoolSize: 5,
       // each new connection to Atlas is a full secure handshake, so one is kept warm per server
       // (src/instrumentation.ts opens it at start); the rest open in parallel when a page needs
       // them and close after a minute idle, instead of four per server held open forever

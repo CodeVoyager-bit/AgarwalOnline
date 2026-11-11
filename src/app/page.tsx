@@ -16,12 +16,14 @@ import { DeliveryPromise } from "@/components/delivery-promise";
 import { currentUser } from "@/lib/auth/session";
 import { currentLocale } from "@/lib/i18n";
 import { Order } from "@/lib/commerce/models";
-import { liveAreaNames } from "@/lib/commerce/areas";
+import { liveAreaFees, liveAreaNames } from "@/lib/commerce/areas";
+import { homeFaq } from "@/lib/home-faq";
+import { LegalText } from "@/components/legal-text";
 import { recommendationsFor } from "@/lib/catalog/recommendations";
 import { liveOffers, runningAt } from "@/lib/promotions/service";
 import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display";
 import { taxProfile } from "@/lib/tax/profile";
-import { jsonLd, storeJsonLd, websiteJsonLd } from "@/lib/seo";
+import { aisleSummary, jsonLd, storeJsonLd, websiteJsonLd } from "@/lib/seo";
 import { getEnv } from "@/lib/env";
 import { paymentsEnabled } from "@/lib/payments/provider";
 import { fill, frontWords, shopSettings } from "@/lib/settings/shop";
@@ -36,6 +38,10 @@ const copy = {
     dealCta: "See the deal",
     hubs: "Explore the categories",
     hubsMr: "विभाग पाहा",
+    brands: "Brands we stock",
+    brandsMr: "आमच्याकडील ब्रँड",
+    faq: "Questions people ask",
+    faqMr: "नेहमीचे प्रश्न",
     productsCount: (n: number) => (n === 1 ? "1 product" : `${n} products`),
     pinLabel: "Check delivery at your PIN code",
     pinHint: "Six digits. Used only to check serviceability.",
@@ -84,6 +90,10 @@ const copy = {
     dealCta: "ऑफर पाहा",
     hubs: "विभाग पाहा",
     hubsMr: "Explore the categories",
+    brands: "आमच्याकडील ब्रँड",
+    brandsMr: "Brands we stock",
+    faq: "नेहमीचे प्रश्न",
+    faqMr: "Questions people ask",
     productsCount: (n: number) => `${n} उत्पादने`,
     pinLabel: "तुमच्या पिन कोडवर वितरण तपासा",
     pinHint: "सहा अंक. फक्त वितरण उपलब्धता तपासण्यासाठी.",
@@ -219,7 +229,7 @@ export default async function Home() {
     deliveryRules(),
   ]);
   // everything that only needs to know who's signed in, in one round
-  const [recommended, activeOffers, areaDocs, previousOrder, shop, front] = await Promise.all([
+  const [recommended, activeOffers, areaDocs, previousOrder, shop, front, areaFees] = await Promise.all([
     recommendationsFor({
       customerId: user?.id,
       limit: 8,
@@ -229,6 +239,7 @@ export default async function Home() {
     user ? Order.findOne({ customerId: user.id }).sort({ createdAt: -1 }).select("items.variantId") : null,
     taxProfile(),
     shopSettings("storefront"),
+    liveAreaFees(),
   ]);
   const previousIds = new Set(
     previousOrder?.items.map((item: { variantId: unknown }) =>
@@ -242,6 +253,9 @@ export default async function Home() {
   const online = paymentsEnabled();
   const cutoff = `${rules.cutoffHour % 12 || 12} ${rules.cutoffHour >= 12 ? "PM" : "AM"}`;
   const freeFrom = formatPrice(rules.freeThresholdPaise);
+  const faq = homeFaq(locale, { areas: areaDocs, feesPaise: areaFees, cutoff, freeFromPaise: rules.freeThresholdPaise, online });
+  // the brands the shop stocks most, from its own products; each opens that brand's search
+  const brands = aisleSummary(products).brands.slice(0, 14);
   const areas = areaDocs.join(" · ");
   const bestsellers = products.filter((product) => product.bestseller);
   const savings = products
@@ -623,6 +637,45 @@ export default async function Home() {
             </div>
           </section>
         )}
+        {brands.length > 0 && (
+          <section className="section" aria-labelledby="brands-title">
+            <div className="section-heading">
+              <div>
+                <h2 id="brands-title">{t.brands}</h2>
+                <span className="muted" lang={other}>
+                  {t.brandsMr}
+                </span>
+              </div>
+            </div>
+            <nav className="catalog-chips brand-chips" aria-label={t.brands}>
+              {brands.map((brand) => (
+                <Link key={brand} href={`/catalog?q=${encodeURIComponent(brand)}`}>
+                  {brand}
+                </Link>
+              ))}
+            </nav>
+          </section>
+        )}
+        <section className="section home-faq" aria-labelledby="faq-title">
+          <div className="section-heading">
+            <div>
+              <h2 id="faq-title">{t.faq}</h2>
+              <span className="muted" lang={other}>
+                {t.faqMr}
+              </span>
+            </div>
+          </div>
+          <div className="faq-list">
+            {faq.map((item) => (
+              <details className="faq-item" key={item.q}>
+                <summary>{item.q}</summary>
+                <p>
+                  <LegalText text={item.a} mr={locale === "mr"} />
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );

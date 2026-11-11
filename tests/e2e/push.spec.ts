@@ -1,10 +1,12 @@
 // The "Notifications on this device" card, at desktop and phone width: a customer who has
 // allowed notifications gets a Turn on button; where the site is blocked, the card says how to
-// unblock it; staff who manage orders are told about new orders. Nothing is ever subscribed or sent.
+// unblock it; staff who manage orders are told about new orders; an order still on its way offers
+// notifications once. Nothing is ever subscribed or sent.
 import { test, expect, type Browser, type TestInfo } from "@playwright/test";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { User } from "../../src/lib/db/models";
+import { Order } from "../../src/lib/commerce/models";
 
 const uri = "mongodb://127.0.0.1:27028/ags_test_e2e?replicaSet=ags-local";
 const PASSWORD = "Local-test-password-123";
@@ -76,5 +78,33 @@ test("staff who manage orders are told the card brings new orders", async ({ bro
   const page = await signedIn(browser, info, "admin", true);
   await page.goto("/account/notifications");
   await expect(page.locator("main #push").getByText("Get new orders and updates on this phone or computer")).toBeVisible();
+  await page.context().close();
+});
+
+test("an order still on its way offers notifications once; a delivered one doesn't", async ({ browser }, info) => {
+  const customer = await User.findOne({ email: PEOPLE.customer.email });
+  const line = { variantId: new mongoose.Types.ObjectId(), name: "Long book", label: "172 pages", quantity: 1, pricePaise: 6000, linePaise: 6000 };
+  const order = (n: number, extra: object) => ({
+    customerId: customer!._id,
+    number: `AGP-${info.project.name}-${n}`,
+    idempotencyKey: `push-${info.project.name}-${n}`,
+    items: [line],
+    slotId: new mongoose.Types.ObjectId(),
+    paymentMethod: "cod",
+    deliveryWindow: "4 PM – 7 PM",
+    subtotalPaise: 6000,
+    totalPaise: 6000,
+    ...extra,
+  });
+  const [coming, done] = await Order.create([order(1, {}), order(2, { orderStatus: "completed", deliveryStatus: "delivered" })]);
+  const page = await signedIn(browser, info, "customer", true);
+  await page.goto(`/account/orders/${coming._id}`);
+  const card = page.locator("main .push-card");
+  await expect(card.getByRole("heading", { name: "Know when it’s on its way" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Turn on notifications" })).toBeEnabled();
+  if (out) await page.screenshot({ path: `${out}/${info.project.name}_push-order.png`, fullPage: false });
+  await page.goto(`/account/orders/${done._id}`);
+  await expect(page.getByRole("heading", { name: "1 item in this order" })).toBeVisible();
+  await expect(page.locator("main .push-card")).toHaveCount(0);
   await page.context().close();
 });

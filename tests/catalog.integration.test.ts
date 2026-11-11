@@ -7,7 +7,7 @@ import {
   ProductVariant,
   InventoryItem,
 } from "../src/lib/db/models";
-import { catalog } from "../src/lib/catalog/queries";
+import { anyOnOffer, catalog } from "../src/lib/catalog/queries";
 const uri = process.env.TEST_MONGODB_URI;
 describe.skipIf(!uri)("MongoDB catalog", () => {
   beforeAll(async () => {
@@ -114,5 +114,11 @@ describe.skipIf(!uri)("MongoDB catalog", () => {
   });
   it("does not turn punctuation into unrestricted regex matching", async () => {
     expect(await catalog({ q: "nonexistent.*" })).toHaveLength(0);
+  });
+  it("says something is on offer only while a published pack sells below its MRP", async () => {
+    expect(await anyOnOffer()).toBe(true);
+    // MRP pricing everywhere, as in the real shop: the Offers and Deals links have nothing to show
+    await ProductVariant.updateMany({}, [{ $set: { mrpPaise: "$pricePaise" } }], { updatePipeline: true });
+    expect(await anyOnOffer()).toBe(false);
   });
 });

@@ -25,6 +25,9 @@ const words = {
     unsupported: "This browser can’t show notifications from websites. Chrome can.",
     denied: "Notifications weren’t allowed. Tap Turn on again and choose Allow.",
     failed: "Couldn’t turn on notifications. Please try again.",
+    promptTitle: "Know when it’s on its way",
+    promptOff: "Get a notification when your order is packed, out for delivery and delivered, even when the app is closed.",
+    promptOn: "Done. You’ll get a notification at each step.",
   },
   mr: {
     title: "या डिव्हाइसवर सूचना",
@@ -40,6 +43,9 @@ const words = {
     unsupported: "हा ब्राउझर वेबसाइटच्या सूचना दाखवू शकत नाही. Chrome दाखवू शकतो.",
     denied: "सूचनांना परवानगी दिली नाही. पुन्हा सुरू करा दाबा आणि Allow निवडा.",
     failed: "सूचना सुरू करता आल्या नाहीत. पुन्हा प्रयत्न करा.",
+    promptTitle: "ऑर्डर निघाली की कळेल",
+    promptOff: "तुमची ऑर्डर पॅक झाली, निघाली आणि पोहोचली की सूचना मिळवा, ॲप बंद असतानाही.",
+    promptOn: "झाले. प्रत्येक टप्प्यावर सूचना मिळेल.",
   },
 };
 
@@ -64,6 +70,7 @@ export function PushSettings({
   mr,
   staff = false,
   id,
+  prompt = false,
 }: {
   publicKey: string | null;
   account: string;
@@ -72,9 +79,12 @@ export function PushSettings({
   staff?: boolean;
   /** The anchor the workspace search links to. */
   id?: string;
+  /** On an order still on its way: shown only while this browser could turn notifications on, then says it's done. */
+  prompt?: boolean;
 }) {
   const text = words[mr ? "mr" : "en"];
   const [state, setState] = useState<State>("checking");
+  const [turnedOn, setTurnedOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -133,6 +143,7 @@ export function PushSettings({
         // private window: the check in ServiceWorker asks the server instead
       }
       setState("on");
+      setTurnedOn(true);
     } catch {
       setMessage({ ok: false, text: text.failed });
     } finally {
@@ -166,6 +177,9 @@ export function PushSettings({
     }
   }
 
+  // the order page asks once, quietly: nothing while checking, already on, blocked or unsupported
+  if (prompt && state !== "off" && !(state === "on" && turnedOn)) return null;
+
   const on = state === "on";
   const Icon = state === "blocked" || state === "unsupported" ? BellOff : BellRing;
   return (
@@ -174,9 +188,13 @@ export function PushSettings({
         <Icon size={22} />
       </span>
       <div className="push-card-text">
-        <h2 id="push-title">{text.title}</h2>
+        <h2 id="push-title">{prompt ? text.promptTitle : text.title}</h2>
         <p className="muted">
-          {state === "on"
+          {prompt
+            ? on
+              ? text.promptOn
+              : text.promptOff
+            : state === "on"
             ? text.on
             : state === "blocked"
               ? text.blocked
@@ -201,7 +219,7 @@ export function PushSettings({
             {text.turnOn}
           </button>
         )}
-        {on && (
+        {on && !prompt && (
           <>
             <button type="button" className="secondary-button" onClick={test} disabled={busy}>
               {text.test}

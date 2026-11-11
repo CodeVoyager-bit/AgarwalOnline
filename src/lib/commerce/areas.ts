@@ -16,3 +16,12 @@ export const liveAreaNames = cache(() =>
     return areas.map((area) => area.name as string);
   }),
 );
+
+/** Each live area's delivery fee, for the home page's questions. Shop-cached like the names. */
+export const liveAreaFees = cache(() =>
+  shared("area-fees", async () => {
+    await connectDB();
+    const areas = await ServiceArea.find({ enabled: true }).select("feePaise");
+    return areas.map((area) => area.feePaise as number);
+  }),
+);

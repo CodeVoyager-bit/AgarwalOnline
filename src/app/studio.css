@@ -1,0 +1,115 @@
+/* =============================================================================
+   STUDIO LOOK
+   The look of the "Vertix" dashboard reel the owner picked (2026-10-23): a soft grey page,
+   white borderless cards floating on it, neutral black text and pill buttons, white pill
+   menus with a black current item, one orange highlight and an orange first stat card.
+   Switched on by data-theme="studio" on <html> in src/app/layout.tsx: delete that attribute
+   and the First Bench look returns untouched; delete this file and its import to drop it.
+
+   Colour, borders, corners and shadow only; the few spacing changes (the menu capsules) are
+   desktop-only, so every phone layout in globals.css keeps working. Motion stays in playful.css.
+   ============================================================================= */
+
+:root[data-theme="studio"] {
+  --page: #eef0f3; /* the grey the white cards float on */
+  --ink: #18181b; /* neutral black, not slate */
+  --brand: var(--ink); /* buttons, links, the current menu item */
+  --accent-soft: #eeeff1;
+  --offer: #f26b3a; /* the reel's orange: highlights, offers, the basket bar (text on it stays ink) */
+  --warning: #9a3412; /* deep orange, the warning tone in the --offer family */
+  --faint: var(--muted); /* the lighter grey drops under 4.5:1 on the grey page */
+  --r: 12px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --card: 0 1px 2px rgba(24, 24, 27, 0.04), 0 12px 32px -20px rgba(24, 24, 27, 0.22);
+  /* white on it holds 3:1 for the big number at the top and 4.5:1 for the label at the bottom */
+  --orange-card: linear-gradient(165deg, #ea6630, #b93d0b);
+
+  &, & body { background: var(--page); }
+  & :is(h1, h2, h3, h4) { font-weight: 600; letter-spacing: -0.03em; }
+  & :is(.governance-stats span, .analytics-cards strong, .needs-count, .active-order-card strong) { font-weight: 600; }
+  & :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--offer); }
+  & .metric-list i { background: var(--offer); }
+
+  /* ---------- the top strip and header sit on the grey; their controls are white pills ---------- */
+  & .top-strip { background: transparent; color: var(--ink-2); }
+  & .top-strip-links > a, & .top-strip-links > a.school-door, & .top-strip-links > a:hover { color: var(--ink); }
+  & .top-strip-links > a:hover { border-color: var(--ink); }
+  & .top-strip :focus-visible { outline-color: var(--ink); }
+  & .top-strip .locale-toggle { background: var(--paper); box-shadow: var(--card); }
+  & .top-strip .locale-toggle button { color: var(--ink-2); }
+  & .top-strip .locale-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  & .header {
+    background: rgba(238, 240, 243, 0.9);
+    background: color-mix(in srgb, var(--page) 90%, transparent);
+    border-bottom-color: transparent;
+  }
+  & :is(.search, .staff-finder input, .view-shop, .search-back, .staff-back) { border-color: transparent; background: var(--paper); box-shadow: var(--card); }
+  & :is(.search-back, .staff-back) { border-radius: var(--r-pill); }
+  & .primary-nav { gap: 4px; }
+  & .primary-nav a:not(.school-door-pill) {
+    padding: 0 14px;
+    border-bottom: 0;
+    border-radius: var(--r-pill);
+    background-image: none;
+    transition: background-color var(--fast), color var(--fast);
+  }
+  & .primary-nav a:not(.school-door-pill):hover { background-color: var(--brand-soft); color: var(--ink); }
+  & .primary-nav a.school-door-pill { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  @media (min-width: 761px) {
+    & :is(.location, .header-icons) { border-color: transparent; background: var(--paper); box-shadow: var(--card); }
+  }
+  /* the aisle row is one white capsule, as the reel's menu, wherever it fits without scrolling */
+  @media (min-width: 1024px) {
+    & .primary-nav {
+      width: fit-content;
+      max-width: 100%;
+      margin: 2px 0 10px;
+      padding: 4px;
+      border-radius: var(--r-pill);
+      background: var(--paper);
+      box-shadow: var(--card);
+    }
+    & .primary-nav a { min-height: 38px; }
+    & .primary-nav a.offers { margin-left: 0; }
+  }
+
+  /* ---------- buttons are pills ---------- */
+  & :is(.primary-button, .secondary-button, .orange-button, .filter-toggle, .add-button, .google-button) { border-radius: var(--r-pill); }
+  & .secondary-button:not(.hero-actions *) { border-color: var(--line); background: var(--paper); }
+  & .add-button { border-color: var(--ink); }
+
+  /* ---------- cards: white, borderless, floating; no rules under headings ---------- */
+  & :is(
+      .panel, .address-card, .product-card, .hub-card, .deal-card, .benefits, .table-scroll, .auth-card,
+      .governance-stats a, .governance-stats > div, .account-tile, .settings-hub-card, .order-tracker,
+      .quotation, .sheet-totals, .basket-goals, .mini-product, .legal-rows, .legal-pager a, .people-strip,
+      .catalog-admin-nav, .chat-panel, .legal-toc-phone, .packing-item
+    ) {
+    border-color: transparent;
+    background: var(--paper);
+    box-shadow: var(--card);
+  }
+  & :is(.product-card, .hub-card):hover { border-color: transparent; }
+  & :is(.section-heading, .workspace-heading) { border-bottom-color: transparent; }
+  & .section-heading.section-heading::after { content: none; }
+  & .site-footer { border-top-color: transparent; background: transparent; }
+  /* on phones the benefits are a plain list on the page, not a card */
+  @media (max-width: 760px) {
+    & .benefits { background: transparent; box-shadow: none; }
+  }
+
+  /* ---------- the first number tile is the reel's orange card ---------- */
+  & :is(.governance-stats, .analytics-cards) > :first-child { background: var(--orange-card); }
+  & :is(.governance-stats, .analytics-cards) > :first-child :is(span, strong, small) { color: var(--paper); }
+
+  /* ---------- the staff menu is a white card; the current item is a black pill ---------- */
+  @media (min-width: 901px) {
+    & .workspace-nav { padding: 12px; border-radius: var(--r-lg); background: var(--paper); box-shadow: var(--card); }
+  }
+  & .workspace-nav a { border-radius: var(--r-pill); }
+  & .workspace-nav a:hover { background: var(--brand-soft); }
+  & .workspace-nav a[aria-current="page"] { background: var(--brand); color: var(--on-brand); }
+  & .workspace-nav a[aria-current="page"] svg { color: var(--on-brand); }
+  & :is(.mobile-nav, .staff-tabs) a[aria-current="page"] .nav-icon { background: var(--brand); color: var(--on-brand); }
+}

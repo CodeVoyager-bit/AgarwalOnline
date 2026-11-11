@@ -3965,3 +3965,49 @@ details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summa
 @media print {
   .announcement-bar { display: none !important; }
 }
+
+/* ---------- Trial 2026-10-30 (from vibrant.design patterns): home questions, brands, footer name, 404 aisles ---------- */
+/* questions people ask: one line each, tap to open; the + turns into × */
+.faq-list { max-width: 860px; border-top: 1px solid var(--line); }
+details.faq-item { border-bottom: 1px solid var(--line); }
+details.faq-item > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 56px;
+  padding: 12px 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+details.faq-item > summary::after { content: "+"; flex: none; color: var(--muted); font-size: 1.5rem; font-weight: 400; line-height: 1; transition: transform var(--fast); }
+details.faq-item[open] > summary::after { transform: rotate(45deg); }
+details.faq-item > p { max-width: 68ch; margin: 0 0 18px; color: var(--ink-2); line-height: 1.6; }
+.brand-chips { margin-top: 0; }
+/* the shop's name across the bottom, large and faint; clipped so it can never push the page sideways */
+.footer-wordmark {
+  overflow: hidden;
+  width: min(100%, calc(var(--content) + 2 * var(--gutter)));
+  margin: 8px auto 0;
+  /* the bottom padding is inside the clip, so the g's tail has room */
+  padding: 0 var(--gutter) 0.2em;
+  color: #e4e6ec;
+  color: color-mix(in oklab, var(--ink) 9%, var(--canvas));
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 19vw, 16rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  /* at 0.8 the g's tail was cut off and the name read "Aqarwal" */
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+.notfound-aisles { justify-content: center; margin: 20px 0 0; }
+@media (max-width: 760px) {
+  details.faq-item > summary { font-size: 0.95rem; }
+  .footer-wordmark { margin-top: 4px; font-size: 22vw; }
+  /* inside the 404 card the aisles wrap instead of swiping */
+  .notfound-aisles { flex-wrap: wrap; margin: 16px 0 0; padding: 0; overflow: visible; mask-image: none; }
+}

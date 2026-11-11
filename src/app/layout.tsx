@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import "./playful.css";
+import "./studio.css";
 import { PlayfulFx } from "@/components/playful";
 import { NavProgress } from "@/components/nav-progress";
 import { Suspense } from "react";
@@ -10,7 +11,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { liveAreaNames } from "@/lib/commerce/areas";
 import { AdaptiveShell } from "@/components/adaptive-shell";
 import { currentLocale } from "@/lib/i18n";
-import { catalog, catalogCategories } from "@/lib/catalog/queries";
+import { anyOnOffer, catalogCategories } from "@/lib/catalog/queries";
 import { currentUser } from "@/lib/auth/session";
 import { staffHome, staffRoleOf } from "@/lib/auth/permissions";
 import { cartFor } from "@/lib/commerce/service";
@@ -91,15 +92,14 @@ async function storedBasket(userId?: string) {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [locale, categories, user, areas, products] = await Promise.all([
+  const [locale, categories, user, areas, onOffer] = await Promise.all([
     currentLocale(),
     catalogCategories(),
     currentUser(),
     liveAreaNames(),
-    catalog(),
+    // "Offers" and "Deals" only when something really sells below MRP
+    anyOnOffer(),
   ]);
-  // "Offers" and "Deals" only when something really sells below MRP (from the cached shelf, no extra read)
-  const onOffer = products.some((product) => product.variants.some((v) => v.pricePaise < v.mrpPaise));
   const staffRole = staffRoleOf(user?.roles ?? []);
   // staff aren't counted: their clicks would read as shoppers
   const gaId = staffRole ? undefined : getEnv().GA_MEASUREMENT_ID;
@@ -111,6 +111,8 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       // the playful skin (src/app/playful.css); delete this line for the classic look
       data-look="playful"
+      // the studio look (src/app/studio.css); delete this line for the First Bench colours
+      data-theme="studio"
     >
       <body>
         <PlayfulFx />
