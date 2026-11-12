@@ -2,6 +2,7 @@
 const LABELS: Record<string, string> = {
   "approval.publish.delete-pack": "Deleted a pack",
   "approval.publish.delete-product": "Deleted a product",
+  "approval.publish.provider-billing": "Applied a provider's tax and billing details",
   "auth.customer.email_login": "Signed in with email",
   "auth.customer.login": "Signed in with a one-time code",
   "auth.customer.password_reset": "Set a new password with a one-time code",
@@ -36,6 +37,10 @@ const LABELS: Record<string, string> = {
   "provider.update": "Edited a provider",
   "provider.approve": "Approved a provider",
   "provider.decline": "Declined a provider",
+  "provider.billing": "Changed a provider's tax and billing details",
+  "provider.ca-confirmed": "Recorded the CA's confirmation for provider bills",
+  "provider.ca-withdrawn": "Took back the CA's confirmation for provider bills",
+  "order.bill-link-reset": "Made a new bill link for an order",
   "product.audience": "Changed who sees a product",
   "product.show": "Showed a product in the shop",
   "product.hide": "Hid a product",

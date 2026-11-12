@@ -1,9 +1,8 @@
-import type { Locale } from "../locale-types";
 import { dateText, daysText, price } from "./format";
 import type { LegalArea, LegalBuilder, LegalFacts } from "./types";
 
 /** "Monday–Saturday: 10:00 AM – 1:00 PM, 4:00 PM – 7:00 PM", one part per set of days. */
-function timesText(area: LegalArea, locale: Locale) {
+function timesText(area: LegalArea) {
   const byDays = new Map<string, { days: number[]; windows: string[] }>();
   for (const time of area.times) {
     const key = [...time.days].sort().join(",");
@@ -11,23 +10,14 @@ function timesText(area: LegalArea, locale: Locale) {
     group.windows.push(time.window);
     byDays.set(key, group);
   }
-  return [...byDays.values()].map((group) => `${daysText(group.days, locale)}: ${group.windows.join(", ")}`).join("; ");
+  return [...byDays.values()].map((group) => `${daysText(group.days, "en")}: ${group.windows.join(", ")}`).join("; ");
 }
 
-function areaRows(f: LegalFacts, locale: Locale): [string, string][] {
-  const mr = locale === "mr";
+function areaRows(f: LegalFacts): [string, string][] {
   return f.areas.map((area) => {
-    const fee = mr
-      ? `वितरण शुल्क ${price(area.feePaise)}, ${price(f.freeThresholdPaise)} पासून मोफत.`
-      : `Delivery ${price(area.feePaise)}, free from ${price(f.freeThresholdPaise)}.`;
-    const cod = area.codEnabled
-      ? mr
-        ? `${price(area.codLimitPaise)} पर्यंत कॅश ऑन डिलिव्हरी.`
-        : `Cash on delivery up to ${price(area.codLimitPaise)}.`
-      : mr
-        ? "कॅश ऑन डिलिव्हरी उपलब्ध नाही."
-        : "No cash on delivery.";
-    const times = area.times.length ? ` ${timesText(area, locale)}.` : "";
+    const fee = `Delivery ${price(area.feePaise)}, free from ${price(f.freeThresholdPaise)}.`;
+    const cod = area.codEnabled ? `Cash on delivery up to ${price(area.codLimitPaise)}.` : "No cash on delivery.";
+    const times = area.times.length ? ` ${timesText(area)}.` : "";
     return [area.name, `${fee} ${cod}${times}`];
   });
 }
@@ -44,7 +34,7 @@ export const shippingDoc: LegalBuilder = {
         blocks: f.areas.length
           ? [
               "We deliver with our own delivery partners to these areas:",
-              { rows: areaRows(f, "en") },
+              { rows: areaRows(f) },
               "Check your PIN code on [Check delivery area](/serviceability).",
             ]
           : ["Delivery areas are being set up. Check your PIN code on [Check delivery area](/serviceability)."],
@@ -92,65 +82,6 @@ export const shippingDoc: LegalBuilder = {
         blocks: [
           "When a school accepts a quotation, the store arranges delivery and billing directly with the school.",
         ],
-      },
-    ],
-  }),
-  mr: (f) => ({
-    title: "शिपिंग व वितरण",
-    lead: `${f.business.legalName} कुठे वितरण करते, त्याचा खर्च किती, आणि तुमची ऑर्डर कधी पोहोचते.`,
-    sections: [
-      {
-        id: "areas",
-        title: "आम्ही कुठे वितरण करतो",
-        blocks: f.areas.length
-          ? [
-              "आम्ही आमच्या स्वतःच्या डिलिव्हरी भागीदारांमार्फत या भागांत वितरण करतो:",
-              { rows: areaRows(f, "mr") },
-              "तुमचा पिन कोड [वितरण क्षेत्र तपासा](/serviceability) वर तपासा.",
-            ]
-          : ["वितरण क्षेत्रे सुरू केली जात आहेत. तुमचा पिन कोड [वितरण क्षेत्र तपासा](/serviceability) वर तपासा."],
-      },
-      {
-        id: "charges",
-        title: "वितरण शुल्क",
-        blocks: [
-          `${f.areas.length ? "प्रत्येक क्षेत्राचे वितरण शुल्क वर दाखवले आहे." : "प्रत्येक क्षेत्राचे वितरण शुल्क वेगळे असते."} तुमच्या बास्केटमधील वस्तूंची एकूण किंमत ${price(f.freeThresholdPaise)} किंवा अधिक असल्यास वितरण मोफत. नेमके शुल्क चेकआउटवर, पक्की करण्यापूर्वी दाखवले जाते.`,
-        ],
-      },
-      {
-        id: "times",
-        title: "वितरणाचे दिवस आणि वेळा",
-        blocks: [
-          {
-            list: [
-              `${f.cutoff} पूर्वी दिलेल्या ऑर्डर त्याच दिवशी पोहोचू शकतात; नंतरच्या ऑर्डर पुढच्या वितरण दिवशी जातात.`,
-              "चेकआउटवर तुमच्या पत्त्यासाठी उपलब्ध वेळांमधून तुम्ही वितरणाची वेळ निवडता. त्याच दिवसाची वेळ ती संपण्याच्या एक तास आधी बंद होते, आणि गर्दीच्या वेळा भरू शकतात.",
-              ...(f.holidays.length ? [`${daysText(f.holidays, "mr")} रोजी वितरण नाही.`] : []),
-              ...(f.blackoutDates.length
-                ? [`${f.blackoutDates.map((date) => dateText(date, "mr")).join(", ")} रोजी वितरण नाही.`]
-                : []),
-            ],
-          },
-        ],
-      },
-      {
-        id: "handover",
-        title: "तुमची ऑर्डर घेणे",
-        blocks: [
-          "तुमचा डिलिव्हरी भागीदार तुम्ही निवडलेल्या पत्त्यावर ऑर्डर आणतो. ऑर्डर हातात मिळाल्यावरच त्यांना 6 अंकी वितरण कोड द्या: त्यावरून वितरणाची खात्री होते. पत्त्यावर कोड असलेली कोणतीही व्यक्ती ऑर्डर घेऊ शकते. कॅश ऑन डिलिव्हरीसाठी कृपया नेमकी रक्कम तयार ठेवा.",
-        ],
-      },
-      {
-        id: "problems",
-        title: "उशीर आणि न झालेले वितरण",
-        blocks: [
-          "तुमची ऑर्डर कुठवर आली ते तिच्या पानावर पाहता येते. ऑर्डर घ्यायला कोणी नसल्यास, आम्ही पुन्हा प्रयत्न करतो किंवा ती दुकानात परत आणतो; [रद्द करणे व पैसे परत](/p/refunds-and-cancellations) पाहा. आमच्या नियंत्रणाबाहेरील घटनांमुळे होणाऱ्या उशिरासाठी आम्ही जबाबदार नाही.",
-        ],
-      },
-      {
-        id: "schools",
-        title: "शाळांच्या ऑर्डर",
-        blocks: ["शाळेने कोटेशन स्वीकारल्यावर, दुकान वितरण आणि बिलिंगची व्यवस्था थेट शाळेसोबत करते."],
       },
     ],
   }),

@@ -1,5 +1,6 @@
 // Rating an order after delivery, at desktop and phone width: the "How did we do?" popup, rating
-// later from the order page, Marathi, and the owner's page where the ratings are read and answered.
+// later from the order page, English for an old Marathi cookie, and the owner's page where the ratings
+// are read and answered.
 import AxeBuilder from "@axe-core/playwright";
 import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
 import mongoose from "mongoose";
@@ -236,19 +237,15 @@ test("the order page still has the stars: a low rating points at the complaints 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("the question is asked in Marathi when the shop is", async ({ browser }, info) => {
+test("the question is asked in English, even with an old Marathi cookie", async ({ browser }, info) => {
   const page = await as("shopper", browser, info);
   await deliver("AGS-E2E-FB-3");
   const { hostname } = new URL(info.project.use.baseURL!);
   await page.context().addCookies([{ name: "ags_locale", value: "mr", domain: hostname, path: "/" }]);
   await page.goto("/");
-  const dialog = page.getByRole("dialog", { name: "आमची सेवा कशी वाटली?" });
-  await expect(dialog).toContainText("ऑर्डर AGS-E2E-FB-3 पोहोचली");
-  await dialog.getByRole("radio", { name: "4 तारे – चांगले" }).focus();
-  await page.keyboard.press("Space");
-  await expect(dialog.getByRole("group", { name: "काय आवडले?" }).getByRole("button", { name: "वेळेवर" })).toBeVisible();
-  await shot(page, "popup-marathi", info);
-  await dialog.getByRole("button", { name: "आत्ता नको" }).click();
+  const dialog = sheet(page);
+  await expect(dialog).toContainText("AGS-E2E-FB-3");
+  await dialog.getByRole("button", { name: "Not now" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.context().clearCookies({ name: "ags_locale" });
 });

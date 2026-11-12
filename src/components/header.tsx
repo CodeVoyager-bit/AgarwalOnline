@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, Bell, ChevronDown, Heart, MapPin, School, Truck, UserRound } from "lucide-react";
 import { SmartSearch } from "./smart-search";
 import { MobileNav } from "./mobile-nav";
-import { LocaleToggle } from "./locale-toggle";
 import { AccountMenu, type MenuLink } from "./account-menu";
 import { staffRoleOf, type Role } from "@/lib/auth/permissions";
 import { currentUser } from "@/lib/auth/session";
@@ -145,7 +144,6 @@ export async function Header({
                 {text.sameDay(cutoff)} <ArrowRight size={14} aria-hidden="true" />
               </Link>
             )}
-            <LocaleToggle locale={locale} />
           </div>
         </div>
       </div>

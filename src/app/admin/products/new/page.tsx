@@ -46,23 +46,13 @@ export default async function NewProductPage() {
         <input type="hidden" name="operation" value="product" />
         <fieldset className="form-section">
           <legend>Name and description</legend>
-          <div className="staff-form-grid">
-            <label>
-              English name
-              <input name="nameEn" required />
-            </label>
-            <label>
-              Marathi name
-              <input name="nameMr" lang="mr" required />
-            </label>
-          </div>
           <label>
-            English description
-            <textarea name="descriptionEn" required />
+            Name
+            <input name="nameEn" required />
           </label>
           <label>
-            Marathi description
-            <textarea name="descriptionMr" lang="mr" required />
+            Description
+            <textarea name="descriptionEn" required />
           </label>
         </fieldset>
         <fieldset className="form-section">
@@ -91,7 +81,7 @@ export default async function NewProductPage() {
               <input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" spellCheck={false} required />
             </label>
             <label>
-              Other words shoppers type <small>Separated by commas, like notebook, diary, वही</small>
+              Other words shoppers type <small>Separated by commas, like notebook, diary. Marathi words work too, like वही</small>
               <input name="aliases" />
             </label>
           </div>

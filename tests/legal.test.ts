@@ -48,28 +48,26 @@ const allText = (doc: LegalDoc) => [doc.title, doc.lead, ...doc.sections.flatMap
 const words = (doc: LegalDoc) => allText(doc).join("\n");
 
 describe("store policies", () => {
-  it("has the same sections, in the same order, in English and Marathi, none of them empty", () => {
+  it("has every section filled in, in English only", () => {
     for (const [key, builder] of Object.entries(DOCS))
       for (const facts of [DEFAULT_FACTS, LIVE]) {
         const en = builder.en(facts);
-        const mr = builder.mr(facts);
-        expect(mr.sections.map((s) => s.id), key).toEqual(en.sections.map((s) => s.id));
-        for (const doc of [en, mr])
-          for (const section of doc.sections) {
-            expect(section.blocks.length, `${key}#${section.id}`).toBeGreaterThan(0);
-            for (const text of section.blocks.flatMap(texts)) expect(text.trim(), `${key}#${section.id}`).not.toBe("");
-          }
-        // the Marathi pages are really in Marathi
-        expect(words(mr), key).toMatch(/[ऀ-ॿ]/);
+        for (const section of en.sections) {
+          expect(section.blocks.length, `${key}#${section.id}`).toBeGreaterThan(0);
+          for (const text of section.blocks.flatMap(texts)) expect(text.trim(), `${key}#${section.id}`).not.toBe("");
+        }
+        // the site is English only (2026-11-12): no Devanagari, no Marathi version to point to
+        expect(words(en), key).not.toMatch(/[\u0900-\u097F]/);
+        expect(words(en), key).not.toMatch(/Marathi/);
       }
+    // the language cookie is gone, so the cookie list doesn't name it
+    expect(words(privacyDoc.en(LIVE))).not.toContain("ags_locale");
   });
 
   it("says other shops' items are still sold by us, and those shops get no customer details", () => {
-    const section = (locale: "en" | "mr") =>
-      termsDoc[locale](LIVE).sections.find((s) => s.id === "orders")!.blocks.flatMap(texts).join("\n");
-    expect(section("en")).toContain("provided by other local shops");
-    expect(section("en")).toContain("your order, bill, delivery, returns and refunds are all with Agarwal General Stores");
-    expect(section("mr")).toContain("इतर स्थानिक दुकानांकडून");
+    const section = termsDoc.en(LIVE).sections.find((s) => s.id === "orders")!.blocks.flatMap(texts).join("\n");
+    expect(section).toContain("provided by other local shops");
+    expect(section).toContain("your order, bill, delivery, returns and refunds are all with Agarwal General Stores");
     expect(words(privacyDoc.en(LIVE))).toContain("don't receive your details");
   });
 
@@ -78,12 +76,8 @@ describe("store policies", () => {
     const text = disputes.blocks.flatMap(texts).join("\n");
     expect(text).toContain("its decision is final within the store's own process");
     expect(text).toContain("The website version applies");
-    expect(text).toContain("English version prevails");
     expect(text).toContain("Consumer Protection Act, 2019");
     expect(text).toContain("Raigad");
-    expect(termsDoc.mr(LIVE).sections.find((s) => s.id === "disputes")!.blocks.flatMap(texts).join("\n")).toContain(
-      "ग्राहक संरक्षण कायदा, 2019",
-    );
   });
 
   it("quotes delivery rules from Store settings", () => {
@@ -96,12 +90,10 @@ describe("store policies", () => {
     expect(live).toContain("No cash on delivery.");
     expect(live).toContain("No deliveries on Sunday.");
     expect(live).toContain("No deliveries on 20 October 2026.");
-    expect(words(shippingDoc.mr(LIVE))).toContain("सोमवार–शनिवार");
   });
 
   it("names the grievance officer once Store settings has one, and says when details are missing", () => {
     expect(words(contactDoc.en(DEFAULT_FACTS))).toContain("Being added");
-    expect(words(contactDoc.mr(DEFAULT_FACTS))).toContain("लवकरच जोडले जाईल");
     const live = words(contactDoc.en(LIVE));
     expect(live).not.toContain("Being added");
     expect(live).toContain("R. Agarwal");
@@ -124,17 +116,14 @@ describe("store policies", () => {
     const charges = (facts: LegalFacts) => words(shippingDoc.en(facts));
     expect(charges(LIVE)).toContain("shown above");
     expect(charges(DEFAULT_FACTS)).not.toContain("shown above");
-    expect(words(shippingDoc.mr(DEFAULT_FACTS))).not.toContain("वर दाखवले");
   });
 
   it("describes only what is live: no family tab, no online payment, no shop assistant", () => {
     for (const [key, builder] of Object.entries(DOCS)) {
       const en = words(builder.en(LIVE));
-      const mr = words(builder.mr(LIVE));
       // the khata was removed on 2026-10-16; online payment and the assistant are switched off
       for (const gone of [/family tab/i, /\btab\b/i, /khata/i, /Razorpay/, /pay(ment)? online|online payment/i, /assistant/i])
         expect(en, `${key} ${gone}`).not.toMatch(gone);
-      for (const gone of [/टॅब/, /Razorpay/, /ऑनलाइन पेमेंट/, /सहाय्यक/]) expect(mr, `${key} ${gone}`).not.toMatch(gone);
     }
     expect(words(termsDoc.en(LIVE))).toContain("We take **cash on delivery** only");
     expect(notice("family", "en")).not.toMatch(/\btab\b/);
@@ -165,7 +154,7 @@ describe("store policies", () => {
       "child", "family", "push",
     ];
     const notices = (["en", "mr"] as const).flatMap((locale) => kinds.map((kind) => notice(kind, locale, { google: true })));
-    const docs = Object.values(DOCS).flatMap((builder) => [builder.en(LIVE), builder.mr(LIVE)]);
+    const docs = Object.values(DOCS).map((builder) => builder.en(LIVE));
     const ids = new Map(
       LEGAL_PAGES.map((page) => [page.href, new Set(DOCS[page.key].en(LIVE).sections.map((s) => s.id))]),
     );

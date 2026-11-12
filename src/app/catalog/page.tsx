@@ -23,7 +23,7 @@ export async function generateMetadata({
   const params = await searchParams;
   const category = (await catalogCategories()).find((item) => item.slug === params.category);
   if (params.q) return { title: `Results for “${params.q.slice(0, 60)}”`, robots: { index: false } };
-  // sort, page and lang only reorder or translate the same list: one address per aisle for search engines
+  // sort and page only reorder the same list: one address per aisle for search engines
   if (category)
     return {
       title: `${category.en} online in Nagothane`,
@@ -44,12 +44,7 @@ export default async function Catalog({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
-  const savedLocale = await currentLocale();
-  const locale = params.lang
-    ? params.lang === "mr"
-      ? "mr"
-      : "en"
-    : savedLocale;
+  const locale = await currentLocale();
   const [products, categories, sections, photos] = await Promise.all([
     catalog(params),
     catalogCategories(),
@@ -65,8 +60,8 @@ export default async function Catalog({
   const section = around.find((item) => item.slug === params.in) ?? around[0];
   const rail = section?.shelves ?? categories;
   const shelfHref = (slug: string, within?: string) =>
-    `/catalog?${new URLSearchParams({ lang: locale, category: slug, ...(within ? { in: within } : {}) })}`;
-  const allHref = `/catalog?${new URLSearchParams({ lang: locale })}`;
+    `/catalog?${new URLSearchParams({ category: slug, ...(within ? { in: within } : {}) })}`;
+  const allHref = "/catalog";
   const next = active ? rail[rail.findIndex((shelf) => shelf.slug === active.slug) + 1] : undefined;
   // sort and stock filters can be cleared without leaving the shelf; a search clears back to the whole shop
   const filtered = Boolean(params.q || params.inStock || params.sort);

@@ -15,6 +15,8 @@ import { CLASSES, classLabel } from "@/lib/family/models";
 import { firstName } from "@/lib/lists/service";
 import { formatPrice } from "@/lib/display";
 import { ActionForm } from "@/components/action-form";
+import { BillActions } from "@/components/bill-actions";
+import { AGARWAL } from "@/lib/commerce/bill-split";
 import { Avatars } from "@/components/avatars";
 import { EmptyState } from "@/components/empty-state";
 import { PageHeading } from "@/components/page-heading";
@@ -360,12 +362,33 @@ export default async function FamilyPage() {
                             {forLine(order.forKey, order.forName)} · {day(order.at)}
                           </small>
                         </span>
-                        <span>
-                          <strong>{formatPrice(order.netPaise)}</strong>
-                          <a href={`/api/invoices/${order.id}`}>
-                            <ReceiptText size={14} aria-hidden="true" /> {t("Invoice", "पावती")}
-                          </a>
-                        </span>
+                        <strong>{formatPrice(order.netPaise)}</strong>
+                        {/* Print bill and Share PDF on WhatsApp, as in the order history. Another adult's order page
+                            can't be opened here, so when it has a provider's bill too, each bill gets its own pair */}
+                        {order.bills.length > 0 && (
+                          <span className="spend-bills">
+                            {order.bills.length === 1 || order.buyerId === user.id ? (
+                              <BillActions
+                                orderId={order.id}
+                                orderNumber={order.number}
+                                bills={order.bills.map((bill) => ({ key: bill.key }))}
+                                compact
+                                printHref={order.buyerId === user.id ? `/account/orders/${order.id}#bills` : undefined}
+                              />
+                            ) : (
+                              order.bills.map((bill) => (
+                                <span key={bill.key} className="spend-bill">
+                                  <small>
+                                    {bill.key === AGARWAL
+                                      ? t("Agarwal’s bill", "अग्रवालचे बिल")
+                                      : (bill.seller ?? t("Provider’s bill", "पुरवठादाराचे बिल"))}
+                                  </small>
+                                  <BillActions orderId={order.id} orderNumber={order.number} bills={[{ key: bill.key }]} compact />
+                                </span>
+                              ))
+                            )}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

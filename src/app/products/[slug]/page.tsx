@@ -38,28 +38,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // Google shows about 60 characters: a long name keeps its price and loses the shop's name
     title: `${title} | Agarwal Online`.length > 60 ? { absolute: title } : title,
     description: productDescription(p),
-    // ?lang= and the cookie only change the language; search engines should list one address
     alternates: { canonical: `/products/${p.slug}` },
     ...(photo ? { openGraph: { images: [photo] } } : {}),
   };
 }
-export default async function ProductPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ lang?: string }>;
-}) {
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   // each round asks for everything that doesn't wait on something else, all at once
-  const [user, { slug }, { lang: requestedLocale }, savedLocale] = await Promise.all([
-    currentUser(),
-    params,
-    searchParams,
-    currentLocale(),
-  ]);
+  const [user, { slug }, locale] = await Promise.all([currentUser(), params, currentLocale()]);
   const p = await productBySlug(slug);
   if (!p) notFound();
-  const locale = requestedLocale ? (requestedLocale === "mr" ? "mr" : "en") : savedLocale;
   const mr = locale === "mr";
   const image = p.image ?? productImages[p.slug];
   const [reviews, related, rules, saved, categories, myLists, variantIds, seller] = await Promise.all([
@@ -122,7 +109,7 @@ export default async function ProductPage({
       <nav className="breadcrumb" aria-label="Breadcrumb">
         <Link href="/catalog">{mr ? "सर्व उत्पादने" : "All products"}</Link>
         <ChevronRight size={14} aria-hidden="true" />
-        <Link href={`/catalog?category=${p.categorySlug}&lang=${locale}`}>
+        <Link href={`/catalog?category=${p.categorySlug}`}>
           {categoryName}
         </Link>
         <ChevronRight size={14} aria-hidden="true" />
@@ -144,15 +131,12 @@ export default async function ProductPage({
               <WishlistButton productId={p.id} name={p.name[locale]} saved={Boolean(saved)} mr={mr} />
             )}
           </div>
-          <h1 lang={locale}>{p.name[locale]}</h1>
-          <p className="muted" lang={mr ? "en" : "mr"}>
-            {p.name[mr ? "en" : "mr"]}
-          </p>
+          <h1>{p.name[locale]}</h1>
           {alsoOn.length > 0 && (
             <p className="also-shelves">
-              {mr ? "इथेही आहे:" : "Also on:"}
+              Also on:
               {alsoOn.map((shelf) => (
-                <Link key={shelf.slug} href={`/catalog?category=${shelf.slug}&lang=${locale}`}>
+                <Link key={shelf.slug} href={`/catalog?category=${shelf.slug}`}>
                   {shelf[locale]}
                 </Link>
               ))}

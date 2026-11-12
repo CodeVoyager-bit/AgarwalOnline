@@ -7,7 +7,6 @@ import {
   Clock3,
   Headphones,
   Package,
-  ReceiptText,
   Truck,
   XCircle,
   type LucideIcon,
@@ -37,6 +36,8 @@ import { OrderFeedbackCard } from "@/components/order-feedback-card";
 import { currentLocale } from "@/lib/i18n";
 import { PushSettings } from "@/components/push-settings";
 import { pushPublicKey } from "@/lib/push/service";
+import { OrderBills } from "@/components/order-bills";
+import { taxProfile } from "@/lib/tax/profile";
 export const metadata = { title: "Order details", robots: { index: false } };
 
 const STAGE_ICONS: Record<string, LucideIcon> = {
@@ -344,12 +345,8 @@ export default async function OrderDetail({
               o.expiresAt > new Date() && (
                 <PayButton orderId={id} amount={o.totalPaise} />
               )}
-            {/* a cancelled order has no bill to keep */}
-            {o.orderStatus !== "cancelled" && (
-              <a className="bill-invoice" href={`/api/invoices/${id}`}>
-                <ReceiptText size={18} aria-hidden="true" /> Download invoice
-              </a>
-            )}
+            {/* a cancelled order has no bill to keep; a provider that bills in its own name adds its own */}
+            <OrderBills order={o} shopName={(await taxProfile()).legalName} />
           </section>
 
           <section className="panel order-card" aria-labelledby="details-title">

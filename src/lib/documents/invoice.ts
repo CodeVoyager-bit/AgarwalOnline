@@ -4,6 +4,7 @@ import { rupeesInMarathiWords, rupeesInWords } from "../money-words";
 import type { SectionValues } from "../settings/shop";
 import { dateOnly, escape, money } from "./format";
 import { renderBoxed, type BoxedTheme } from "./invoice-boxed";
+import { billBar, type BillBar } from "./bill-bar";
 
 export type InvoiceLine = PackedLine & {
   variantId?: unknown;
@@ -97,31 +98,38 @@ const PAGE = {
     "@page{size:80mm auto;margin:4mm}body{font-size:11.5px;max-width:300px;padding:0 6px}header,.parties{flex-direction:column;gap:8px}.doc{text-align:left}.wide{display:none}.totals{width:100%}th,td{padding:5px 3px}",
 } as const;
 
-export type BillKind = "cash-memo" | "tax-invoice" | "tax-invoice-cum-bill-of-supply" | "estimate";
+export type BillKind = "cash-memo" | "tax-invoice" | "tax-invoice-cum-bill-of-supply" | "bill-of-supply" | "estimate";
 const HEADINGS: Record<BillKind, string> = {
   "cash-memo": "Cash memo",
   "tax-invoice": "Tax invoice",
   "tax-invoice-cum-bill-of-supply": "Tax invoice-cum-bill of supply",
+  "bill-of-supply": "Bill of supply",
   estimate: "Estimate",
 };
+/** What a seller under the composition scheme must print on its bill of supply. */
+export const COMPOSITION_LINE = "Composition taxable person, not eligible to collect tax on supplies.";
 
 /**
  * Which document this is. It follows the shop's GST status, not a choice per order: a cash memo
  * with no GSTIN; a tax invoice with one, or an invoice-cum-bill of supply when 0% items (most
- * school stationery since Sept 2025) are on the bill of a buyer without a GSTIN (Rule 46A).
+ * school stationery since Sept 2025) are on the bill of a buyer without a GSTIN (Rule 46A). A provider
+ * under the composition scheme gives a bill of supply, charging no GST.
  */
 export function billKind({
   estimate,
   sellerGstin,
   buyerGstin,
   rates,
+  composition = false,
 }: {
   estimate: boolean;
   sellerGstin?: string;
   buyerGstin?: string;
   rates: (number | null)[];
+  composition?: boolean;
 }): BillKind {
   if (estimate) return "estimate";
+  if (composition) return "bill-of-supply";
   if (!sellerGstin) return "cash-memo";
   return !buyerGstin && rates.some((rate) => rate === 0) && rates.some((rate) => rate != null && rate > 0)
     ? "tax-invoice-cum-bill-of-supply"
@@ -148,6 +156,9 @@ export function renderInvoice({
   estimate = false,
   staffView = false,
   payment,
+  composition = false,
+  extraNotes = [],
+  bar = null,
 }: {
   order: InvoiceOrder;
   /** The shop as the bill was issued (kept on the order at delivery), or as it is now. */
@@ -172,11 +183,17 @@ export function renderInvoice({
   staffView?: boolean;
   /** The shop's bank and UPI details, printed when Customize → Bills asks for them. */
   payment?: PaymentDetails | null;
+  /** A provider under the composition scheme: a bill of supply. */
+  composition?: boolean;
+  /** Under the totals: on a provider's bill, who it was sold through; on Agarwal's, where the provider's items went. */
+  extraNotes?: string[];
+  /** Print bill and Share PDF on WhatsApp at the top; none on a PDF or a thumbnail. */
+  bar?: BillBar | null;
 }) {
   const cash = order.paymentMethod === "cod";
   const factOf = (line: InvoiceLine) => facts.get(String(line.variantId)) ?? {};
   const rates = order.items.map((line) => factOf(line).gstRatePercent ?? null);
-  const kind = billKind({ estimate, sellerGstin: seller.gstin, buyerGstin: order.bill?.gstin, rates });
+  const kind = billKind({ estimate, sellerGstin: seller.gstin, buyerGstin: order.bill?.gstin, rates, composition });
   const taxed = kind === "tax-invoice" || kind === "tax-invoice-cum-bill-of-supply";
   const tax = taxed
     ? inclusiveTax(
@@ -198,14 +215,17 @@ export function renderInvoice({
         }`
       : "",
     tax?.delivery && tax.delivery.rate ? `Delivery is taxed at ${tax.delivery.rate}%, the highest rate on this bill.` : "",
+    ...extraNotes,
   ].filter(Boolean);
   // what the law asks each kind to say about tax, at the foot
   const legal =
     kind === "cash-memo"
       ? "Not registered under GST – no GST charged."
-      : kind === "estimate"
-        ? "This estimate is not a bill and not a tax invoice. The bill comes with the delivery."
-        : "Prices include GST.";
+      : kind === "bill-of-supply"
+        ? COMPOSITION_LINE
+        : kind === "estimate"
+          ? "This estimate is not a bill and not a tax invoice. The bill comes with the delivery."
+          : "Prices include GST.";
   const bank = bill.showBankDetails && payment && Object.values(payment).some((value) => value?.trim()) ? payment : null;
 
   // a classic boxed style, and every kaccha bill, on A4 or A5; receipt paper keeps the narrow layout below
@@ -270,7 +290,7 @@ export function renderInvoice({
       greeting: bill.greeting,
       logo: bill.showLogo ? `${origin}/icons/icon-192.png` : null,
       paper: bill.paper === "a5" ? "a5" : "a4",
-      printButton: bill.openAs === "page",
+      bar: billBar(bar),
       sample,
       missingNames,
     });
@@ -278,9 +298,11 @@ export function renderInvoice({
   const accent = /^#[0-9a-f]{6}$/i.test(bill.accent) ? bill.accent : "#1e3a8a";
   const page = PAGE[bill.paper as keyof typeof PAGE] ?? PAGE.a4;
 
-  // the shop: name, address and a customer-care contact always; its GSTIN on a tax invoice only
+  // the shop: name, address and a customer-care contact always; its GSTIN on a tax invoice, and on a
+  // composition seller's bill of supply, which must carry it too
   const careLine = [seller.phone && `Phone ${seller.phone}`, seller.email].filter(Boolean).join(" · ");
-  const shopLine = [seller.address, seller.phone && `Phone ${seller.phone}`, taxed && seller.gstin && `GSTIN ${seller.gstin}`, seller.email]
+  const showGstin = (taxed || kind === "bill-of-supply") && seller.gstin;
+  const shopLine = [seller.address, seller.phone && `Phone ${seller.phone}`, showGstin && `GSTIN ${seller.gstin}`, seller.email]
     .filter(Boolean)
     .join(" · ");
   const logo = bill.showLogo ? `<img class="logo" src="${escape(origin)}/icons/icon-192.png" alt="">` : "";
@@ -385,7 +407,7 @@ export function renderInvoice({
   const parts = [
     sample ? '<p class="sample">Sample bill: how a bill looks with the settings saved now. The order and items are made up from your catalogue.</p>' : "",
     missingRates,
-    bill.openAs === "page" ? '<button class="print" type="button" onclick="window.print()">Print or save as PDF</button>' : "",
+    billBar(bar, accent),
     kind === "estimate" ? '<p class="estimate">Estimate – not a bill / not a tax invoice</p>' : "",
     replaces ? `<p class="revised">Revised bill: replaces bill no. ${escape(replaces)}</p>` : "",
     `<header><div class="shop">${logo}<div><h1>${escape(seller.legalName)}</h1>${shopLine ? `<span class="muted">${escape(shopLine)}</span>` : ""}</div></div><div class="doc">${doc}</div></header>`,

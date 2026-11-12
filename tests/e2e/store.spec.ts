@@ -18,6 +18,7 @@ import {
 } from "../../src/lib/commerce/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
 import { POLICY_VERSION } from "../../src/lib/legal/version";
+import { Promotion } from "../../src/lib/promotions/models";
 const uri = "mongodb://127.0.0.1:27028/ags_test_e2e?replicaSet=ags-local";
 test.beforeAll(async () => {
   await mongoose.connect(uri);
@@ -253,10 +254,22 @@ test("multilingual search and empty results", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "No products found" }),
   ).toBeVisible();
+  // an old link asking for Marathi gets English: the site is English only
   await page.goto("/catalog?lang=mr");
   await expect(
-    page.getByRole("heading", { name: "रोजचा बासमती तांदूळ", exact: true }),
+    page.getByRole("heading", { name: "Everyday Basmati Rice", exact: true }),
   ).toBeVisible();
+});
+test("the shop is English only, even with an old Marathi cookie or ?lang=mr", async ({ page, context, baseURL }) => {
+  await context.addCookies([{ name: "ags_locale", value: "mr", url: baseURL! }]);
+  for (const href of ["/", "/catalog", "/catalog?lang=mr", "/products/everyday-basmati-rice?lang=mr", "/p", "/p/privacy-policy", "/p/terms-and-conditions", "/login"]) {
+    await page.goto(href);
+    await expect(page.locator("html"), href).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("form", { name: "Language" }), href).toHaveCount(0);
+    expect(await page.locator("body").innerText(), href).not.toMatch(/[\u0900-\u097F]/);
+  }
+  await page.goto("/products/everyday-basmati-rice");
+  await expect(page.getByRole("heading", { level: 1, name: "Everyday Basmati Rice" })).toBeVisible();
 });
 test("staff login and delivery role restrictions", async ({ page }) => {
   await page.goto("/login");
@@ -376,13 +389,8 @@ test("mobile storefront stays within viewport and navigation is visible", async 
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  // phones switch language from the top strip, not only from the footer
-  const language = page.locator(".top-strip").getByRole("form", { name: "Language" });
-  await language.getByRole("button", { name: "मराठी" }).click();
-  await expect(language.getByRole("button", { name: "मराठी" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("navigation", { name: "Mobile navigation" }).getByRole("link", { name: "मुख्य" })).toBeVisible();
-  await language.getByRole("button", { name: "English" }).click();
-  await expect(language.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
+  // English only: no language switch on the strip
+  await expect(page.locator(".top-strip").getByRole("form", { name: "Language" })).toHaveCount(0);
   await page.screenshot({
     path: ".local/mobile-storefront.png",
     fullPage: true,
@@ -394,31 +402,44 @@ test("mobile storefront stays within viewport and navigation is visible", async 
   });
 });
 
-test("the phone top bar stays on one line in both languages", async ({ page }) => {
-  const strip = page.locator(".top-strip");
-  const language = strip.getByRole("form", { name: "Language" });
-  const english = language.getByRole("button", { name: "English" });
-  const marathi = language.getByRole("button", { name: "मराठी" });
-  const onOneLine = async () => {
-    const line = await strip.locator("p").boundingBox();
-    const toggle = await language.boundingBox();
-    const bar = await strip.boundingBox();
-    // the switch sits beside the words, not on a row of its own under them
-    expect(toggle!.y).toBeLessThan(line!.y + line!.height);
-    expect(bar!.height).toBeLessThanOrEqual(48);
-  };
-  for (const width of [360, 390, 412]) {
-    await page.setViewportSize({ width, height: 800 });
-    await page.goto("/");
-    // "EN" on the bar; screen readers still hear "English"
-    await expect(english.locator(".locale-short")).toBeVisible();
-    await expect(english.locator(".locale-long")).toBeHidden();
-    await onOneLine();
-    await marathi.click();
-    await expect(marathi).toHaveAttribute("aria-pressed", "true");
-    await onOneLine();
-    await english.click();
-    await expect(english).toHaveAttribute("aria-pressed", "true");
+test("the phone top bar shows free delivery and the welcome code side by side, on one line", async ({ page }) => {
+  const someone = new mongoose.Types.ObjectId();
+  const [welcome] = await Promotion.create([
+    {
+      name: "Neighbourhood welcome",
+      code: "LOCAL10",
+      kind: "code",
+      discountType: "percentage",
+      discountValue: 10,
+      minimumSubtotalPaise: 49900,
+      startsAt: new Date(Date.now() - 60_000),
+      endsAt: new Date(Date.now() + 86_400_000),
+      active: true,
+      welcome: true,
+      createdBy: someone,
+      updatedBy: someone,
+    },
+  ]);
+  try {
+    const strip = page.locator(".top-strip");
+    for (const width of [320, 360, 412]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+      const free = strip.locator(".strip-free");
+      const code = strip.locator(".offer-code");
+      await expect(free).toBeVisible();
+      await expect(code).toHaveText("LOCAL10");
+      const left = (await free.boundingBox())!;
+      const right = (await code.boundingBox())!;
+      const bar = (await strip.boundingBox())!;
+      // side by side on one line, the code on the right, nothing past the screen's edge
+      expect(Math.abs(left.y + left.height / 2 - (right.y + right.height / 2)), `${width}px`).toBeLessThan(8);
+      expect(right.x, `${width}px`).toBeGreaterThan(left.x + left.width);
+      expect(right.x + right.width, `${width}px`).toBeLessThanOrEqual(width);
+      expect(bar.height, `${width}px`).toBeLessThanOrEqual(48);
+    }
+  } finally {
+    await Promotion.deleteOne({ _id: welcome._id });
   }
 });
 

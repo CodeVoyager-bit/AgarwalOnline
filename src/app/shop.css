@@ -20,14 +20,13 @@
 .shop-strip .offer-code { background: var(--on-band); color: var(--band); }
 .shop-strip .strip-truck { color: inherit; }
 .shop-header .brand { color: var(--on-band); }
-.shop-strip .locale-toggle { background: var(--paper); box-shadow: none; }
 /* the grey "Online" under the name fails on yellow (under 4.5:1); ink holds 12:1 */
 .shop-header .brand small { color: var(--on-band); }
 .footer-wordmark::before { content: "Agarwal"; }
 .strip-brand, .strip-promise { display: none; }
 
 @media (max-width: 760px) {
-  /* Two rows, about 100px: the name, the delivery promise and the language (44px, scrolls away),
+  /* Two rows, about 100px: the name and the delivery promise (44px, scrolls away),
      then the search (56px, stays pinned). The brand row that used to sit between them is gone;
      the offer line moved to the home page and the basket bar. */
   :root:has(.shop-header) { --header-h: 56px; --header-collapse: 0px; }
@@ -72,8 +71,6 @@
   .shop-strip:has(.school-door) p { display: none; }
   .shop-strip:has(.school-door) .top-strip-links { margin-left: auto; }
   .shop-strip .top-strip-links { flex: none; flex-wrap: nowrap; margin-left: 0; }
-  .shop-strip .locale-toggle button { min-height: 30px; padding: 2px 7px; }
-  .shop-strip .locale-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
   /* the basket bar says how far the basket is from free delivery */
   .cart-bar:has(.cart-free) b { font-size: 0.95rem; font-weight: 700; opacity: 1; }

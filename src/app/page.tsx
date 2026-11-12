@@ -40,7 +40,6 @@ const copy = {
     kitCta: "See the kit",
     andMore: " and more",
     faq: "Questions people ask",
-    faqMr: "नेहमीचे प्रश्न",
     productsCount: (n: number) => (n === 1 ? "1 product" : `${n} products`),
     pinLabel: "Check delivery at your PIN code",
     pinHint: "Six digits. Used only to check serviceability.",
@@ -55,16 +54,13 @@ const copy = {
     percentOff: (value: number) => `${value}% off`,
     amountOff: (amount: string) => `${amount} off`,
     aisles: "Shop by category",
-    aislesMr: "विभागानुसार खरेदी",
     allAisles: (n: number) => `All ${n} categories`,
     usuals: "Your usuals",
     usualsTitle: "Buy it again",
     pastOrders: "Past orders",
     popular: "Popular in the shop",
-    popularMr: "दुकानातील लोकप्रिय",
     seeAll: "See all",
     newIn: "New in store",
-    newInMr: "दुकानात नवीन",
     storyEyebrow: "How delivery works",
     step1: (cutoff: string) => `Order before ${cutoff}`,
     step1Note: "Anything ordered after that goes out tomorrow.",
@@ -79,7 +75,6 @@ const copy = {
     kitCta: "संच पाहा",
     andMore: " आणि आणखी",
     faq: "नेहमीचे प्रश्न",
-    faqMr: "Questions people ask",
     productsCount: (n: number) => `${n} उत्पादने`,
     pinLabel: "तुमच्या पिन कोडवर वितरण तपासा",
     pinHint: "सहा अंक. फक्त वितरण उपलब्धता तपासण्यासाठी.",
@@ -94,16 +89,13 @@ const copy = {
     percentOff: (value: number) => `${value}% सूट`,
     amountOff: (amount: string) => `${amount} सूट`,
     aisles: "विभागानुसार खरेदी",
-    aislesMr: "Shop by category",
     allAisles: (n: number) => `सर्व ${n} विभाग`,
     usuals: "तुमच्या नेहमीच्या वस्तू",
     usualsTitle: "पुन्हा खरेदी करा",
     pastOrders: "मागील ऑर्डर",
     popular: "दुकानातील लोकप्रिय",
-    popularMr: "Popular in the shop",
     seeAll: "सर्व पाहा",
     newIn: "दुकानात नवीन",
-    newInMr: "New in store",
     storyEyebrow: "वितरण कसे चालते",
     step1: (cutoff: string) => `${cutoff} पूर्वी ऑर्डर करा`,
     step1Note: "त्यानंतरच्या ऑर्डर उद्या पाठवल्या जातात.",
@@ -131,7 +123,6 @@ function AisleTile({
   within?: string;
 }) {
   const photo = categoryImages[category.slug] ?? fallback;
-  const other = locale === "en" ? "mr" : "en";
   return (
     <Link
       href={`/catalog?${new URLSearchParams({ category: category.slug, ...(within ? { in: within } : {}) })}`}
@@ -151,8 +142,7 @@ function AisleTile({
         )}
       </span>
       <span className="aisle-label">
-        <strong lang={locale}>{category[locale]}</strong>
-        <small lang={other}>{category[other]}</small>
+        <strong>{category[locale]}</strong>
       </span>
     </Link>
   );
@@ -162,7 +152,6 @@ function Section({
   id,
   title,
   subtitle,
-  subtitleLang,
   link,
   linkLabel,
   count,
@@ -170,9 +159,7 @@ function Section({
 }: {
   id: string;
   title: string;
-  subtitle: string;
-  /** the subtitle is usually the other language's name for the section */
-  subtitleLang?: string;
+  subtitle?: string;
   link: string;
   linkLabel: string;
   count?: number;
@@ -183,9 +170,7 @@ function Section({
       <div className="section-heading">
         <div>
           <h2 id={id}>{title}</h2>
-          <span className="muted" lang={subtitleLang}>
-            {subtitle}
-          </span>
+          {subtitle && <span className="muted">{subtitle}</span>}
         </div>
         <Link href={link}>
           {linkLabel}
@@ -263,7 +248,6 @@ export default async function Home() {
     for (const product of picked) shown.add(product.id);
     return spread(picked);
   };
-  const other = locale === "en" ? "mr" : "en";
   const buyAgainRow = take(buyAgain, 5);
   const popular = take(bestsellers.length ? bestsellers : products, 10);
   const newRow = take(newest, 10);
@@ -334,8 +318,8 @@ export default async function Home() {
                     href={`/catalog?${new URLSearchParams({ category: section.shelves[0].slug, ...(section.slug ? { in: section.slug } : {}) })}`}
                     className={`section-block tint-${(index % 5) + 1}${big ? " big" : ""}`}
                   >
-                    <h3 lang={locale}>{section[locale]}</h3>
-                    <p lang={locale}>
+                    <h3>{section[locale]}</h3>
+                    <p>
                       {names.slice(0, shown).join(", ")}
                       {names.length > shown ? t.andMore : ""}
                     </p>
@@ -358,9 +342,6 @@ export default async function Home() {
             <div className="section-heading">
               <div>
                 <h2 id="aisles-title">{t.aisles}</h2>
-                <span className="muted" lang={other}>
-                  {t.aislesMr}
-                </span>
               </div>
               <Link href="/catalog">
                 {t.seeAll} ({categories.length}) <ArrowRight size={16} aria-hidden="true" />
@@ -407,8 +388,6 @@ export default async function Home() {
           <Section
             id="popular-title"
             title={t.popular}
-            subtitle={t.popularMr}
-            subtitleLang={other}
             link="/catalog"
             linkLabel={t.seeAll}
             count={products.length}
@@ -522,8 +501,6 @@ export default async function Home() {
           <Section
             id="new-title"
             title={t.newIn}
-            subtitle={t.newInMr}
-            subtitleLang={other}
             link="/catalog?sort=new"
             linkLabel={t.seeAll}
           >
@@ -538,9 +515,6 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <h2 id="faq-title">{t.faq}</h2>
-              <span className="muted" lang={other}>
-                {t.faqMr}
-              </span>
             </div>
           </div>
           <div className="faq-list">

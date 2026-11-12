@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, ReceiptText } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { Order } from "@/lib/commerce/models";
 import { User } from "@/lib/db/models";
@@ -10,6 +10,7 @@ import { dayLabel } from "@/lib/commerce/slots";
 import { lineNotes, type PackedLine } from "@/lib/operations/packing";
 import { taxProfile } from "@/lib/tax/profile";
 import { PrintButton } from "@/components/print-button";
+import { OrderBills } from "@/components/order-bills";
 import { shopSettings } from "@/lib/settings/shop";
 export const metadata = { title: "Packing slip", robots: { index: false } };
 
@@ -63,11 +64,14 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
       </nav>
       <div className="slip-actions split-actions">
         <PrintButton label="Print packing slip" />
-        {o.orderStatus !== "cancelled" && (
-          <a className="secondary-button" href={`/api/invoices/${id}`} target="_blank" rel="noreferrer">
-            <ReceiptText size={18} aria-hidden="true" /> Open the bill
-          </a>
-        )}
+      </div>
+      <div className="slip-actions">
+        <OrderBills
+          order={o}
+          shopName={shop.legalName}
+          phone={o.address.phone}
+          estimate={o.deliveryStatus !== "delivered" && !o.bill?.issuedAt}
+        />
       </div>
 
       <article className="packing-slip">

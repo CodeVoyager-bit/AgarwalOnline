@@ -24,6 +24,29 @@ const appEnv = {
   VAPID_PUBLIC_KEY: "BI1cqnabp8TQeZcNNuvRAoygMRSgktNBX0rYSqPaUXYClMRBwJLLikXrIu8YsE-bPLDF0JLu_0PIHQWyisebmiw",
   VAPID_PRIVATE_KEY: "DruF1vOjAneXX8Y4esKuyv_zGa9n8nirvjxdnFF7cG0",
 };
+/**
+ * Every page's layout (layout.spec.ts only) on more Android screens: the narrowest phone, the most
+ * common one, a wide one, a tablet, an opened foldable, and phones and tablets turned sideways.
+ * About an hour, so only on request: SCREENS=android npx playwright test tests/e2e/layout.spec.ts
+ */
+const ANDROID_SCREENS = [
+  "Galaxy S9+", // 320 wide: the narrowest phone in use
+  "Galaxy S24", // 360 wide, tall: the most common Android shape
+  "Galaxy A55", // 480 wide: big phones, or display size turned down
+  "Galaxy Tab S9", // 640 wide: a tablet held upright still gets the phone layout
+  "Galaxy Z Fold 7", // 984 × 1016: an opened foldable, nearly square
+  "Pixel 7 landscape", // 863 × 360: a phone turned sideways, very little height
+  "Galaxy S9+ landscape", // 658 × 320: the smallest phone sideways
+  "Galaxy Tab S4 landscape", // 1138 × 712: a tablet sideways
+] as const;
+const androidProjects =
+  process.env.SCREENS === "android"
+    ? ANDROID_SCREENS.map((device) => ({
+        name: `android-${device.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, "")}`,
+        testMatch: /layout\.spec\.ts/,
+        use: { ...devices[device] },
+      }))
+    : [];
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 120000,
@@ -41,6 +64,7 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
+    ...androidProjects,
   ],
   webServer: [
     {

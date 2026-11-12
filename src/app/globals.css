@@ -11,11 +11,11 @@
 /* ---------- Tokens ---------- */
 :root {
   color-scheme: light;
-  /* Marathi falls through to Mukta: the Latin faces carry no Devanagari glyphs. */
-  /* one Latin face: Jakarta carries body and headings, weight and size do the rest */
-  --font-sans: var(--font-jakarta), var(--font-mukta), system-ui, -apple-system,
+  /* one face: Jakarta carries body and headings, weight and size do the rest. The site is English only;
+     Marathi typed into search shows in the phone's own font. */
+  --font-sans: var(--font-jakarta), system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-jakarta), var(--font-mukta), system-ui, -apple-system,
+  --font-display: var(--font-jakarta), system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
 
   /* Base palette. Change these values to re-theme the whole platform. */
@@ -141,17 +141,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 body > main { flex: 1 0 auto; }
-:lang(mr) { line-height: 1.65; }
-/* Devanagari has no case and no tracking tradition: letter-spacing pulls conjuncts apart. */
-:is(h1, h2, h3, h4):lang(mr), :lang(mr) :is(h1, h2, h3, h4) { letter-spacing: 0; }
-/* (the logo's "Online" is Latin on every page, so it keeps its English tracking) */
-:is(.eyebrow, .top-strip, th, .workspace-group-label, .site-footer h2, .legal-toc h2, .legal-pager small):lang(mr),
-:lang(mr) :is(.eyebrow, .top-strip, th, .workspace-group-label, .site-footer h2, .legal-toc h2, .legal-pager small) {
-  letter-spacing: 0.02em;
-}
-/* English reads small-caps labels at 0.72rem; Devanagari has no capitals to carry them, so it needs more size */
-:is(.eyebrow, .site-footer h2, .legal-toc h2, .legal-pager small):lang(mr),
-:lang(mr) :is(.eyebrow, .site-footer h2, .legal-toc h2, .legal-pager small) { font-size: 0.84rem; }
 a { color: inherit; text-decoration: none; transition: color var(--fast); }
 a:hover { color: var(--accent); }
 p a, li a, td a, .muted a { color: var(--link); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -795,29 +784,6 @@ tbody tr:hover { background: var(--canvas); }
   font-weight: 700;
 }
 .category-nav { display: none; }
-.locale-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--r-pill);
-  background: var(--brand-soft);
-}
-.locale-toggle button {
-  min-height: 30px;
-  padding: 4px 12px;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--ink-2);
-  font-size: 0.78rem;
-  font-weight: 600;
-  transition: background var(--fast), color var(--fast);
-}
-.locale-toggle button[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
-.top-strip .locale-toggle { background: rgba(255, 255, 255, 0.18); background: color-mix(in oklab, var(--paper) 18%, transparent); }
-.top-strip .locale-toggle button { color: var(--paper); }
-.top-strip .locale-toggle button[aria-pressed="true"] { background: var(--offer); color: var(--ink); }
 .mobile-nav { display: none; }
 .cart-bar { display: none; }
 
@@ -871,7 +837,6 @@ tbody tr:hover { background: var(--canvas); }
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-.hero-badge:lang(mr) { letter-spacing: 0.02em; }
 .hero-card h1 { max-width: 16ch; margin: 0; color: var(--paper); font-size: clamp(1.9rem, 1.4rem + 1.4vw, 2.6rem); line-height: 1.04; }
 .hero-card h1 em { font-style: normal; color: var(--offer); }
 .hero-card > p { max-width: 50ch; margin: 0; color: #c7cad1; color: color-mix(in oklab, var(--paper) 76%, var(--ink)); font-size: 0.92rem; }
@@ -914,7 +879,6 @@ tbody tr:hover { background: var(--canvas); }
 .hub-card { display: flex; flex-direction: column; gap: 6px; min-height: 180px; padding: 22px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--paper); color: var(--ink); transition: border-color var(--fast); }
 .hub-card:hover { border-color: var(--line-strong); color: var(--ink); }
 .hub-eyebrow { color: var(--warning); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-.hub-eyebrow:lang(mr) { letter-spacing: 0.02em; }
 .hub-card strong { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
 .hub-card p { margin: 0; color: var(--muted); font-size: 0.85rem; }
 .hub-count { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 14px; color: var(--brand); font-size: 0.78rem; font-weight: 700; }
@@ -1608,7 +1572,6 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .site-footer li { margin: 0; }
 .site-footer li a { display: inline-block; padding: 2px 0; color: var(--ink-2); font-weight: 400; text-decoration: none; }
 .site-footer li a:hover { color: var(--accent); }
-.footer-store .locale-toggle { margin-top: 12px; }
 /* 20-odd aisles would make one column three times taller than the rest: they get their own band, several across */
 .footer-shop { grid-column: 1 / -1; padding-top: 28px; border-top: 1px solid var(--line); }
 .footer-shop ul { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 32px; }
@@ -1722,15 +1685,15 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   :root { --header-h: 116px; --header-collapse: 60px; --gutter: 20px; }
   html { scroll-padding-top: calc(var(--header-h) - var(--header-collapse) + 16px); }
   .header { top: calc(-1 * var(--header-collapse)); }
-  /* the offer line on the left, the language switch on the right: phones have no other way to reach it up top */
   .top-strip-inner { min-height: 40px; gap: 10px; font-size: 0.76rem; }
   /* when the line and the links don't fit side by side ("For my school", big text), the links move
-     under the line instead of squeezing it to 3–5 lines or pushing the language switch off the edge */
+     under the line instead of squeezing it to 3–5 lines */
   .top-strip-inner { flex-wrap: wrap; row-gap: 2px; }
   .top-strip p { flex: 1 1 auto; }
   .top-strip-links { flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; margin-left: auto; min-width: 0; }
-  .top-strip p:has(.offer-code) > span:not(:last-child) { display: none; }
-  .top-strip .locale-toggle button { min-height: 30px; padding: 2px 10px; font-size: 0.74rem; }
+  /* free delivery on the left, the welcome code on the right; the dot between them only reads on one line */
+  .top-strip p:has(.offer-code) { flex-wrap: nowrap; justify-content: space-between; }
+  .top-strip p:has(.offer-code) > span[aria-hidden="true"] { display: none; }
   .header-inner {
     /* the promise gives way (wraps) before the logo does; with enlarged text the logo's "Online" wraps too */
     grid-template-columns: fit-content(62%) minmax(0, 1fr);
@@ -1963,7 +1926,6 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .footer-store { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 16px; }
   .footer-store h2 { flex-basis: 100%; }
   .footer-store ul { display: flex; gap: 0 20px; }
-  .footer-store .locale-toggle { margin-top: 0; }
   .footer-base-inner { flex-direction: column; gap: 2px; padding-block: 12px; }
   .legal-layout { grid-template-columns: 1fr; gap: 20px; }
   /* the sticky contents column gives way to a folded list above the text */
@@ -2057,7 +2019,6 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .qty-stepper.compact button { width: 40px; height: 44px; }
   .search button { width: 44px; height: 44px; }
   .wishlist-control button { width: 44px; height: 44px; }
-  .locale-toggle button { min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -2560,8 +2521,55 @@ td .form-stack > .compact-button { min-width: 0; }
 .bill-saved { margin: 12px 0 0; padding: 8px 12px; border-radius: var(--r); background: var(--success-bg); color: var(--success); font-size: 0.88rem; font-weight: 600; text-align: center; }
 .bill-payment { margin: 12px 0 0; color: var(--ink-2); font-size: 0.88rem; }
 .bill-card .notice { margin: 12px 0 0; }
-.bill-invoice { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-top: 10px; color: var(--brand); font-size: 0.9rem; font-weight: 600; }
-.bill-invoice:hover { text-decoration: underline; }
+/* An order's bills (order-bills.tsx): one row each, with Print bill and Share PDF on WhatsApp (bill-actions.tsx) */
+.order-bills { display: grid; gap: 0; margin: 12px 0 0; padding: 0; list-style: none; }
+.order-bills > li { display: grid; gap: 8px; margin: 0; padding: 12px 0; border-top: 1px solid var(--line); }
+.order-bill-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.order-bill-head > svg { flex: none; margin-top: 2px; color: var(--brand); }
+.order-bill-head > span { display: grid; gap: 1px; min-width: 0; }
+.order-bill-head small { color: var(--muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.bill-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bill-actions :is(.bill-print, .bill-share, .primary-button, .secondary-button) { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 14px; font-size: 0.9rem; }
+.bill-actions .bill-share { border: 0; border-radius: var(--r); background: #15803d; color: #fff; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.bill-actions .bill-share:hover:not(:disabled) { background: #166534; }
+.bill-actions .bill-share:disabled { opacity: 0.7; cursor: progress; }
+.bill-actions .bill-download { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-size: 0.85rem; }
+.bill-actions-status { flex-basis: 100%; color: var(--muted); font-size: 0.82rem; }
+.bill-actions-status:empty { display: none; }
+.bill-actions.is-compact { gap: 6px; }
+.bill-actions.is-compact :is(.bill-print, .bill-share) { padding: 0 12px; white-space: nowrap; }
+.order-history li.has-bills { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.order-history li.has-bills > .bill-actions { padding-right: 4px; }
+.order-history li.has-bills > .bill-actions .bill-actions-status { grid-column: 1 / -1; }
+/* link buttons in a bill row (the view-only page) aren't underlined like links in text */
+.bill-actions a { text-decoration: none; }
+.shared-bills .order-bills { max-width: 640px; }
+/* the heading's own rule already sits above the first bill */
+.shared-bills .order-bills > li:first-child { border-top: 0; }
+.shared-bills-note { display: flex; align-items: center; gap: 6px; max-width: 640px; margin-top: 16px; font-size: 0.85rem; }
+@media (max-width: 760px) {
+  .bill-actions:not(.is-compact) :is(.bill-print, .bill-share, .primary-button, .secondary-button) { flex: 1 1 auto; }
+  .order-history li.has-bills { grid-template-columns: minmax(0, 1fr); }
+  .order-history li.has-bills > .bill-actions { padding: 0; }
+  .order-history li.has-bills > .bill-actions :is(.bill-print, .bill-share) { flex: 1 1 0; }
+}
+
+/* Providers → Tax and billing: the checklist that unlocks a provider's own bills */
+.provider-billing { display: grid; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.provider-billing h3 { margin: 0; font-size: 1.1rem; }
+.provider-billing > p { margin: 0; }
+.billing-checklist { display: grid; gap: 6px; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--canvas); list-style: none; font-size: 0.9rem; }
+.billing-checklist li { display: flex; gap: 8px; margin: 0; color: var(--ink-2); }
+.billing-checklist li > span[aria-hidden] { flex: none; width: 1.1em; color: var(--danger); font-weight: 700; }
+.billing-checklist li.is-done > span[aria-hidden] { color: var(--success); }
+.provider-billing .span-2 { grid-column: 1 / -1; }
+.provider-style-previews { grid-column: 1 / -1; margin: 0; font-size: 0.85rem; }
+.provider-style-previews a { display: inline-block; min-height: 24px; }
+.provider-ca { padding: 12px; border: 1px dashed var(--line-strong); border-radius: var(--r); }
+.provider-ca p { margin: 0; }
+.provider-bills-export { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin: 0 0 12px; }
+.provider-bills-export label { display: grid; gap: 4px; font-size: 0.9rem; }
+.provider-bills-export input { min-height: 44px; }
 .order-facts { display: grid; gap: 12px; margin: 0; }
 .order-facts > div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
 .order-facts dt { color: var(--muted); font-size: 0.85rem; }
@@ -2917,7 +2925,6 @@ html:has(.staff-header) { --header-h: 68px; }
 .alerts-bell .nav-count { position: absolute; top: 2px; right: -2px; background: var(--offer); color: var(--ink); }
 .staff-header-actions details.account-menu > summary { justify-content: center; width: 44px; height: 44px; border-radius: var(--r-pill); }
 .staff-header-actions details.account-menu > summary:hover { background: var(--brand-soft); }
-.account-menu-extra { margin-top: 4px; padding: 10px 12px 6px; border-top: 1px solid var(--line); }
 
 /* the workspace search: the shop's search pill, with grouped results under it */
 .finder-field > svg { color: var(--muted); }
@@ -2973,7 +2980,6 @@ html:has(.staff-header) { --header-h: 68px; }
 .more-sheet-links a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: var(--r); color: var(--ink); font-weight: 500; text-decoration: none; }
 .more-sheet-links a:hover { background: var(--brand-soft); color: var(--ink); }
 .more-sheet-links a svg { color: var(--muted); }
-.more-sheet-language { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0 16px; padding: 4px 12px; font-weight: 500; }
 .more-sheet-signout { width: 100%; }
 
 @media (max-width: 1023px) {
@@ -3056,11 +3062,12 @@ details.add-child > summary::after { margin-left: auto; }
 details.spend-month > summary { min-height: 56px; margin-bottom: 0; font-size: 1.05rem; }
 details.spend-month > summary span { margin-left: auto; }
 .spend-month ul { margin: 0; padding: 0; list-style: none; }
-.spend-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
-.spend-row > span { display: grid; gap: 2px; min-width: 0; }
-.spend-row > span:last-child { justify-items: end; text-align: right; }
+.spend-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.spend-row > span:first-child { display: grid; gap: 2px; min-width: 0; }
 .spend-row small { color: var(--muted); font-size: 0.85rem; }
-.spend-row a { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; font-size: 0.85rem; font-weight: 600; }
+/* each order's bills: Print and Share PDF on WhatsApp (bill-actions.tsx), under the order on its right */
+.spend-bills { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; }
+.spend-bill { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 8px; }
 
 .by-person h2 { margin: 0 0 8px; font-size: 1rem; }
 .by-person ul { margin: 0; padding: 0; list-style: none; }
@@ -3104,6 +3111,9 @@ details.spend-month > summary span { margin-left: auto; }
   .kid-grid, .family-start { grid-template-columns: minmax(0, 1fr); }
   .family-start { gap: 20px; }
   .spend-month { padding: 0 14px; }
+  .spend-bills, .spend-bill, .spend-bills .bill-actions { flex: 1 1 100%; }
+  .spend-bill { justify-content: flex-start; }
+  .spend-bills .bill-actions :is(.bill-print, .bill-share) { flex: 1 1 0; }
   .rate-row { display: grid; justify-items: start; }
   .rate-form { justify-items: start; }
 }
@@ -3913,17 +3923,15 @@ details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summa
   .mobile-nav { left: 8px; right: 8px; padding: 0 4px; }
   .nav-label { letter-spacing: -0.01em; }
 }
-/* the phone top bar on one line: a truck and the short words on the left, the school door and "EN | मराठी" on the right */
+/* the phone top bar on one line: a truck and the short words on the left, the welcome code (and a school's door) on the right */
 .strip-free { display: inline-flex; align-items: center; gap: 6px; }
-.strip-truck, .strip-short, .welcome-tiny, .locale-short { display: none; }
+.strip-truck, .strip-short, .welcome-tiny { display: none; }
 @media (max-width: 760px) {
   .strip-truck { display: block; flex: none; color: var(--offer); }
 }
 @media (max-width: 480px) {
   .strip-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .strip-short { display: inline; white-space: nowrap; }
-  .top-strip .locale-long { display: none; }
-  .top-strip .locale-short { display: inline; }
   .top-strip-links { gap: 4px 8px; }
   /* the school door shrinks to a round icon; its name stays for screen readers */
   .school-door-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
@@ -3966,16 +3974,11 @@ details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summa
 .customize-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
 .customize-jump a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--paper); color: var(--ink); font-size: 0.875rem; font-weight: 600; text-decoration: none; }
 .customize-jump a:hover { border-color: var(--ink); }
-.customize-both { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
-.customize-both > legend { width: 100%; margin-bottom: 8px; padding: 0; font-weight: 600; }
-.customize-both > legend small { display: block; color: var(--muted); font-weight: 400; }
-.customize-both label { font-weight: 500; }
 .customize-colour input[type="color"] { width: 72px; min-height: 44px; padding: 4px; cursor: pointer; }
 @media (max-width: 760px) {
   .announcement-bar { padding: 6px 16px; font-size: 0.8rem; }
   /* the jump links would push eight sections down a phone screen; the folded sections are the list there */
   .customize-jump { display: none; }
-  .customize-both { grid-template-columns: minmax(0, 1fr); }
   .quotation-sign::before { width: 160px; }
 }
 @media print {

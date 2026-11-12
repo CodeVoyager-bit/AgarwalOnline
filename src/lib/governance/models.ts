@@ -2,7 +2,12 @@ import mongoose, { Schema } from "mongoose";
 const approval = new Schema(
   {
     // variant: a new pack size for a product that is already in the shop
-    kind: { type: String, enum: ["product", "price", "stock", "variant", "delete-pack", "delete-product"], required: true },
+    // provider-billing: a provider's tax and billing details, asked for by an admin
+    kind: {
+      type: String,
+      enum: ["product", "price", "stock", "variant", "delete-pack", "delete-product", "provider-billing"],
+      required: true,
+    },
     targetId: { type: Schema.Types.ObjectId, required: true },
     requesterId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     reviewerId: { type: Schema.Types.ObjectId, ref: "User" },

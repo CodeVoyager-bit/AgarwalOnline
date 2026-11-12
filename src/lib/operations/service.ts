@@ -11,6 +11,7 @@ import {
 } from "../commerce/models";
 import { objectId } from "../commerce/service";
 import { billSeller } from "../commerce/bill";
+import { issueProviderBills } from "../commerce/provider-bills";
 import { customerMessage } from "../settings/shop";
 import {
   assertPermission,
@@ -1285,6 +1286,9 @@ export async function completeDelivery(actorId: string, input: unknown) {
     // the bill is issued now: it keeps the shop's details as they are today, whatever the shop is called later
     current.set("bill.issuedAt", new Date());
     current.set("bill.seller", await billSeller());
+    // and a bill of its own for each provider that bills its items in its own name (Providers → Tax and billing)
+    const providerBills = await issueProviderBills(current, session);
+    if (providerBills.length) current.set("providerBills", providerBills);
     await current.save({ session });
     await timeline(
       current._id,

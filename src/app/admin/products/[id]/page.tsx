@@ -117,23 +117,13 @@ export default async function EditProduct({
           <input type="hidden" name="productId" value={id} />
           <fieldset className="form-section">
             <legend>Name and description</legend>
-            <div className="staff-form-grid">
-              <label>
-                English name
-                <input name="nameEn" defaultValue={product.name.en} required />
-              </label>
-              <label>
-                Marathi name
-                <input name="nameMr" defaultValue={product.name.mr} required lang="mr" />
-              </label>
-            </div>
             <label>
-              English description
-              <textarea name="descriptionEn" defaultValue={product.description.en} required />
+              Name
+              <input name="nameEn" defaultValue={product.name.en} required />
             </label>
             <label>
-              Marathi description
-              <textarea name="descriptionMr" defaultValue={product.description.mr} required lang="mr" />
+              Description
+              <textarea name="descriptionEn" defaultValue={product.description.en} required />
             </label>
           </fieldset>
           <fieldset className="form-section">
@@ -175,37 +165,26 @@ export default async function EditProduct({
               </div>
             </details>
             <label>
-              Other words shoppers type <small>Separated by commas, English or Marathi</small>
+              Other words shoppers type <small>Separated by commas. Marathi words work too, like वही</small>
               <input name="aliases" defaultValue={product.aliases.join(", ")} />
             </label>
           </fieldset>
           <fieldset className="form-section">
             <legend>Extra details</legend>
-            <div className="staff-form-grid">
-              <label>
-                English highlights <small>One per line</small>
-                <textarea
-                  name="highlightsEn"
-                  defaultValue={(product.highlights ?? []).map((item: { en: string }) => item.en).join("\n")}
-                />
-              </label>
-              <label>
-                Marathi highlights <small>One per line</small>
-                <textarea
-                  name="highlightsMr"
-                  lang="mr"
-                  defaultValue={(product.highlights ?? []).map((item: { mr: string }) => item.mr).join("\n")}
-                />
-              </label>
-            </div>
             <label>
-              Specifications <small>One per line: label EN | label MR | value EN | value MR</small>
+              Highlights <small>One per line</small>
+              <textarea
+                name="highlightsEn"
+                defaultValue={(product.highlights ?? []).map((item: { en: string }) => item.en).join("\n")}
+              />
+            </label>
+            <label>
+              Specifications <small>One per line: label | value, like Pages | 192</small>
               <textarea
                 name="specifications"
                 defaultValue={(product.specifications ?? [])
                   .map(
-                    (item: { label: { en: string; mr: string }; value: { en: string; mr: string } }) =>
-                      `${item.label.en} | ${item.label.mr} | ${item.value.en} | ${item.value.mr}`,
+                    (item: { label: { en: string }; value: { en: string } }) => `${item.label.en} | ${item.value.en}`,
                   )
                   .join("\n")}
               />

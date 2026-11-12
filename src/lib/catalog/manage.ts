@@ -36,7 +36,8 @@ const categoryInput = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .max(60),
   nameEn: z.string().trim().min(2).max(80),
-  nameMr: z.string().trim().min(2).max(80),
+  // the site is English only: a Marathi name is optional and kept for search
+  nameMr: z.string().trim().max(80).optional(),
   /** Not on the form any more (nothing shows it); a category that has one keeps it. */
   symbol: z.string().trim().max(12).optional(),
   /** The sections it shows under; none makes it a top-level category. */
@@ -60,17 +61,18 @@ export async function saveCategory(actorId: string, input: unknown) {
       )
         throw Error("A category that holds others can’t sit inside one itself.");
     }
+    const before = data.categoryId
+      ? await Category.findById(data.categoryId).session(session).lean<{ slug: string; name: { en: string; mr: string } }>()
+      : null;
     const payload = {
       slug: data.slug,
-      name: { en: data.nameEn, mr: data.nameMr },
+      // an edit keeps the Marathi name search matches; a new category starts with the English one
+      name: { en: data.nameEn, mr: data.nameMr || before?.name.mr || data.nameEn },
       ...(data.symbol === undefined ? {} : { symbol: data.symbol }),
       parentIds,
       // the single "inside" from before a shelf could sit in several sections
       parentId: null,
     };
-    const before = data.categoryId
-      ? await Category.findById(data.categoryId).session(session).lean()
-      : null;
     const category = data.categoryId
       ? await Category.findOneAndUpdate(
           { _id: data.categoryId },
@@ -121,9 +123,10 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
     .object({
       productId: objectId,
       nameEn: z.string().trim().min(2).max(100),
-      nameMr: z.string().trim().min(2).max(100),
+      // English only: Marathi is optional, and an edit without it keeps what's saved (search matches it)
+      nameMr: z.string().trim().max(100).optional(),
       descriptionEn: z.string().trim().min(5).max(2000),
-      descriptionMr: z.string().trim().min(5).max(2000),
+      descriptionMr: z.string().trim().max(2000).optional(),
       brand: z.string().trim().max(60),
       categoryId: objectId,
       aliases: z.string().max(1000),
@@ -153,17 +156,18 @@ export async function updateProductMetadata(actorId: string, input: unknown) {
     }
     const enHighlights = data.highlightsEn.split("\n").map((item) => item.trim()).filter(Boolean);
     const mrHighlights = data.highlightsMr.split("\n").map((item) => item.trim()).filter(Boolean);
+    // "label | value"; the older four-part "label EN | label MR | value EN | value MR" still reads
     const specifications = data.specifications
       .split("\n")
       .map((row) => row.split("|").map((part) => part.trim()))
-      .filter((parts) => parts.length === 4 && parts.every(Boolean))
-      .map(([labelEn, labelMr, valueEn, valueMr]) => ({
-        label: { en: labelEn, mr: labelMr },
-        value: { en: valueEn, mr: valueMr },
-      }));
+      .filter((parts) => (parts.length === 2 || parts.length === 4) && parts.every(Boolean))
+      .map((parts) => {
+        const [labelEn, labelMr, valueEn, valueMr] = parts.length === 2 ? [parts[0], parts[0], parts[1], parts[1]] : parts;
+        return { label: { en: labelEn, mr: labelMr }, value: { en: valueEn, mr: valueMr } };
+      });
     const after = {
-      name: { en: data.nameEn, mr: data.nameMr },
-      description: { en: data.descriptionEn, mr: data.descriptionMr },
+      name: { en: data.nameEn, mr: data.nameMr || product.name.mr || data.nameEn },
+      description: { en: data.descriptionEn, mr: data.descriptionMr || product.description.mr || data.descriptionEn },
       brand: data.brand,
       categoryId: category._id,
       categorySlug: category.slug,

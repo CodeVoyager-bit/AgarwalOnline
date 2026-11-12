@@ -108,11 +108,6 @@ export function LegalPage({ doc, locale, current }: { doc: LegalDoc; locale: Loc
       <PageHeading eyebrow={POLICIES_HOME.title[locale]} title={doc.title} lead={doc.lead} />
       <LegalMeta locale={locale} />
       <PolicySwitcher locale={locale} current={current} />
-      {mr && (
-        <p className="notice legal-prevails">
-          हे इंग्रजी मजकुराचे मराठी भाषांतर आहे. दोन्हींमध्ये फरक असल्यास इंग्रजी आवृत्ती ग्राह्य धरली जाईल.
-        </p>
-      )}
       {/* phones: the contents fold away, so the policy itself starts on the first screen */}
       <details className="legal-toc-phone">
         <summary>
@@ -194,7 +189,7 @@ export function PolicyHome({ locale, docs }: { locale: Locale; docs: { key: Lega
 export function legalRoute(key: LegalKey) {
   const load = async () => {
     const [locale, facts] = await Promise.all([currentLocale(), legalFacts()]);
-    return { locale, doc: LEGAL_DOCS[key][locale](facts) };
+    return { locale, doc: LEGAL_DOCS[key].en(facts) };
   };
   return {
     async generateMetadata(): Promise<Metadata> {

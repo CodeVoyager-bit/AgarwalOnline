@@ -57,10 +57,8 @@ test("staff list a product with a new provider; it goes live once the owner appr
   const staff = await signedIn(browser, page, STAFF);
   await staff.goto("/admin/products/new");
   const form = staff.locator("main");
-  await form.getByLabel("English name").fill("Kale Hamper");
-  await form.getByLabel("Marathi name").fill("काळे हॅम्पर");
-  await form.getByLabel("English description").fill("A gift hamper from Kale Toys");
-  await form.getByLabel("Marathi description").fill("काळे टॉइजचा भेट हॅम्पर");
+  await form.getByLabel("Name", { exact: true }).fill("Kale Hamper");
+  await form.getByLabel("Description", { exact: true }).fill("A gift hamper from Kale Toys");
   await form.getByLabel(/^Provided by/).selectOption({ label: "+ Add a new provider…" });
   await form.getByLabel("Shop name").fill("Kale Toys");
   await form.getByLabel("Town").fill("Pali");

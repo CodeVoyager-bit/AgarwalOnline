@@ -31,12 +31,8 @@ function CategoryFields({ kind, category, choices }: { kind: "category" | "subca
   return (
     <div className="staff-form-grid">
       <label>
-        English name
+        Name
         <input name="nameEn" defaultValue={category?.name.en} placeholder={kind === "category" ? "Stationery" : "Pens"} required />
-      </label>
-      <label>
-        Marathi name
-        <input name="nameMr" defaultValue={category?.name.mr} lang="mr" placeholder={kind === "category" ? "स्टेशनरी" : "पेन"} required />
       </label>
       <label>
         Web address <small>Lowercase words joined by dashes, like gift-wrap</small>
@@ -186,7 +182,7 @@ export default async function CategoriesPage({
       <FilterBar label="Find categories" submitLabel="Find" clearHref={term || show ? "/admin/categories" : undefined}>
         <label>
           Name or web address
-          <input name="q" defaultValue={q} maxLength={80} placeholder="Pens or पेन" />
+          <input name="q" defaultValue={q} maxLength={80} placeholder="Pens" />
         </label>
         <label>
           Show
@@ -222,16 +218,12 @@ export default async function CategoriesPage({
                   <Link href={`/admin/categories?edit=${item._id}#edit`}>
                     <strong>{item.name.en}</strong>
                   </Link>
-                  <small>
-                    <span lang="mr">{item.name.mr}</span> · category
-                  </small>
+                  <small>Category</small>
                 </>
               ) : (
                 <span className="subcat">
                   <Link href={`/admin/categories?edit=${item._id}#edit`}>{item.name.en}</Link>
-                  <small>
-                    <span lang="mr">{item.name.mr}</span> · /catalog?category={item.slug}
-                  </small>
+                  <small>/catalog?category={item.slug}</small>
                 </span>
               ),
           },
