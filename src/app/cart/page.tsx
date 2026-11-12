@@ -9,11 +9,12 @@ import { basketFor, deliveryRules } from "@/lib/commerce/service";
 import { guestBasket } from "@/lib/commerce/guest-cart";
 import { cartAction, saveForLaterAction } from "@/lib/commerce/actions";
 import { basketGoals } from "@/lib/commerce/goals";
-import { basketSuggestions, buyAgainFor, deliveryAreaName } from "@/lib/commerce/basket-extras";
+import { basketSuggestions, buyAgainFor, deliveryArea } from "@/lib/commerce/basket-extras";
 import { codeProblem, offerSaving, quoteCart, shopOffers } from "@/lib/promotions/service";
 import { CouponPicker } from "@/components/coupon-picker";
 import { SignInToCheckout } from "@/components/sign-in-prompt";
 import { productImages } from "@/lib/catalog/images";
+import { deliveryPromise } from "@/lib/commerce/delivery";
 import { formatPrice, minutesUntilCutoff } from "@/lib/display";
 import { DeliveryPromise } from "@/components/delivery-promise";
 import { BasketGoals } from "@/components/basket-goals";
@@ -59,15 +60,17 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
     (n, line) => n + line.pricePaise * line.quantity,
     0,
   );
-  const estimatedDelivery = baseSubtotal >= rules.freeThresholdPaise ? 0 : 3000;
+  // the fee of the shopper's own area (the cheapest one before they've added an address)
+  const area = lines.length ? await deliveryArea(user?.id) : undefined;
+  const areaName = user ? area?.name : undefined;
+  const estimatedDelivery = baseSubtotal >= rules.freeThresholdPaise ? 0 : (area?.feePaise ?? 3000);
   // the bill, and around the lines: where it's going and what they bought before
-  const [quote, areaName, buyAgain] = await Promise.all([
+  const [quote, buyAgain] = await Promise.all([
     quoteCart(lines, {
       code: promotionCode,
       customerId: user?.id,
       deliveryPaise: estimatedDelivery,
     }),
-    user && lines.length ? deliveryAreaName(user.id) : undefined,
     user && lines.length ? buyAgainFor(user.id, lines) : [],
   ]);
   const [offers, codeIssue, suggestions] = await Promise.all([
@@ -165,6 +168,7 @@ export default async function Cart({ searchParams }: { searchParams: Promise<{ b
                   cutoffHour={rules.cutoffHour}
                   initialMinutes={minutesUntilCutoff(rules.cutoffHour, now)}
                   locale={locale}
+                  promise={deliveryPromise(now, rules)}
                 />
               </div>
             </div>

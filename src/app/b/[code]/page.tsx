@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Download, Eye, Lock, ReceiptText } from "lucide-react";
+import { Lock, ReceiptText } from "lucide-react";
 import { connectDB } from "@/lib/db/connect";
 import { Order } from "@/lib/commerce/models";
 import { billNumber } from "@/lib/commerce/bill";
@@ -8,6 +8,7 @@ import { BILL_CODE_RE } from "@/lib/documents/bill-request";
 import { formatIst, formatPrice } from "@/lib/display";
 import { taxProfile } from "@/lib/tax/profile";
 import { PageHeading } from "@/components/page-heading";
+import { SharedBillActions } from "@/components/bill-actions";
 export const metadata = { title: "Your bill", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
@@ -53,14 +54,13 @@ export default async function SharedBills({ params }: { params: Promise<{ code: 
                   </small>
                 </span>
               </span>
-              <span className="bill-actions">
-                <a className="primary-button" href={`/api/invoices/${id}/pdf?${query(bill.key)}`}>
-                  <Download size={17} aria-hidden="true" /> Download PDF
-                </a>
-                <a className="secondary-button" href={`/api/invoices/${id}?${query(bill.key, { view: "1" })}`} target="_blank" rel="noreferrer">
-                  <Eye size={17} aria-hidden="true" /> View bill
-                </a>
-              </span>
+              {/* Download saves the PDF without leaving this page (a plain link to it left a blank page
+                  behind in some phone browsers, and the bare error text when it failed) */}
+              <SharedBillActions
+                pdfUrl={`/api/invoices/${id}/pdf?${query(bill.key)}`}
+                viewUrl={`/api/invoices/${id}?${query(bill.key, { view: "1" })}`}
+                fileName={`Bill-${number || order.number}.pdf`}
+              />
             </li>
           );
         })}

@@ -173,6 +173,11 @@ describe("a provider's own bills", () => {
     expect(bar).toContain("@media print{.bill-bar{display:none}}");
     // a name can't close the script
     expect(bar).not.toContain("Bill </script>");
+    // Download is a button: it saves the PDF without leaving the bill, and says why when it can't
+    expect(bar).toContain('<button type="button" class="bb-download" id="bb-download">Download PDF</button>');
+    expect(bar).not.toMatch(/<a [^>]*download/);
+    // Back is there for a bill opened in place, hidden until the script sees it was
+    expect(bar).toContain('id="bb-back" hidden');
     // a sample bill: Print only, no share button and no script
     expect(billBar({})).toContain("Print bill");
     expect(billBar({})).not.toContain('id="bb-share"');

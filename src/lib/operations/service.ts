@@ -36,6 +36,7 @@ import { sendCode } from "../auth/sms";
 import { notify } from "../engagement/service";
 import { returnOffer } from "../promotions/service";
 import { Promotion } from "../promotions/models";
+import { lineFacts } from "../documents/line-facts";
 import {
   billFollowsPacking,
   billForPacking,
@@ -1286,6 +1287,12 @@ export async function completeDelivery(actorId: string, input: unknown) {
     // the bill is issued now: it keeps the shop's details as they are today, whatever the shop is called later
     current.set("bill.issuedAt", new Date());
     current.set("bill.seller", await billSeller());
+    // and each line's MRP, HSN and GST rate as printed, so a later product edit can't change this bill
+    const facts = await lineFacts(current.items);
+    for (const item of current.items) {
+      const kept = facts.get(String(item.variantId));
+      if (kept) item.set("billed", kept);
+    }
     // and a bill of its own for each provider that bills its items in its own name (Providers → Tax and billing)
     const providerBills = await issueProviderBills(current, session);
     if (providerBills.length) current.set("providerBills", providerBills);

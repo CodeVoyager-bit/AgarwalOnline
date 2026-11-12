@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { inclusiveTax } from "../documents/invoice";
-import { lineFacts } from "../documents/line-facts";
+import { factsOf, lineFacts } from "../documents/line-facts";
 import { xlsx } from "../xlsx";
 import { orderBillList, sellerOf, withRevision } from "./bill-split";
 import { Order } from "./models";
@@ -53,7 +53,7 @@ export async function providerBillsFile(params: URLSearchParams) {
       const tax = composition
         ? null
         : inclusiveTax(
-            lines.map((line) => ({ linePaise: line.linePaise, rate: facts.get(String(line.variantId))?.gstRatePercent ?? null })),
+            lines.map((line) => ({ linePaise: line.linePaise, rate: factsOf(line, facts).gstRatePercent ?? null })),
             entry.discountPaise,
             0,
           );

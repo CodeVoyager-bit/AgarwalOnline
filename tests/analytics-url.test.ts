@@ -8,6 +8,8 @@ describe("what Google Analytics is allowed to see", () => {
     expect(cleanUrl("/family/abc123?x=1#join", site)).toBe(`${site}/family/:code`);
     expect(cleanUrl("/lists/tok", site)).toBe(`${site}/lists/:code`);
     expect(cleanUrl("/school/join/tok", site)).toBe(`${site}/school/join/:code`);
+    // a bill link opens the customer's bills, name and address included
+    expect(cleanUrl("/b/AbCdEfGhIjKlMnOpQrStUvWx", site)).toBe(`${site}/b/:code`);
     expect(cleanUrl("/account/orders/6a1f", site)).toBe(`${site}/account/orders/6a1f`);
   });
   it("keeps searches, filters and campaign tags, drops everything else", () => {

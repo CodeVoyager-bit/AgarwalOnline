@@ -3,8 +3,8 @@
  * pages carry a secret in their address, so every page address and link is cleaned first.
  */
 
-/** Pages whose last part is someone's secret link: shared lists, family invites, school joins, quotations. */
-const SECRET_AFTER = ["/family/", "/lists/", "/school/join/", "/q/"];
+/** Pages whose last part is someone's secret link: shared lists, family invites, school joins, quotations, bills. */
+const SECRET_AFTER = ["/family/", "/lists/", "/school/join/", "/q/", "/b/"];
 /** Query values worth seeing in reports (searches, filters, campaign tags); the rest are dropped. */
 const KEEP = /^(q|category|sort|pick|lang|utm_(source|medium|campaign|term|content))$/;
 

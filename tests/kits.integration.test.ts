@@ -115,10 +115,15 @@ describe.skipIf(!uri)("School kits", () => {
     await expect(kits.kitToBasket(parent, await aarav())).rejects.toThrow("not available yet");
     await kits.setKitStatus(staff, { kitId: id, status: "published" });
     const [info] = await kits.childKits((await family.familyOf(parent))!);
-    expect(info.kit).toMatchObject({ lines: 2, totalPaise: 25000, unavailable: 1 });
+    // the total is what Buy kit can put in the basket: the short line counts only what is in stock
+    expect(info.kit).toMatchObject({ lines: 2, totalPaise: 15000, unavailable: 1 });
     expect(await kits.kitToBasket(partner, await aarav())).toEqual({ added: 2, skipped: 1 });
     const lines = await CartLine.find({ customerId: partner });
     expect(Object.fromEntries(lines.map((l) => [String(l.variantId), l.quantity]))).toEqual({ [pen]: 2, [pencil]: 1 });
+    // tapping Buy kit again (Back, then the button) tops up to the kit instead of doubling it
+    await kits.kitToBasket(partner, await aarav());
+    const again = await CartLine.find({ customerId: partner });
+    expect(Object.fromEntries(again.map((l) => [String(l.variantId), l.quantity]))).toEqual({ [pen]: 2, [pencil]: 1 });
     await expect(kits.kitToBasket(other, await aarav())).rejects.toThrow("not in your family");
   });
 

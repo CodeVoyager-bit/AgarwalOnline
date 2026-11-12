@@ -1,8 +1,9 @@
+import mongoose from "mongoose";
 import { z } from "zod";
 import { assertPermission, type Role } from "../auth/permissions";
 import { connectDB } from "../db/connect";
 import { InventoryItem, Product, ProductVariant, User } from "../db/models";
-import { Order } from "../commerce/models";
+import { Order, OrderTimelineEvent } from "../commerce/models";
 import { Refund } from "../payments/models";
 import { LOW_STOCK } from "../inventory/low-stock";
 import { shopSettings } from "../settings/shop";
@@ -101,20 +102,32 @@ export async function analytics(actorId: string, input: unknown) {
   const delivered = orders.filter(
     (order) => order.deliveryStatus === "delivered",
   );
+  // when it was delivered, from the order's timeline: the order itself changes later (cash handed
+  // over, completed, a bill shared), and its last-changed time used to make on-time orders late
+  const deliveredAt = new Map(
+    (
+      await OrderTimelineEvent.find({
+        orderId: { $in: delivered.map((order) => order._id) },
+        dimension: "delivery",
+        next: "delivered",
+      })
+        .select("orderId at")
+        .lean<{ orderId: unknown; at: Date }[]>()
+    ).map((event) => [String(event.orderId), event.at]),
+  );
   const onTime = delivered.filter((order) => {
     if (!order.deliveryDate) return false;
-    return (
-      new Date(order.updatedAt).getTime() <=
-      new Date(`${order.deliveryDate}T23:59:59.999+05:30`).getTime()
-    );
+    const at = deliveredAt.get(String(order._id)) ?? order.updatedAt;
+    return new Date(at).getTime() <= new Date(`${order.deliveryDate}T23:59:59.999+05:30`).getTime();
   }).length;
   const partnerTotals = new Map<string, number>();
   delivered.forEach((order) => {
     const id = String(order.assignedTo ?? "Unassigned");
     partnerTotals.set(id, (partnerTotals.get(id) ?? 0) + 1);
   });
+  // "Unassigned" isn't anyone's id: looking it up used to fail the whole page
   const partners = await User.find({
-    _id: { $in: [...partnerTotals.keys()] },
+    _id: { $in: [...partnerTotals.keys()].filter((id) => mongoose.isValidObjectId(id)) },
   }).select("name");
   const partnerNames = new Map(
     partners.map((partner) => [String(partner._id), partner.name]),

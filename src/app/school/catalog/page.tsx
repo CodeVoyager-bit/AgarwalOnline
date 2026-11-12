@@ -15,7 +15,10 @@ type Params = { s?: string; q?: string; category?: string; view?: string };
 
 /** The school catalogue, laid out like the shop's: aisles, a count, and cards or a bulk list. */
 export default async function SchoolCatalog({ searchParams }: { searchParams: Promise<Params> }) {
-  const params = await searchParams;
+  const raw = await searchParams;
+  // a key given twice arrives as a list: the first one counts
+  const one = (value: unknown) => (Array.isArray(value) ? value[0] : value) as string | undefined;
+  const params: Params = { s: one(raw.s), q: one(raw.q), category: one(raw.category), view: one(raw.view) };
   const q = params.q?.trim().slice(0, 100) || undefined;
   const category = params.category?.slice(0, 60) || undefined;
   const { school } = await requireSchoolPage(params.s, withQuery("/school/catalog", { q, category }));

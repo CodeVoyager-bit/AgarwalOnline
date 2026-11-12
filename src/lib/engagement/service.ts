@@ -31,13 +31,14 @@ export async function toggleWishlist(
 ) {
   await customer(customerId);
   const productId = recordId.parse(productInput);
-  if (!(await Product.exists({ _id: productId, ...shopperVisible })))
-    throw Error("This product is unavailable.");
+  // taking one out always works, even once it's hidden; only saving needs it to be in the shop
   const existing = await WishlistItem.findOne({ customerId, productId });
   if (existing) {
     await existing.deleteOne();
     return false;
   }
+  if (!(await Product.exists({ _id: productId, ...shopperVisible })))
+    throw Error("This product is unavailable.");
   await WishlistItem.create({ customerId, productId });
   return true;
 }

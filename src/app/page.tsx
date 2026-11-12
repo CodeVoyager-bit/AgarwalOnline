@@ -22,7 +22,8 @@ import { LegalText } from "@/components/legal-text";
 import { familyOf } from "@/lib/family/service";
 import { childKits } from "@/lib/family/kits";
 import { classLabel } from "@/lib/family/models";
-import { liveOffers, runningAt } from "@/lib/promotions/service";
+import { advertisable, liveOffers, offerSaving, runningAt } from "@/lib/promotions/service";
+import { deliveryPromise } from "@/lib/commerce/delivery";
 import { formatPrice, minutesUntilCutoff } from "@/lib/display";
 import { taxProfile } from "@/lib/tax/profile";
 import { jsonLd, storeJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -197,7 +198,8 @@ export default async function Home() {
   // everything that only needs to know who's signed in, in one round
   const [family, activeOffers, areaDocs, previousOrder, shop, front, areaFees] = await Promise.all([
     user ? familyOf(user.id) : null,
-    liveOffers().then((offers) => offers.filter(runningAt(now)).slice(0, 2)),
+    // a private code handed out in person, or one used up, is never advertised here
+    liveOffers().then((offers) => offers.filter(runningAt(now)).filter(advertisable).slice(0, 2)),
     liveAreaNames(),
     user ? Order.findOne({ customerId: user.id }).sort({ createdAt: -1 }).select("items.variantId") : null,
     taxProfile(),
@@ -253,14 +255,13 @@ export default async function Home() {
   const newRow = take(newest, 10);
   /** Accurate offer terms, built from the promotion record rather than written copy. */
   const describe = (offer: {
-    discountType: string;
+    discountType: "fixed" | "percentage";
     discountValue: number;
+    maximumDiscountPaise?: number;
     minimumSubtotalPaise: number;
   }) => {
-    const amount =
-      offer.discountType === "percentage"
-        ? t.percentOff(offer.discountValue)
-        : t.amountOff(formatPrice(offer.discountValue));
+    // "10% off, up to ₹50": the cap is part of the offer
+    const amount = offerSaving(offer);
     const condition = offer.minimumSubtotalPaise
       ? t.minimum(formatPrice(offer.minimumSubtotalPaise))
       : t.everyBasket;
@@ -280,7 +281,12 @@ export default async function Home() {
           <em>{fill(frontWords(front, "heroHighlight", locale), { cutoff })}</em>
         </h1>
         <p>{frontWords(front, "heroLead", locale)}</p>
-        <DeliveryPromise cutoffHour={rules.cutoffHour} initialMinutes={minutesUntilCutoff(rules.cutoffHour, now)} locale={locale} />
+        <DeliveryPromise
+          cutoffHour={rules.cutoffHour}
+          initialMinutes={minutesUntilCutoff(rules.cutoffHour, now)}
+          locale={locale}
+          promise={deliveryPromise(now, rules)}
+        />
         {/* a child's class kit, for their family: one tap from the first screen */}
         {kit && kitChild && (
           <Link href="/account/family" className="kit-slot">
@@ -409,14 +415,7 @@ export default async function Home() {
             <span className="eyebrow">{t.offers}</span>
             <ul>
               {activeOffers.map(
-                (offer: {
-                  _id: unknown;
-                  name: string;
-                  code?: string;
-                  discountType: string;
-                  discountValue: number;
-                  minimumSubtotalPaise: number;
-                }) => (
+                (offer) => (
                   <li key={String(offer._id)}>
                     <strong>{describe(offer)}</strong>
                     {offer.code ? (

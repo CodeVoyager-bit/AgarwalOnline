@@ -62,15 +62,18 @@ export type CatalogItem = {
   rating: number;
   reviewCount: number;
 };
+// values come straight from the page address: a repeated key (an array), a word too long or a rating
+// that isn't one falls back instead of failing the page
 const filtersSchema = z.object({
-  q: z.string().max(100).default(""),
-  category: z.string().max(60).default(""),
+  q: z.string().catch("").transform((text) => text.slice(0, 100)),
+  category: z.string().max(60).catch(""),
   sort: z
     .enum(["featured", "price-asc", "price-desc", "discount", "new"])
     .catch("featured"),
-  inStock: z.string().optional(),
-  rating: z.coerce.number().min(1).max(5).optional(),
-  slug: z.string().max(100).optional(),
+  inStock: z.string().optional().catch(undefined),
+  rating: z.coerce.number().int().min(1).max(5).optional().catch(undefined),
+  // a web address no product can have finds nothing (never "any product")
+  slug: z.string().max(100).optional().catch("-"),
 });
 /** The shop catalogue: what shoppers see. Its filters come straight from the page address. */
 export async function catalog(

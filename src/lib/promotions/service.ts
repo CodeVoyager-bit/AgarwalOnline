@@ -15,6 +15,11 @@ export type LiveOffer = {
   startsAt: Date;
   endsAt: Date;
   welcome?: boolean;
+  /** false: a private code the owner hands out; never advertised. */
+  listed?: boolean;
+  maximumDiscountPaise?: number;
+  globalLimit?: number;
+  redemptionCount?: number;
 };
 
 /**
@@ -28,10 +33,13 @@ export const liveOffers = () =>
     return Promotion.find({ active: true, endsAt: { $gte: new Date() } })
       .sort({ minimumSubtotalPaise: 1 })
       .limit(200)
-      .select("name code kind discountType discountValue minimumSubtotalPaise startsAt endsAt welcome")
+      .select("name code kind discountType discountValue minimumSubtotalPaise startsAt endsAt welcome listed maximumDiscountPaise globalLimit redemptionCount")
       .lean<LiveOffer[]>();
   });
 export const runningAt = (now: Date) => (offer: LiveOffer) => offer.startsAt <= now && offer.endsAt >= now;
+/** Fit to show to everyone: not a private code, and not used up. */
+export const advertisable = (offer: LiveOffer) =>
+  (offer.kind === "automatic" || offer.listed !== false) && !(offer.globalLimit && (offer.redemptionCount ?? 0) >= offer.globalLimit);
 
 export type PriceQuote = {
   merchandiseSubtotalPaise: number;
