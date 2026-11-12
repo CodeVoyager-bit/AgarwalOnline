@@ -8,6 +8,19 @@ const globalDB = globalThis as typeof globalThis & {
 };
 
 /**
+ * On Vercel a copy of the app that wakes from sleep is a new server start, and Mongoose re-creates
+ * every collection and index at each start: about 160 commands for 52 models, beside the first
+ * visitor's page, on a cluster allowed 100 commands a second. There they are built once per
+ * deployment instead (`indexesOncePerDeploy`). `npm run dev`, the tests and the scripts have no
+ * deployment id and keep Mongoose's way.
+ */
+const DEPLOY = process.env.VERCEL_DEPLOYMENT_ID;
+if (DEPLOY) {
+  mongoose.set("autoIndex", false);
+  mongoose.set("autoCreate", false);
+}
+
+/**
  * The one MongoClient per server process and database address. Mongoose and better-auth share
  * it, so each copy of the app holds one pool to Atlas instead of two (the free cluster allows 500
  * connections in all, and every Vercel instance is a copy). It lives on globalThis so a dev
@@ -20,6 +33,13 @@ export function mongoClient(uri = getEnv().MONGODB_URI): MongoClient {
     // Mongoose's own driver class: `setClient` only accepts that one
     client = new mongoose.mongo.MongoClient(uri, {
       serverSelectionTimeoutMS: 5000,
+      // the driver's own default is to wait for ever: a query sent down a connection that died while
+      // this copy slept never came back, and the page stayed on its skeleton until a refresh. Now it
+      // fails after 15 s (a read is then retried once on a fresh connection), and a page waiting for
+      // a free connection gives up after 10 s and shows "Try again". Only a query in flight is timed.
+      connectTimeoutMS: 10_000,
+      socketTimeoutMS: 15_000,
+      waitQueueTimeoutMS: 10_000,
       // 5, not 10: under a rush Vercel runs many copies, and at 10 each about 50 copies filled the free
       // cluster's 500 connections; then every page failed for ~5 minutes (load test 2026-10-24). A guest
       // page needs 0–3 queries and a signed-in one ~13 short ones, so 5 at a time is plenty per copy.
@@ -39,7 +59,7 @@ export function mongoClient(uri = getEnv().MONGODB_URI): MongoClient {
 /**
  * better-auth keeps its sessions, accounts, codes and rate limits in collections of its own, not
  * Mongoose models, so nothing built their indexes: every signed-in page scanned all sessions to
- * find its own. Built once per server start, like Mongoose's; an index that exists costs nothing.
+ * find its own. Built whenever Mongoose's are; an index that exists costs one short command.
  */
 function authIndexes(db: ReturnType<MongoClient["db"]>) {
   return Promise.all([
@@ -53,6 +73,21 @@ function authIndexes(db: ReturnType<MongoClient["db"]>) {
   ]);
 }
 
+/**
+ * The first server start of a deployment builds every index and leaves a note in the database;
+ * every later start reads the note (one command) and builds nothing. A build that failed leaves no
+ * note, so the next start tries again.
+ */
+async function indexesOncePerDeploy(db: ReturnType<MongoClient["db"]>, deploy: string) {
+  const notes = db.collection<{ _id: string; deploy: string; at: Date }>("appNotes");
+  if ((await notes.findOne({ _id: "indexes" }))?.deploy === deploy) return;
+  const { buildIndexes } = await import("./indexes");
+  const failed = await buildIndexes();
+  await authIndexes(db);
+  log(failed.length ? "warn" : "info", "db.indexes-built", { deploy, failed });
+  if (!failed.length) await notes.updateOne({ _id: "indexes" }, { $set: { deploy, at: new Date() } }, { upsert: true });
+}
+
 export async function connectDB() {
   if (!globalDB.mongoPromise)
     globalDB.mongoPromise = (async () => {
@@ -61,7 +96,9 @@ export async function connectDB() {
       const client = mongoClient();
       await client.connect();
       mongoose.connection.setClient(client);
-      void authIndexes(client.db()).catch((error) => log("warn", "db.auth-indexes-failed", { error }));
+      void (DEPLOY ? indexesOncePerDeploy(client.db(), DEPLOY) : authIndexes(client.db())).catch((error) =>
+        log("warn", "db.indexes-failed", { error }),
+      );
       return mongoose;
     })().catch((error) => {
       globalDB.mongoPromise = undefined;

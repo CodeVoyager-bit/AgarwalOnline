@@ -10,28 +10,51 @@ import type { Schema } from "mongoose";
  * Any write to those collections from this server (page, action, cron or script) empties it,
  * through `clearsShopCache` on their schemas; other servers catch up within the minute. The
  * tests set SHOP_CACHE_SECONDS=0, because they write to the database behind the app's back.
+ *
+ * A server nobody has visited for a few minutes used to make its next visitor wait while it read
+ * everything again. Now that visitor gets the copy it has, up to five minutes past its minute, and
+ * the fresh read goes on behind the page for the next one. Stock never does this.
  */
 const SECONDS = Number(process.env.SHOP_CACHE_SECONDS ?? 60);
+const STALE_SECONDS = SECONDS * 5;
 
-type Entry = { at: number; value: Promise<unknown> };
+type Entry = { at: number; value: Promise<unknown>; next?: Entry };
 // on globalThis, like the database client: a dev hot reload keeps one cache that the schemas' hooks empty
 const globalCache = globalThis as typeof globalThis & { shopCache?: { entries: Map<string, Entry>; changedAt: number } };
 const shop = (globalCache.shopCache ??= { entries: new Map(), changedAt: 0 });
 
 /**
- * `load()`'s answer, shared by every page on this server for a minute (or `seconds`, if shorter).
- * Pages that ask while it is loading wait for the same read. The answer is frozen: it is shared,
- * so changing it in place would change it for every shopper.
+ * `load()`'s answer, shared by every page on this server for a minute (or `seconds`, if shorter;
+ * those are never shown past their time). Pages that ask while it is loading wait for the same
+ * read. The answer is frozen: it is shared, so changing it in place would change it for every shopper.
  */
 export function shared<T>(key: string, load: () => Promise<T>, seconds = SECONDS): Promise<T> {
   const now = Date.now();
   const hit = shop.entries.get(key);
-  if (hit && hit.at > shop.changedAt && now - hit.at < Math.min(seconds, SECONDS) * 1000)
+  // read before or just after a write: never trusted
+  const age = hit && hit.at > shop.changedAt ? (now - hit.at) / 1000 : Infinity;
+  const life = Math.min(seconds, SECONDS);
+  if (hit && age < life) return hit.value as Promise<T>;
+  const read = (): Entry => {
+    const entry: Entry = { at: now, value: load().then(freeze) };
+    // a failed read isn't kept: the next page tries again
+    entry.value.catch(() => shop.entries.get(key) === entry && shop.entries.delete(key));
+    return entry;
+  };
+  // a little past its time (never stock, kept five seconds): this page gets the copy that is here
+  if (hit && seconds >= SECONDS && age < life + STALE_SECONDS) {
+    if (!hit.next) {
+      const next = (hit.next = read());
+      // takes its place once it has arrived, unless a write emptied the cache meanwhile
+      next.value.then(
+        () => shop.entries.get(key) === hit && shop.entries.set(key, next),
+        () => (hit.next = undefined),
+      );
+    }
     return hit.value as Promise<T>;
-  const entry: Entry = { at: now, value: load().then(freeze) };
+  }
+  const entry = read();
   shop.entries.set(key, entry);
-  // a failed read isn't kept: the next page tries again
-  entry.value.catch(() => shop.entries.get(key) === entry && shop.entries.delete(key));
   return entry.value as Promise<T>;
 }
 
