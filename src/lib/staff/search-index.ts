@@ -20,7 +20,7 @@ export type FinderEntry = {
   keywordsMr: string[];
 };
 
-const STORE: Words = { en: "Store settings", mr: "दुकानाची सेटिंग्ज" };
+const STORE: Words = { en: "Settings", mr: "सेटिंग्ज" };
 const under = (parent: Words, en: string, mr: string): Words => ({
   en: `${parent.en} › ${en}`,
   mr: `${parent.mr} › ${mr}`,
@@ -30,7 +30,7 @@ const TIMES = under(STORE, "Delivery times", "वितरणाच्या व
 const AREAS = under(STORE, "Service areas", "सेवा क्षेत्रे");
 const TAX = under(STORE, "Business and tax", "व्यवसाय व कर");
 const CHECKS = under(STORE, "Checks and search", "तपासणी व शोध");
-const CUSTOMIZE: Words = { en: "Customize", mr: "रचना बदला" };
+const CUSTOMIZE = STORE;
 const custom = (
   section: string,
   en: string,
@@ -43,7 +43,7 @@ const custom = (
   kind: "setting",
   title: { en, mr },
   hint: under(CUSTOMIZE, ...hint),
-  href: `/super-admin/customize#${section}`,
+  href: `/super-admin#${section}`,
   permission: "settings:write",
   keywords,
   keywordsMr,
@@ -582,10 +582,10 @@ const pageWords: Record<StaffNavKey, { keywords: string[]; keywordsMr: string[] 
   schools: { keywords: ["school", "representative", "join link"], keywordsMr: ["शाळा"] },
   quotations: { keywords: ["quote", "quotation", "school order", "pricing"], keywordsMr: ["कोटेशन", "शाळा"] },
   marketplace: { keywords: ["school shop", "school marketplace", "shop for a school", "school basket", "school prices"], keywordsMr: ["शाळा", "दुकान"] },
-  settings: { keywords: ["settings", "setup", "configuration", "delivery", "options"], keywordsMr: ["सेटिंग्ज"] },
-  customize: {
-    keywords: ["customize", "customise", "look", "design", "branding", "wording", "text", "print"],
-    keywordsMr: ["रचना", "बदल", "मजकूर"],
+  // Customize is part of Settings now: its words still find it
+  settings: {
+    keywords: ["settings", "setup", "configuration", "delivery", "options", "customize", "customise", "look", "design", "branding", "wording", "print"],
+    keywordsMr: ["सेटिंग्ज", "रचना", "बदल", "मजकूर"],
   },
   staff: { keywords: ["staff", "team", "employee", "roles", "access"], keywordsMr: ["कर्मचारी"] },
   approvals: { keywords: ["approve", "pending", "waiting", "price change"], keywordsMr: ["मंजुरी"] },

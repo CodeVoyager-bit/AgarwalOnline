@@ -41,7 +41,7 @@ export const copy = {
     school: "School account",
     workspace: "Store workspace",
     operations: "Overview & orders",
-    governance: "Store settings",
+    governance: "Settings",
     deliveries: "My deliveries",
     signOut: "Sign out",
     back: "Back",

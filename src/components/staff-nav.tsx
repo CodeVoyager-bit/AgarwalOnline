@@ -12,7 +12,6 @@ import {
   FileText,
   Headphones,
   LayoutDashboard,
-  Palette,
   MessageSquareHeart,
   MessageSquareWarning,
   ReceiptIndianRupee,
@@ -47,7 +46,6 @@ export const NAV_ICONS: Record<StaffNavKey, LucideIcon> = {
   quotations: FileText,
   marketplace: Store,
   settings: Settings,
-  customize: Palette,
   staff: UserCog,
   approvals: ClipboardCheck,
   audit: Activity,
@@ -82,8 +80,8 @@ function subscribe(listener: () => void) {
 
 /**
  * The staff menu: groups by job, with how many things wait beside each page. On a wide screen it's
- * the sidebar and its groups fold; in the phone's More sheet each group folds too, opening on the
- * group of the page you're on, so the sheet starts one screen tall instead of three.
+ * the sidebar and its groups fold; in the phone's More sheet every page is a tile, four to a row,
+ * so any page is one tap away without opening a group or searching.
  */
 export function StaffNav({
   groups,
@@ -154,23 +152,13 @@ export function StaffNav({
             })}
           </ul>
         );
+        // the phone's More sheet: every page as a tile under its group, nothing to unfold
         if (variant === "sheet")
           return (
-            <details className="workspace-group" key={group.key} open={here || groups.length === 1}>
-              <summary className="workspace-group-label">
-                <span>{label}</span>
-                {waiting > 0 && (
-                  <>
-                    <b className="nav-badge" aria-hidden="true">
-                      {waiting}
-                    </b>
-                    <span className="sr-only"> ({text.waiting(waiting)})</span>
-                  </>
-                )}
-                <ChevronDown size={16} aria-hidden="true" />
-              </summary>
+            <div className="workspace-group" key={group.key}>
+              <span className="workspace-group-label">{label}</span>
               {list}
-            </details>
+            </div>
           );
         return (
           <div className={`workspace-group${folded ? " is-collapsed" : ""}`} key={group.key}>

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LayoutDashboard, LogOut, PackagePlus, Settings, Store, UserRound, type LucideIcon } from "lucide-react";
+import { Boxes, LogOut, PackagePlus, Store, UserRound, type LucideIcon } from "lucide-react";
 import { hasPermission, rolesFor, staffHome, type Permission, type StaffRole } from "@/lib/auth/permissions";
 import { logoutAction } from "@/lib/auth/actions";
 import { copy, type Locale } from "@/lib/locale-types";
@@ -18,12 +18,10 @@ import { StaffTabs } from "./staff-tabs";
 
 type Sheet = "more" | "search";
 
-/** The jobs done most, one tap from the phone's More sheet; each only for staff allowed to do it. */
-const QUICK: { href: string; permission: Permission; Icon: LucideIcon; label: (text: (typeof staffCopy)[Locale], mr: boolean) => string }[] = [
-  { href: "/admin", permission: "order:manage", Icon: LayoutDashboard, label: (text) => text.tabs.overview },
-  { href: "/admin/products/new", permission: "catalog:write", Icon: PackagePlus, label: (_, mr) => (mr ? "उत्पादन जोडा" : "Add product") },
-  { href: "/admin/inventory", permission: "inventory:adjust", Icon: Boxes, label: (_, mr) => (mr ? "स्टॉक" : "Stock") },
-  { href: "/super-admin", permission: "settings:write", Icon: Settings, label: (text) => text.nav.settings },
+/** Jobs done most that aren't a page of the menu, first in the phone's More sheet; each only for staff allowed to do it. */
+const QUICK: { href: string; permission: Permission; Icon: LucideIcon; label: (mr: boolean) => string }[] = [
+  { href: "/admin/products/new", permission: "catalog:write", Icon: PackagePlus, label: (mr) => (mr ? "उत्पादन जोडा" : "Add product") },
+  { href: "/admin/inventory", permission: "inventory:adjust", Icon: Boxes, label: (mr) => (mr ? "स्टॉक" : "Stock") },
 ];
 
 /** True while the person is typing somewhere, so "/" types a slash instead of opening search. */
@@ -59,7 +57,7 @@ export default function StaffChrome({
     : QUICK.filter((item) => hasPermission(roles, item.permission)).map(({ href, Icon, label }) => ({
         href,
         Icon,
-        label: label(text, locale === "mr"),
+        label: label(locale === "mr"),
       }));
   const finderInput = useRef<HTMLInputElement>(null);
   const sheetInput = useRef<HTMLInputElement>(null);
@@ -107,6 +105,7 @@ export default function StaffChrome({
         locale={locale}
         delivery={delivery}
         chats={hasPermission(roles, "chat:support")}
+        products={hasPermission(roles, "catalog:write")}
         onSearch={() => setSheet({ kind: "search", at: pathname })}
         onMore={() => setSheet({ kind: "more", at: pathname })}
       />

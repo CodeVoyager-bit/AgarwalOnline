@@ -2066,8 +2066,10 @@ details.account-menu[open] > summary svg:last-child { transform: rotate(180deg);
 .wait-tag.is-late { background: var(--danger-bg); color: var(--danger); }
 .needs-row .needs-action { min-width: 104px; min-height: 44px; color: var(--on-brand); text-decoration: none; }
 .needs-none { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--success); font-weight: 600; }
-.all-clear { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 14px 0 0; padding-top: 14px; border-top: 1px solid var(--line); font-size: 0.84rem; }
-.all-clear > span { display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-weight: 600; }
+.all-clear { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.84rem; }
+.all-clear > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; color: var(--success); font-weight: 600; cursor: pointer; list-style: none; }
+.all-clear > summary::-webkit-details-marker { display: none; }
+.all-clear > p { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 6px 0 0; }
 .all-clear a { display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: var(--r-pill); background: var(--brand-soft); color: var(--ink-2); font-weight: 500; text-decoration: none; }
 .all-clear a:hover { background: var(--brand-tint); color: var(--brand); }
 .needs-you { margin-bottom: 24px; }
@@ -2099,25 +2101,6 @@ details.account-menu[open] > summary svg:last-child { transform: rotate(180deg);
 .clamp-line { display: block; max-width: 52ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .review-stars { color: var(--warning); letter-spacing: 0.06em; white-space: nowrap; }
 .complaint-links { margin: 4px 0 16px; }
-
-/* Store settings at a glance: a card per area with its current values; a warning edge where checkout is at risk. */
-.settings-hub-wrap { margin: 0 0 32px; }
-.settings-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
-.settings-hub-card { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
-.settings-hub-card.has-warning { border-color: #c8af92; border-color: color-mix(in oklab, var(--warning) 45%, var(--canvas)); box-shadow: inset 4px 0 0 var(--offer); }
-.settings-hub-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; font-size: 1.05rem; }
-.settings-hub-card h3 svg { color: var(--brand); }
-.settings-hub-lines { margin: 0; padding: 0; list-style: none; color: var(--ink-2); font-size: 0.86rem; line-height: 1.5; }
-.settings-hub-warning { display: flex; align-items: flex-start; gap: 6px; margin: 2px 0 0; color: var(--warning); font-size: 0.84rem; font-weight: 600; line-height: 1.4; }
-.settings-hub-warning svg { margin-top: 2px; }
-.settings-hub-card .text-button { align-self: flex-start; margin-top: auto; min-height: 44px; text-decoration: none; }
-@media (max-width: 1023px) {
-  .settings-hub { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 760px) {
-  .settings-hub { grid-template-columns: 1fr; gap: 10px; }
-  .settings-hub-wrap { margin-bottom: 24px; }
-}
 
 /* Store settings: collapsible service areas and plain lists under forms. */
 .settings-grid details > summary small { display: flex; width: fit-content; margin-top: 6px; font-family: var(--font-sans); }
@@ -3573,12 +3556,6 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
 .more-sheet-quick svg { flex: none; color: var(--brand); }
 .more-sheet-quick span { min-width: 0; }
 .workspace-nav.is-sheet { gap: 0; margin: 0; border-top: 1px solid var(--line); }
-.workspace-nav.is-sheet > details.workspace-group { border-bottom: 1px solid var(--line); }
-.workspace-nav.is-sheet > details > summary.workspace-group-label { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 12px; color: var(--ink); font-size: 0.82rem; cursor: pointer; list-style: none; }
-.workspace-nav.is-sheet > details > summary::-webkit-details-marker { display: none; }
-.workspace-nav.is-sheet > details > summary > svg { margin-left: auto; color: var(--muted); transition: transform var(--fast); }
-.workspace-nav.is-sheet > details[open] > summary > svg { transform: rotate(180deg); }
-.workspace-nav.is-sheet > details > .workspace-group-items { padding: 0 0 8px; }
 
 /* Staff header on phones: the name on two lines, as in the shop, and the shop, sound and bell in one
    capsule, so the two never meet. The shop is one tap away, as an icon beside the bell */
@@ -3596,17 +3573,6 @@ table.slip-lines { width: 100%; min-width: 0; margin: 16px 0; border-collapse: c
 }
 @media (max-width: 340px) {
   .staff-brand { font-size: 20px; }
-}
-
-/* Store settings on phones: each section shows its title and summary; its forms open on a tap */
-.settings-fold { display: none; }
-@media (max-width: 760px) {
-  .settings-intro { display: flex; flex-direction: column; }
-  .settings-fold { order: 10; display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: flex-start; min-height: 44px; margin-top: 10px; padding: 0 16px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--paper); color: var(--ink); font: inherit; font-size: 0.9rem; font-weight: 600; }
-  .settings-fold svg { transition: transform var(--fast); }
-  .settings-fold[aria-expanded="true"] svg { transform: rotate(180deg); }
-  .settings-section:not([data-open]) > :not(.settings-intro) { display: none; }
-  .settings-section { padding: 18px 0; }
 }
 
 /* Product cards: on narrow cards the price no longer runs under ADD; ADD drops below when there's no room */
@@ -3698,7 +3664,7 @@ body:has(.buy-bar) .assistant-launcher { bottom: 92px; }
 .order-tracker li.is-done + li.is-current::before { background: var(--success); }
 
 @media print {
-  .settings-fold, .more-sheet-shop, .more-sheet-quick { display: none !important; }
+  .more-sheet-shop, .more-sheet-quick { display: none !important; }
 }
 
 /* Small polish from the audit */
@@ -3970,15 +3936,10 @@ details.pack-setting.is-danger > summary, details.pack-setting.is-danger > summa
 .quotation-sign { display: grid; justify-items: end; gap: 2px; margin: 40px 0 0; padding-top: 0; text-align: right; }
 .quotation-sign::before { content: ""; width: 200px; max-width: 60%; border-top: 1px solid var(--ink); margin-bottom: 4px; }
 .quotation-sign small { color: var(--muted); font-size: 0.78rem; }
-/* the Customize page */
-.customize-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
-.customize-jump a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--paper); color: var(--ink); font-size: 0.875rem; font-weight: 600; text-decoration: none; }
-.customize-jump a:hover { border-color: var(--ink); }
+/* Settings → Shop front and colours */
 .customize-colour input[type="color"] { width: 72px; min-height: 44px; padding: 4px; cursor: pointer; }
 @media (max-width: 760px) {
   .announcement-bar { padding: 6px 16px; font-size: 0.8rem; }
-  /* the jump links would push eight sections down a phone screen; the folded sections are the list there */
-  .customize-jump { display: none; }
   .quotation-sign::before { width: 160px; }
 }
 @media print {

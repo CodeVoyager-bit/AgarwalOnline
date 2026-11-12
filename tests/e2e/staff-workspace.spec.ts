@@ -135,14 +135,36 @@ test.describe("phone", () => {
 
     await tabs.getByRole("button", { name: "More" }).click();
     const more = page.getByRole("dialog", { name: "Workspace menu" });
-    // the shop and the everyday jobs come first, before the folded groups
+    // the shop and the everyday jobs come first, then every page as a tile: nothing to unfold
     await expect(more.getByRole("link").first()).toHaveAccessibleName("View shop");
     await expect(more.getByRole("link", { name: "Add product" })).toBeVisible();
-    // the group of the page you're on (Store settings, under Setup) is the one open
-    await expect(more.getByRole("link", { name: "Support chats" })).toBeHidden();
+    await expect(more.getByRole("link", { name: /^Support chats/ })).toBeVisible();
+    if (out) await page.screenshot({ path: `${out}/mobile_staff-more-sheet.png` });
     await more.getByRole("link", { name: "Staff & roles" }).click();
     await expect(page).toHaveURL("/super-admin/staff");
     await expect(more).toHaveCount(0);
+  });
+
+  test("settings are a list that opens one section at a time", async ({ page }) => {
+    await signIn(page, OWNER);
+    await page.goto("/super-admin");
+    const list = page.getByRole("navigation", { name: "Settings sections" });
+    if (out) await page.screenshot({ path: `${out}/mobile_settings-list.png` });
+    await list.getByRole("link", { name: /^Business and tax/ }).click();
+    await expect(page).toHaveURL("/super-admin#tax");
+    await expect(page.getByLabel(/^GSTIN/)).toBeVisible();
+    // the list and every other section step aside
+    await expect(list).toBeHidden();
+    await expect(page.locator("#areas")).toBeHidden();
+    if (out) await page.screenshot({ path: `${out}/mobile_settings-section.png` });
+    await page.getByRole("link", { name: "All settings" }).click();
+    await expect(list).toBeVisible();
+    await expect(page.getByLabel(/^GSTIN/)).toBeHidden();
+    // the phone's Back button closes the section too
+    await list.getByRole("link", { name: /^Service areas/ }).click();
+    await expect(page.getByRole("heading", { name: "Service areas" })).toBeVisible();
+    await page.goBack();
+    await expect(list).toBeVisible();
   });
 
   test("the shop's name and the header icons never meet, on any phone", async ({ page }) => {

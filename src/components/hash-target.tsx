@@ -19,6 +19,8 @@ export function highlightTarget(href: string) {
 }
 
 function reveal(element: HTMLElement) {
+  // a target in a settings section that isn't open (settings-shell.tsx) opens it first
+  element.dispatchEvent(new Event("ags:reveal", { bubbles: true }));
   // a target inside a closed <details> (like the one-off delivery time) can't be seen until it opens
   for (let node: HTMLElement | null = element; node; node = node.parentElement)
     if (node instanceof HTMLDetailsElement) node.open = true;

@@ -20,6 +20,7 @@ type StaffCopy = {
     label: string;
     overview: string;
     orders: string;
+    products: string;
     search: string;
     chats: string;
     more: string;
@@ -76,8 +77,7 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       schools: "Schools",
       quotations: "Quotations",
       marketplace: "School marketplace",
-      settings: "Store settings",
-      customize: "Customize",
+      settings: "Settings",
       staff: "Staff & roles",
       approvals: "Approvals",
       audit: "Audit trail",
@@ -87,6 +87,7 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       label: "Workspace tabs",
       overview: "Overview",
       orders: "Orders",
+      products: "Products",
       search: "Search",
       chats: "Chats",
       more: "More",
@@ -148,7 +149,6 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       quotations: "कोटेशन",
       marketplace: "शाळांचे दुकान",
       settings: "दुकानाची सेटिंग्ज",
-      customize: "रचना बदला",
       staff: "कर्मचारी व भूमिका",
       approvals: "मंजुरी",
       audit: "बदलांची नोंद",
@@ -158,6 +158,7 @@ export const staffCopy: Record<Locale, StaffCopy> = {
       label: "कामाचे टॅब",
       overview: "आढावा",
       orders: "ऑर्डर",
+      products: "उत्पादने",
       search: "शोधा",
       chats: "चॅट",
       more: "अधिक",

@@ -134,7 +134,7 @@ function BillingSection({
             <textarea name="address" defaultValue={billing.address} minLength={5} maxLength={300} rows={2} />
           </label>
           <label>
-            Bill style <small>Its bills only; Agarwal’s stay as set in Customize → Bills</small>
+            Bill style <small>Its bills only; Agarwal’s stay as set in Settings → Bills</small>
             <select name="style" defaultValue={billing.style ?? "same"}>
               {PROVIDER_BILL_STYLES.map((option) => (
                 <option key={option.value} value={option.value}>

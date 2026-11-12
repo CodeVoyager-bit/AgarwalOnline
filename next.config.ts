@@ -32,7 +32,10 @@ const config: NextConfig = {
       refunds: "refunds-and-cancellations",
       shipping: "shipping-and-delivery",
       contact: "contact-and-grievance",
-    }).map(([key, page]) => ({ source: `/${key}`, destination: `/p/${page}`, permanent: true }));
+    })
+      .map(([key, page]) => ({ source: `/${key}`, destination: `/p/${page}`, permanent: true }))
+      // Customize is part of Settings now; the browser keeps the #section across the redirect
+      .concat({ source: "/super-admin/customize", destination: "/super-admin", permanent: false });
   },
   async headers() {
     return [

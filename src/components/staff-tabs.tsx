@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Headphones, LayoutDashboard, Menu, ReceiptText, Search, Truck, UserRound } from "lucide-react";
+import { Boxes, Headphones, Menu, ReceiptText, Search, Truck, UserRound } from "lucide-react";
 import type { Locale } from "@/lib/locale-types";
 import { staffCopy } from "@/lib/staff/copy";
 import type { CountKey } from "@/lib/staff/types";
@@ -19,6 +19,7 @@ export function StaffTabs({
   locale,
   delivery,
   chats,
+  products,
   onSearch,
   onMore,
 }: {
@@ -27,6 +28,8 @@ export function StaffTabs({
   delivery: boolean;
   /** Whether this person answers support chats. */
   chats: boolean;
+  /** Whether this person looks after products and stock. */
+  products: boolean;
   onSearch: () => void;
   onMore: () => void;
 }) {
@@ -46,15 +49,28 @@ export function StaffTabs({
         { kind: "button", label: text.account, Icon: UserRound, onClick: onMore, dialog: true },
       ]
     : [
-        { kind: "link", href: "/admin", label: text.overview, Icon: LayoutDashboard, active: pathname === "/admin" },
+        // the overview is the orders page: its work queue, then every order
         {
           kind: "link",
-          href: "/admin#orders",
+          href: "/admin",
           label: text.orders,
           Icon: ReceiptText,
-          active: pathname.startsWith("/admin/orders/"),
+          active: pathname === "/admin" || pathname.startsWith("/admin/orders/"),
           count: "orders",
         },
+        ...(products
+          ? [
+              {
+                kind: "link" as const,
+                href: "/admin/products",
+                label: text.products,
+                Icon: Boxes,
+                active: ["/admin/products", "/admin/categories", "/admin/inventory", "/admin/kits", "/admin/providers"].some(
+                  (path) => pathname === path || pathname.startsWith(`${path}/`),
+                ),
+              },
+            ]
+          : []),
         { kind: "button", label: text.search, Icon: Search, onClick: onSearch, dialog: true },
         ...(chats
           ? [

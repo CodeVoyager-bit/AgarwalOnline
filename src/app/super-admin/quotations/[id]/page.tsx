@@ -131,7 +131,7 @@ export default async function QuotationDesk({ params }: { params: Promise<{ id: 
       {!seller.configured && (
         <p className="notice" role="status">
           Your business and tax details aren’t saved yet, so the quotation shows no GSTIN and only “Nagothane, Raigad” as the address.{" "}
-          <Link href="/super-admin#tax">Add them in Store settings</Link>.
+          <Link href="/super-admin#tax">Add them in Settings</Link>.
         </p>
       )}
       {request.status === "changes-requested" && latestAnswer && (

@@ -199,16 +199,20 @@ export default async function Admin({
           </p>
         )}
         {waiting.length > 0 && clear.length > 0 && (
-          <p className="all-clear">
-            <span>
-              <CircleCheck size={16} aria-hidden="true" /> All clear:
-            </span>
-            {clear.map((item) => (
-              <Link key={item.key} href={item.listHref}>
-                {item.label}
-              </Link>
-            ))}
-          </p>
+          // folded: a line per empty job pushed the orders a third of a phone screen down
+          <details className="all-clear">
+            <summary>
+              <CircleCheck size={16} aria-hidden="true" /> All clear on {clear.length} other{" "}
+              {clear.length === 1 ? "job" : "jobs"}
+            </summary>
+            <p>
+              {clear.map((item) => (
+                <Link key={item.key} href={item.listHref}>
+                  {item.label}
+                </Link>
+              ))}
+            </p>
+          </details>
         )}
       </section>
       <RefreshOnFocus />

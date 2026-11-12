@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { FilterMore } from "./filter-more";
 
 /**
  * The GET filter bar above admin lists. Three pages wrote this by hand with no
@@ -25,6 +26,7 @@ export function FilterBar({
   return (
     <form className="audit-filters" role="search" aria-label={label}>
       {children}
+      <FilterMore />
       <button className="primary-button">{submitLabel}</button>
       {clearHref ? (
         <Link className="secondary-button" href={clearHref}>

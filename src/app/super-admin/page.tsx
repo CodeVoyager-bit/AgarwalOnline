@@ -1,6 +1,25 @@
 import Link from "next/link";
 import mongoose from "mongoose";
-import { CalendarClock, MapPin, Plus } from "lucide-react";
+import {
+  BellRing,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Hash,
+  MapPin,
+  Package,
+  Palette,
+  Plus,
+  ReceiptText,
+  School,
+  ShieldCheck,
+  SlidersHorizontal,
+  Timer,
+  TriangleAlert,
+  Truck,
+  type LucideIcon,
+} from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
 import { ServiceArea, SearchSynonym } from "@/lib/db/models";
 import { DeliverySlot, SlotPattern, SystemSetting } from "@/lib/commerce/models";
@@ -41,12 +60,13 @@ import { hourLabel, reportSettings } from "@/lib/inventory/low-stock";
 import { MoneyInput } from "@/components/money-input";
 import { taxProfile } from "@/lib/tax/profile";
 import { settingsHub } from "@/lib/admin/settings-summary";
-import { SettingsHub } from "./_settings/settings-hub";
-import { SettingsFold } from "@/components/settings-fold";
+import { SettingsShell } from "./_settings/settings-shell";
+import { CUSTOMIZE_TITLES, CustomizeSections, billStyleName } from "./_settings/customize-sections";
 import { GST_STATES } from "@/lib/tax/gst";
 import { PhoneInput } from "@/components/phone-input";
-import { shopSettings } from "@/lib/settings/shop";
-export const metadata = { title: "Store settings", robots: { index: false } };
+import { SECTION_KEYS, shopSettings, type SectionKey } from "@/lib/settings/shop";
+import { themeOf } from "@/lib/settings/themes";
+export const metadata = { title: "Settings", robots: { index: false } };
 
 function TimeSelect({ name, label, defaultValue }: { name: string; label: string; defaultValue: number }) {
   return (
@@ -86,6 +106,41 @@ function CapacityInput({ defaultValue = 20 }: { defaultValue?: number }) {
   );
 }
 
+type MenuRow = { id: string; title: string; Icon: LucideIcon; line?: string; warnings?: string[] };
+
+/** The list of settings: what each is set to now, and anything that stops shoppers checking out. */
+function SettingsMenu({ groups }: { groups: { title: string; rows: MenuRow[] }[] }) {
+  return (
+    <nav className="settings-menu" aria-label="Settings sections">
+      {groups.map((group) => (
+        <div key={group.title} className="settings-menu-group">
+          <h2 className="settings-menu-label">{group.title}</h2>
+          <ul>
+            {group.rows.map(({ id, title, Icon, line, warnings = [] }) => (
+              <li key={id}>
+                <a href={`#${id}`}>
+                  <Icon size={20} aria-hidden="true" />
+                  <span className="settings-menu-text">
+                    <strong>{title}</strong>
+                    {line ? <small>{line}</small> : null}
+                    {warnings.map((warning) => (
+                      <small key={warning} className="settings-menu-warning">
+                        <TriangleAlert size={13} aria-hidden="true" />
+                        {warning}
+                      </small>
+                    ))}
+                  </span>
+                  <ChevronRight className="settings-menu-chevron" size={18} aria-hidden="true" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
 export default async function StoreSettings({
   searchParams,
 }: {
@@ -118,6 +173,10 @@ export default async function StoreSettings({
     // where a new area or delivery time starts (Customize → Form defaults)
     shopSettings("defaults"),
   ]);
+  // straight from the database: the shop cache could still hold what was there before a save
+  const saved = Object.fromEntries(
+    await Promise.all(SECTION_KEYS.map(async (key) => [key, await shopSettings(key, true)] as const)),
+  ) as Record<SectionKey, Record<string, unknown>>;
   const live = areas.filter((area) => area.enabled);
   const areaName = new Map(areas.map((area) => [String(area._id), area.name as string]));
   const editingArea =
@@ -142,49 +201,102 @@ export default async function StoreSettings({
         : slot.reserved >= slot.capacity
           ? { tone: "warn" as const, label: "Full" }
           : { tone: "ok" as const, label: "Open" };
+  const hub = Object.fromEntries(
+    settingsHub({
+      rules,
+      areas,
+      patterns,
+      upcoming,
+      gapAreas: gaps.areas.length && gaps.date ? gaps.areas : [],
+      business: {
+        legalName: business.legalName,
+        gstin: business.gstin,
+        stateName: GST_STATES.find((state) => state.code === business.stateCode)?.name,
+        grievanceName: business.grievanceName,
+      },
+      stockThreshold: Number(stockThreshold?.value ?? 100),
+      stockReport: report.hour === null ? null : hourLabel(report.hour),
+      synonymGroups: synonyms.length,
+      services: {
+        payments: paymentsEnabled(),
+        photos: Boolean(process.env.CLOUDINARY_CLOUD_NAME),
+        sms: Boolean(process.env.MINIMOTH_HOOK_URL),
+      },
+      today,
+      weekdays: WEEKDAYS,
+      daysAhead: DAYS_AHEAD,
+    }).map((card) => [card.id, card]),
+  );
+  const menu = [
+    {
+      title: "Delivery",
+      rows: [
+        {
+          id: "delivery",
+          title: "Delivery rules and times",
+          Icon: Truck,
+          line: hub["delivery-rules"].lines.slice(0, 2).join(" · "),
+          warnings: hub.weekly.warnings,
+        },
+        { id: "slots", title: "Delivery slots", Icon: CalendarClock, line: hub.weekly.lines.at(-1) },
+        { id: "areas", title: "Service areas", Icon: MapPin, line: hub.areas.lines[0], warnings: hub.areas.warnings },
+      ],
+    },
+    {
+      title: "The shop",
+      rows: [
+        {
+          id: "storefront",
+          title: CUSTOMIZE_TITLES.storefront,
+          Icon: Palette,
+          line: `${themeOf(String(saved.storefront.theme ?? "")).name.split(":")[0]} colours`,
+        },
+        { id: "messages", title: CUSTOMIZE_TITLES.messages, Icon: BellRing, line: "What customers are told as an order moves" },
+      ],
+    },
+    {
+      title: "Bills and papers",
+      rows: [
+        { id: "tax", title: "Business and tax", Icon: ReceiptText, line: hub.tax.lines.join(" · "), warnings: hub.tax.warnings },
+        { id: "bill", title: CUSTOMIZE_TITLES.bill, Icon: FileText, line: `Style: ${billStyleName(saved.bill.style).replace(/, as now$/, "")}` },
+        { id: "slip", title: CUSTOMIZE_TITLES.slip, Icon: Package, line: "What packers print" },
+        { id: "quotation", title: CUSTOMIZE_TITLES.quotation, Icon: School, line: "How long they last, bank details" },
+        { id: "numbers", title: CUSTOMIZE_TITLES.numbers, Icon: Hash, line: "The letters before each number" },
+      ],
+    },
+    {
+      title: "Staff",
+      rows: [
+        {
+          id: "checks",
+          title: "Checks and search",
+          Icon: ShieldCheck,
+          line: `Approval from ${Number(stockThreshold?.value ?? 100)} units · low-stock email ${report.hour === null ? "off" : hourLabel(report.hour)}`,
+        },
+        { id: "defaults", title: CUSTOMIZE_TITLES.defaults, Icon: SlidersHorizontal, line: "What new packs, areas and offers start with" },
+        { id: "queues", title: CUSTOMIZE_TITLES.queues, Icon: Timer, line: "When a job counts as late" },
+      ],
+    },
+  ];
+  // an edit panel in the address opens its section
+  const initial = params.slot || params.slots ? "slots" : params.area ? "areas" : params.pattern ? "delivery" : undefined;
   return (
-    <section className="page-container">
+    <section className="page-container settings-page">
       <PageHeading
         eyebrow="Owner"
-        title="Store settings"
-        lead="How delivery works, where you deliver and which changes need a second look. Changes apply at checkout straight away."
-        aside={
-          <Link className="secondary-button" href="/super-admin/customize">
-            Customize bills and the shop
-          </Link>
-        }
+        title="Settings"
+        lead="Delivery, the shop front, bills and the defaults staff start from. Each change applies as soon as it’s saved."
       />
-      <SettingsHub
-        cards={settingsHub({
-          rules,
-          areas,
-          patterns,
-          upcoming,
-          gapAreas: gaps.areas.length && gaps.date ? gaps.areas : [],
-          business: {
-            legalName: business.legalName,
-            gstin: business.gstin,
-            stateName: GST_STATES.find((state) => state.code === business.stateCode)?.name,
-            grievanceName: business.grievanceName,
-          },
-          stockThreshold: Number(stockThreshold?.value ?? 100),
-          stockReport: report.hour === null ? null : hourLabel(report.hour),
-          synonymGroups: synonyms.length,
-          services: {
-            payments: paymentsEnabled(),
-            photos: Boolean(process.env.CLOUDINARY_CLOUD_NAME),
-            sms: Boolean(process.env.MINIMOTH_HOOK_URL),
-          },
-          today,
-          weekdays: WEEKDAYS,
-          daysAhead: DAYS_AHEAD,
-        })}
-      />
-
-      <section className="settings-section" aria-labelledby="delivery-heading" id="delivery">
+      <SettingsShell initial={initial}>
+        <SettingsMenu groups={menu} />
+        <div className="settings-panes">
+          <a className="settings-back" href="#settings">
+            <ChevronLeft size={18} aria-hidden="true" />
+            All settings
+          </a>
+      <section className="settings-section" aria-labelledby="delivery-heading" id="delivery" tabIndex={-1} data-settings-section data-default>
         <div className="settings-intro">
           <h2 id="delivery-heading">Delivery</h2>
-          <SettingsFold section="delivery" label="delivery settings" />
           <p>
             When orders still go out the same day, when delivery is free, the days the store is closed and
             the delivery times shoppers can pick.
@@ -372,10 +484,9 @@ export default async function StoreSettings({
         </div>
       </section>
 
-      <section className="settings-section" aria-labelledby="slots-heading" id="slots" tabIndex={-1}>
+      <section className="settings-section" aria-labelledby="slots-heading" id="slots" tabIndex={-1} data-settings-section>
         <div className="settings-intro">
           <h2 id="slots-heading">Upcoming delivery slots</h2>
-          <SettingsFold section="slots" label="delivery slots" />
           <p>
             Every slot shoppers can pick over the next {DAYS_AHEAD} days. Close one to stop new
             orders in it; orders already booked stay.
@@ -472,10 +583,9 @@ export default async function StoreSettings({
         </div>
       </section>
 
-      <section className="settings-section" aria-labelledby="areas-heading" id="areas" tabIndex={-1}>
+      <section className="settings-section" aria-labelledby="areas-heading" id="areas" tabIndex={-1} data-settings-section>
         <div className="settings-intro">
           <h2 id="areas-heading">Service areas</h2>
-          <SettingsFold section="areas" label="service areas" />
           <p>
             The PIN codes you deliver to, what delivery costs there, and whether cash on delivery is
             allowed.
@@ -607,10 +717,9 @@ export default async function StoreSettings({
         </div>
       </section>
 
-      <section className="settings-section" aria-labelledby="tax-heading" id="tax" tabIndex={-1}>
+      <section className="settings-section" aria-labelledby="tax-heading" id="tax" tabIndex={-1} data-settings-section>
         <div className="settings-intro">
           <h2 id="tax-heading">Business and tax details</h2>
-          <SettingsFold section="tax" label="business details" />
           <p>
             Printed at the top of every school quotation, with the GST worked out from your state. The name, address,
             phone, email and grievance officer are also shown to everyone on the{" "}
@@ -699,10 +808,9 @@ export default async function StoreSettings({
         </div>
       </section>
 
-      <section className="settings-section" aria-labelledby="checks-heading" id="checks">
+      <section className="settings-section" aria-labelledby="checks-heading" id="checks" tabIndex={-1} data-settings-section>
         <div className="settings-intro">
           <h2 id="checks-heading">Checks and search</h2>
-          <SettingsFold section="checks" label="checks and search" />
           <p>
             Which stock changes from staff wait for you, when the low-stock report is emailed, which words
             shoppers can search with, and which outside services are connected.
@@ -803,6 +911,9 @@ export default async function StoreSettings({
           </div>
         </div>
       </section>
+          <CustomizeSections saved={saved} />
+        </div>
+      </SettingsShell>
     </section>
   );
 }

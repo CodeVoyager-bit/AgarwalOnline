@@ -116,8 +116,8 @@ export default async function Catalog({
           })}
         </nav>
       )}
-      <CentreCurrent key={`${params.category ?? "all"}-${section?.slug ?? ""}`} rail=".shelf-rail" />
-      <CentreCurrent key={section?.slug ?? "all"} rail=".section-tabs" />
+      <CentreCurrent key={`rail-${params.category ?? "all"}-${section?.slug ?? ""}`} rail=".shelf-rail" />
+      <CentreCurrent key={`tabs-${section?.slug ?? "all"}`} rail=".section-tabs" />
       {/* picking another shelf swaps this part with a cross-fade: same place, different products */}
       <ViewTransition key={params.category ?? (params.q ? "search" : "all")} name="shelf-content" share="auto" enter="auto" default="none">
         <div className="shelf-main">

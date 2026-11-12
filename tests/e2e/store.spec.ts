@@ -327,9 +327,8 @@ test("Super Admin manages staff and reviews the audit trail", async ({
   const more = page.getByRole("navigation", { name: "Workspace tabs" }).getByRole("button", { name: "More" });
   if (await more.isVisible()) {
     await more.click();
-    // the sheet opens on the group of the page you're on; Staff & roles is under Setup
+    // every page is a tile in the sheet, Staff & roles among them
     const sheet = page.getByRole("dialog", { name: "Workspace menu" });
-    await sheet.getByText("Setup", { exact: true }).click();
     await sheet.getByRole("link", { name: "Staff & roles" }).click();
   } else {
     const menu = page.getByRole("navigation", { name: "Staff workspace" });

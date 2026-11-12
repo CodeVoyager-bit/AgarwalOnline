@@ -949,7 +949,7 @@ export default async function ManageOrder({
                 <input type="hidden" name="operation" value="shop-name" />
                 <input type="hidden" name="orderId" value={id} />
                 <label>
-                  Shop name on bills <small>Owners only. Also in Store settings → Business details</small>
+                  Shop name on bills <small>Owners only. Also in Settings → Business and tax</small>
                   <input name="legalName" defaultValue={shop.legalName} minLength={2} maxLength={120} required />
                 </label>
               </ActionForm>

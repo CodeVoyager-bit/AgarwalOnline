@@ -33,6 +33,8 @@ type Who = keyof typeof EMAILS | "guest";
 const VIEWS: Record<string, string> = {
   // a shelf picked in a section's rail (the seed puts "Writing & Pens" under two sections)
   "/catalog/shelf": "/catalog?category=stationery&in=work",
+  // Settings with one section open (on a phone the list gives way to it): service areas, which holds a table
+  "/super-admin/areas": "/super-admin#areas",
 };
 // ONLY=/catalog,/catalog/shelf checks just those: a quick look while working on a page
 const only = process.env.ONLY?.split(",");

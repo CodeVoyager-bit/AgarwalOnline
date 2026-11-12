@@ -9,7 +9,7 @@ import { shared } from "../db/shop-cache";
 import { paiseFromRupees } from "../display";
 
 /**
- * Customize (/super-admin/customize): how the bills, packing slips and quotations look, the shop
+ * Settings (/super-admin): how the bills, packing slips and quotations look, the shop
  * front's words, customer messages, numbering, staff form defaults and the work queue's timings.
  * Each section is one SystemSetting (`shop-<section>`) described once below: the description is
  * the validation, the form reading, the defaults and the labels on the page. Every field has a
@@ -225,7 +225,7 @@ export const SECTIONS = {
       footerNote: {
         kind: "text",
         label: "Extra note at the bottom",
-        hint: "Your terms are set in Store settings → Business and tax details.",
+        hint: "Your terms are set in Settings → Business and tax.",
         default: "",
         max: 300,
         long: true,
@@ -290,7 +290,7 @@ export const SECTIONS = {
       footerContact: {
         kind: "check",
         label: "The shop’s phone, email and address in the footer",
-        hint: "From Store settings → Business and tax details.",
+        hint: "From Settings → Business and tax.",
         default: false,
       },
       seoTitle: {

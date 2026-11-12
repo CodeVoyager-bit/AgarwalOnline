@@ -19,7 +19,6 @@ export type StaffNavKey =
   | "quotations"
   | "marketplace"
   | "settings"
-  | "customize"
   | "staff"
   | "approvals"
   | "audit"
@@ -93,7 +92,6 @@ export const STAFF_NAV: StaffNavGroup[] = [
     folded: true,
     items: [
       { key: "settings", href: "/super-admin", permission: "settings:write" },
-      { key: "customize", href: "/super-admin/customize", permission: "settings:write" },
       { key: "staff", href: "/super-admin/staff", permission: "staff:manage" },
       { key: "approvals", href: "/super-admin/approvals", permission: "approval:review", count: "approvals" },
       { key: "audit", href: "/super-admin/audit", permission: "audit:read" },

@@ -38,7 +38,7 @@ export async function billStyleAction(_state: MutationState, form: FormData): Pr
   try {
     const user = await requirePermission("settings:write");
     const style = await saveBillStyle(user.id, form.get("style"));
-    revalidatePath("/super-admin/customize");
+    revalidatePath("/super-admin");
     const name = BILL_STYLES.find((option) => option.value === style)?.label.replace(/\s*\(.*\)$/, "") ?? style;
     return { success: `Bills now print in the ${name} style.` };
   } catch (e) {

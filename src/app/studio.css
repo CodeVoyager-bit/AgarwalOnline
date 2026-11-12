@@ -98,7 +98,7 @@
   /* ---------- cards: white, borderless, floating; no rules under headings ---------- */
   & :is(
       .panel, .address-card, .product-card, .hub-card, .deal-card, .benefits, .table-scroll, .auth-card,
-      .governance-stats a, .governance-stats > div, .account-tile, .settings-hub-card, .order-tracker,
+      .governance-stats a, .governance-stats > div, .account-tile, .order-tracker,
       .quotation, .sheet-totals, .basket-goals, .mini-product, .legal-rows, .legal-pager a, .people-strip,
       .catalog-admin-nav, .chat-panel, .legal-toc-phone, .packing-item
     ) {

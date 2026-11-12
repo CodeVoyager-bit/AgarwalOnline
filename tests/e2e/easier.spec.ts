@@ -287,11 +287,12 @@ test("staff: a packing slip and the bill from the order page", async ({ browser 
   await page.context().close();
 });
 
-test("owner: Customize changes the bill and the shop front", async ({ browser }, info) => {
+test("owner: Settings changes the bill and the shop front", async ({ browser }, info) => {
   await SystemSetting.deleteMany({ key: /^shop-/ });
   const page = await signedIn(browser, "owner", info.project.use);
-  // a link to a section opens it, folded or not (phones fold every section)
+  // Settings shows one section at a time: a link to one opens it, and the old Customize address leads there
   await page.goto("/super-admin/customize#bill");
+  await expect(page).toHaveURL("/super-admin#bill");
   const bill = page.locator("#bill");
   await bill.getByLabel("Terms").fill("Exchange within 7 days with the bill.");
   await bill.getByLabel("Paper size").selectOption("receipt");
@@ -300,7 +301,7 @@ test("owner: Customize changes the bill and the shop front", async ({ browser },
   const html = await (await page.request.get(`/api/invoices/${order.id}`)).text();
   expect(html).toContain("Exchange within 7 days with the bill.");
   expect(html).toContain("size:80mm auto");
-  await page.goto("/super-admin/customize#storefront");
+  await page.goto("/super-admin#storefront");
   const front = page.locator("#storefront");
   await front.getByLabel("Show an announcement bar at the top of every shop page").check();
   // one box per wording since the site went English only
@@ -313,7 +314,10 @@ test("owner: Customize changes the bill and the shop front", async ({ browser },
   // the colour theme: the shop's own yellow header until an owner picks another, then every page follows at once
   const band = () => page.locator("header.shop-header").evaluate((el) => getComputedStyle(el).backgroundColor);
   expect(await band()).toBe("rgb(255, 212, 59)");
-  await page.goto("/super-admin/customize#storefront");
+  // from the list of settings, the way an owner gets there
+  await page.goto("/super-admin");
+  await page.getByRole("navigation", { name: "Settings sections" }).getByRole("link", { name: /^Shop front and colours/ }).click();
+  await expect(page).toHaveURL("/super-admin#storefront");
   await front.getByLabel("Colour theme").selectOption({ label: "School bus: navy header, amber buttons" });
   await front.getByRole("button", { name: "Save shop front" }).click();
   await expect(front.getByText("Shop front saved.")).toBeVisible();
