@@ -366,7 +366,16 @@ export default async function InventoryPage({
           {
             header: "Change",
             numeric: true,
-            cell: (movement) => `${movement.quantity > 0 ? "+" : ""}${movement.quantity}`,
+            cell: (movement) => {
+              // sales and holds are kept as positive numbers; they take stock away
+              const change =
+                movement.kind === "sale" || movement.kind === "reserve"
+                  ? -Math.abs(movement.quantity)
+                  : movement.kind === "release"
+                    ? Math.abs(movement.quantity)
+                    : movement.quantity;
+              return `${change > 0 ? "+" : ""}${change}`;
+            },
           },
         ]}
         empty={

@@ -119,7 +119,8 @@ export default async function Delivery() {
         <ul className="settings-list">
           {history.map((o) => (
             <li key={String(o._id)}>
-              <Link href={`/delivery/orders/${o._id}`}>{o.number}</Link>
+              {/* delivered: its page is for the stops still to make, so the number only */}
+              <strong>{o.number}</strong>
               <small>{o.deliveryDate ? dayLabel(o.deliveryDate) : ""}</small>
             </li>
           ))}

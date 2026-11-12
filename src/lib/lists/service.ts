@@ -160,10 +160,10 @@ export async function deleteList(userId: string, listInput: unknown) {
 }
 
 /** Members open a list by id; anyone signed in can copy one they were sent a link to. */
-export async function listToBasket(userId: string, input: { listId?: unknown; token?: unknown }) {
+export async function listToBasket(userId: string, input: { listId?: unknown; token?: unknown }, atLeast = false) {
   const list = input.token ? (await sharedList(input.token))?.list : await memberList(userId, input.listId);
   if (!list) throw Error("This list is unavailable.");
-  return addLinesToBasket(userId, list.items);
+  return addLinesToBasket(userId, list.items, { atLeast });
 }
 
 /** Current product, price and stock for each line; lines whose product was withdrawn drop out. */

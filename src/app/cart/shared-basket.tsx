@@ -17,6 +17,7 @@ import { InvitePanel } from "@/components/invite-panel";
 import { PageHeading } from "@/components/page-heading";
 import { Popover } from "@/components/popover";
 import { ShareSheet } from "@/components/share-sheet";
+import { deliveryArea } from "@/lib/commerce/basket-extras";
 
 type Basket = { _id: unknown; name: string; items: { quantity: number }[] };
 
@@ -115,7 +116,8 @@ export async function SharedBasket({
   const others = everyone.filter((p) => String(p) !== userId).map((p) => firstName(nameOf(p)));
   const together = new Intl.ListFormat(mr ? "mr" : "en", { type: "conjunction" });
   const subtotal = rows.reduce((sum, row) => sum + row.pricePaise * row.quantity, 0);
-  const delivery = subtotal >= rules.freeThresholdPaise ? 0 : 3000;
+  // the viewer's own area's fee, as in their own basket
+  const delivery = subtotal >= rules.freeThresholdPaise ? 0 : ((await deliveryArea(userId))?.feePaise ?? 3000);
   const hidden = (intent: string, extra: Record<string, string> = {}) =>
     Object.entries({ intent, listId: id, back: "/cart", ...extra }).map(([name, value]) => (
       <input key={name} type="hidden" name={name} value={value} />

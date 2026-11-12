@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Download, Printer, Share2 } from "lucide-react";
+import { Download, Eye, MessageCircle, Printer, Share2 } from "lucide-react";
 
 type Bill = { key: string };
 
@@ -16,11 +16,105 @@ const query = (bill: Bill, estimate: boolean, extra: Record<string, string> = {}
 const nameFrom = (response: Response, fallback: string) =>
   /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "")?.[1] ?? fallback;
 
+const GENERIC = "Couldn’t make the PDF just now. Try again, or use Print bill and choose Save as PDF.";
+
+/** A PDF that couldn't be made, with the words to show for it. */
+class PdfProblem extends Error {}
+
+/** Why the PDF didn't come: the server's own words when it gave a short reason, else ours. */
+async function problemOf(response: Response) {
+  if (response.status === 401) return "You’ve been signed out. Sign in again to get your bill.";
+  const plain = (response.headers.get("Content-Type") ?? "").startsWith("text/plain");
+  const said = plain ? (await response.text().catch(() => "")).trim() : "";
+  if (said && said.length <= 200) return said;
+  // the host's own page for a PDF that ran out of time, or a gateway's
+  if (response.status >= 502) return "The PDF took too long to make. Try again in a moment, or use Print bill and choose Save as PDF.";
+  return GENERIC;
+}
+
+/** One bill's PDF, as a file to save or share. */
+async function fetchPdf(url: string, fallbackName: string) {
+  const response = await fetch(url, { credentials: "same-origin" }).catch(() => {
+    throw new PdfProblem("No connection. Check your internet and try again.");
+  });
+  if (!response.ok) throw new PdfProblem(await problemOf(response));
+  const blob = await response.blob();
+  // anything served in its place (a sign-in page, a gateway's page) is never saved as a broken PDF
+  if ((await blob.slice(0, 5).text()) !== "%PDF-") throw new PdfProblem(GENERIC);
+  return new File([blob], nameFrom(response, fallbackName), { type: "application/pdf" });
+}
+
+/** The words for a failure: ours, never a browser's technical message. */
+const messageOf = (error: unknown) => (error instanceof PdfProblem ? error.message : GENERIC);
+const named = (error: unknown, name: string) => (error as { name?: unknown } | null)?.name === name;
+
 /**
- * Print bill, and Share PDF on WhatsApp, for one bill or all of an order's bills. On a phone (and in the
- * Android app, which runs on Chrome) the PDFs go to the phone's share list, where WhatsApp is. On a computer
- * a website can't hand WhatsApp a file, so the PDFs are saved and WhatsApp Web opens with a view-only link
- * to the bills: on the customer's own chat when staff send it (`phone`).
+ * Saves files to the downloads, without leaving the page. Each file's address stays alive for a few
+ * minutes: Android asks "Download again?" for a bill it already has, and saves only once that is answered.
+ */
+function saveFiles(files: File[]) {
+  for (const file of files) {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5 * 60_000);
+  }
+}
+const savedWords = (count: number) =>
+  count > 1 ? "The PDFs are in your downloads (if the browser asks, allow it to save more than one file)." : "The PDF is in your downloads.";
+
+/** A phone or tablet, where the share list (and WhatsApp in it) is the way to send a file. */
+const onPhone = () => window.matchMedia("(pointer: coarse)").matches;
+/** The installed app (or a site added to the home screen), which has no tabs to open a bill in. */
+const installed = () => window.matchMedia("(display-mode: standalone)").matches;
+
+/**
+ * Whether this browser can hand a PDF to another app. Android Chrome and the app, and iPhone Safari can;
+ * Firefox and some apps' own browsers can't. Asked with a stand-in file, before anything is made.
+ */
+function canShareFiles() {
+  try {
+    return Boolean(navigator.canShare?.({ files: [new File(["%PDF-"], "bill.pdf", { type: "application/pdf" })] }));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A window for WhatsApp Web, opened on the tap itself so a popup blocker lets it through once the PDF is
+ * made. It says what's happening instead of standing blank; it is replaced (not followed) by WhatsApp, so
+ * Back there never lands on an empty page.
+ */
+function waitingWindow() {
+  const tab = window.open("", "_blank");
+  if (!tab) return null;
+  try {
+    tab.document.title = "Opening WhatsApp…";
+    const note = tab.document.createElement("p");
+    note.textContent = "Making your PDF… WhatsApp opens here in a moment.";
+    note.style.cssText = "font:16px Arial,Helvetica,sans-serif;margin:40px;color:#334155";
+    tab.document.body.appendChild(note);
+  } catch {
+    // an empty window still works
+  }
+  return tab;
+}
+
+/** Opens WhatsApp in a new window on a tap: a button, so analytics never records the link's secret code. */
+function openWhatsApp(url: string) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * Print bill, and Share PDF on WhatsApp, for one bill or all of an order's bills. Where the browser can hand
+ * a file to another app (a phone, and the Android app on Chrome) the PDFs go to the share list, where
+ * WhatsApp is. On a computer a website can't hand WhatsApp a file, so the PDFs are saved and WhatsApp Web
+ * opens with a view-only link to the bills: on the customer's own chat when staff send it (`phone`). A
+ * phone browser that can't share files saves the PDFs too, and offers Open WhatsApp to tap.
  */
 export function BillActions({
   orderId,
@@ -45,80 +139,101 @@ export function BillActions({
 }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [whatsapp, setWhatsapp] = useState<string | null>(null);
   const [ready, setReady] = useState<File[] | null>(null);
   const what = estimate ? "kaccha bill" : bills.length > 1 ? "bills" : "bill";
   const text = estimate
     ? `Kaccha bill (estimate) for order ${orderNumber}.`
     : `${bills.length > 1 ? "Bills" : "Bill"} for order ${orderNumber}.`;
 
+  function say(words: string, open: string | null = null) {
+    setStatus(words);
+    setWhatsapp(open);
+  }
+
   function print() {
     if (bills.length > 1 && printHref) {
       window.location.href = printHref;
       return;
     }
-    window.open(`/api/invoices/${orderId}${query(bills[0], estimate, { view: "1", print: "1" })}`, "_blank", "noopener");
+    const url = `/api/invoices/${orderId}${query(bills[0], estimate, { view: "1", print: "1" })}`;
+    // on a phone and in the app the bill opens in place, and Back comes straight back here: a second
+    // window there is a separate screen, left blank when the browser holds it back
+    // a full page load on purpose: the bill is served by an API route, not a page the app's router knows
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    if (onPhone() || installed()) window.location.href = url;
+    else window.open(url, "_blank", "noopener");
   }
 
+  /** The PDFs one after another: each takes the server's one browser for a moment. */
   async function makeFiles() {
-    return Promise.all(
-      bills.map(async (bill, index) => {
-        const response = await fetch(`/api/invoices/${orderId}/pdf${query(bill, estimate)}`, { credentials: "same-origin" });
-        if (!response.ok) throw new Error(await response.text().catch(() => "pdf"));
-        const name = nameFrom(response, `Bill-${orderNumber}${bills.length > 1 ? `-${index + 1}` : ""}.pdf`);
-        return new File([await response.blob()], name, { type: "application/pdf" });
-      }),
-    );
+    const files: File[] = [];
+    for (const [index, bill] of bills.entries())
+      files.push(
+        await fetchPdf(
+          `/api/invoices/${orderId}/pdf${query(bill, estimate)}`,
+          `Bill-${orderNumber}${bills.length > 1 ? `-${index + 1}` : ""}.pdf`,
+        ),
+      );
+    return files;
   }
 
-  function save(files: File[]) {
-    for (const file of files) {
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(file);
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+  async function whatsappUrl() {
+    const response = await fetch(`/api/invoices/${orderId}/link`, { method: "POST", credentials: "same-origin" }).catch(() => null);
+    const link = response?.ok ? ((await response.json().catch(() => ({}))) as { url?: string }).url : undefined;
+    return `https://wa.me/${phone && /^\d{10}$/.test(phone) ? `91${phone}` : ""}?text=${encodeURIComponent(`${text}${link ? ` ${link}` : ""}`)}`;
+  }
+
+  /** The PDFs saved, then WhatsApp with the view-only link: in the window opened on the tap, or on a second tap. */
+  async function saveAndLink(files: File[], tab: Window | null) {
+    saveFiles(files);
+    const url = await whatsappUrl();
+    if (tab && !tab.closed) {
+      tab.opener = null;
+      tab.location.replace(url);
+      say(`${savedWords(files.length)} WhatsApp opens with a link to the ${what}.`);
+    } else {
+      // a window opened now, after the wait, would be blocked
+      say(`${savedWords(files.length)} Tap Open WhatsApp to send a link to the ${what}.`, url);
+    }
+  }
+
+  /** Hands the PDFs to the share list; false when the browser wouldn't, after the files were made. */
+  async function shareFiles(files: File[]) {
+    try {
+      await navigator.share({ files, text });
+      setReady(null);
+      say("");
+    } catch (error) {
+      // closed without picking an app: nothing to say
+      if (named(error, "AbortError")) say("");
+      // making the PDF took longer than the browser lets a share wait: the next tap shares it
+      else if (named(error, "NotAllowedError") && !ready) {
+        setReady(files);
+        say("Your PDF is ready. Tap Share PDF on WhatsApp again to send it.");
+      } else {
+        setReady(null);
+        await saveAndLink(files, null);
+      }
     }
   }
 
   async function share() {
     if (ready) {
-      await navigator.share({ files: ready, text }).catch(() => undefined);
+      await shareFiles(ready);
       return;
     }
-    const onPhone = window.matchMedia("(pointer: coarse)").matches;
-    // opened on the tap itself, so a popup blocker lets WhatsApp Web through after the PDF is made
-    const tab = onPhone ? null : window.open("about:blank", "_blank");
+    const native = onPhone() && canShareFiles();
+    const tab = onPhone() ? null : waitingWindow();
     setBusy(true);
-    setStatus(`Making the ${what} PDF…`);
+    say(`Making the ${what} PDF…`);
     try {
       const files = await makeFiles();
-      if (!tab && navigator.canShare?.({ files })) {
-        try {
-          await navigator.share({ files, text });
-          setStatus("");
-        } catch (error) {
-          // making the PDF took longer than the browser allows a share to wait: the next tap shares it
-          if (error instanceof Error && error.name === "NotAllowedError") {
-            setReady(files);
-            setStatus("Your PDF is ready. Tap Share PDF on WhatsApp again to send it.");
-          } else setStatus("");
-        }
-        return;
-      }
-      save(files);
-      const response = await fetch(`/api/invoices/${orderId}/link`, { method: "POST", credentials: "same-origin" });
-      const link = response.ok ? ((await response.json()) as { url?: string }).url : undefined;
-      const url = `https://wa.me/${phone && /^\d{10}$/.test(phone) ? `91${phone}` : ""}?text=${encodeURIComponent(`${text}${link ? ` ${link}` : ""}`)}`;
-      if (tab) {
-        tab.opener = null;
-        tab.location.href = url;
-      } else window.open(url, "_blank", "noopener");
-      setStatus("The PDF is in your downloads. WhatsApp opens with a link to the bill.");
-    } catch {
+      if (native) await shareFiles(files);
+      else await saveAndLink(files, tab);
+    } catch (error) {
       tab?.close();
-      setStatus("Couldn’t make the PDF. Check your connection and try again, or use Print bill.");
+      say(messageOf(error));
     } finally {
       setBusy(false);
     }
@@ -126,12 +241,13 @@ export function BillActions({
 
   async function download() {
     setBusy(true);
-    setStatus(`Making the ${what} PDF…`);
+    say(`Making the ${what} PDF…`);
     try {
-      save(await makeFiles());
-      setStatus("");
-    } catch {
-      setStatus("Couldn’t make the PDF. Check your connection and try again.");
+      const files = await makeFiles();
+      saveFiles(files);
+      say(savedWords(files.length));
+    } catch (error) {
+      say(messageOf(error));
     } finally {
       setBusy(false);
     }
@@ -173,6 +289,47 @@ export function BillActions({
       <span className="bill-actions-status" aria-live="polite">
         {status}
       </span>
+      {whatsapp && (
+        <button type="button" className="bill-share bill-whatsapp" onClick={() => openWhatsApp(whatsapp)}>
+          <MessageCircle size={17} aria-hidden="true" /> Open WhatsApp
+        </button>
+      )}
     </div>
+  );
+}
+
+/**
+ * A bill's buttons on its view-only link (/b/<code>), for whoever it was sent to: Download PDF saves it
+ * without leaving the page, and says what went wrong if it can't; View bill opens it in place, with Back.
+ */
+export function SharedBillActions({ pdfUrl, viewUrl, fileName }: { pdfUrl: string; viewUrl: string; fileName: string }) {
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+
+  async function download() {
+    setBusy(true);
+    setStatus("Making the PDF…");
+    try {
+      saveFiles([await fetchPdf(pdfUrl, fileName)]);
+      setStatus(savedWords(1));
+    } catch (error) {
+      setStatus(messageOf(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span className="bill-actions">
+      <button type="button" className="primary-button" onClick={download} disabled={busy} aria-busy={busy}>
+        <Download size={17} aria-hidden="true" /> Download PDF
+      </button>
+      <a className="secondary-button" href={viewUrl}>
+        <Eye size={17} aria-hidden="true" /> View bill
+      </a>
+      <span className="bill-actions-status" aria-live="polite">
+        {status}
+      </span>
+    </span>
   );
 }

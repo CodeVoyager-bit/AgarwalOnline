@@ -63,6 +63,24 @@ export function earliestDelivery(now: Date, rules: DeliveryRules) {
   }
   throw Error("No delivery dates are available.");
 }
+/**
+ * When an order placed now arrives, in words, skipping closed days as checkout does: "today",
+ * "tomorrow" or "on Monday". `later` is the same for an order placed just after today's cutoff, so a
+ * countdown on the page can turn over without a reload.
+ */
+export function deliveryPromise(now: Date, rules: DeliveryRules) {
+  const today = istDate(now);
+  const tomorrow = istDate(new Date(now.getTime() + 86_400_000));
+  const say = (day: string) =>
+    day === today
+      ? "today"
+      : day === tomorrow
+        ? "tomorrow"
+        : `on ${new Intl.DateTimeFormat("en-IN", { weekday: "long", timeZone: "UTC" }).format(new Date(`${day}T00:00:00Z`))}`;
+  const next = earliestDelivery(now, rules);
+  const afterCutoff = earliestDelivery(new Date(`${today}T${String(rules.cutoffHour).padStart(2, "0")}:00:00+05:30`), rules);
+  return { today: next === today, now: say(next), later: say(afterCutoff) };
+}
 export function deliveryFee(
   subtotal: number,
   areaFee: number,

@@ -5,8 +5,16 @@ export function isSchoolPath(pathname: string) {
 
 /** Where /school/use may send someone after choosing a school: only back into the school area. */
 export function safeSchoolPath(value: string | null | undefined) {
-  if (!value || !isSchoolPath(value.split(/[?#]/)[0]) || value.includes("//") || value.includes("\\")) return "/school";
-  return value;
+  if (!value || !value.startsWith("/") || value.includes("//") || /[\\\x00-\x1f\x7f]/.test(value)) return "/school";
+  // read as an address, so what goes into the Location header is encoded (a Marathi search, say)
+  let url: URL;
+  try {
+    url = new URL(value, "http://shop.invalid");
+  } catch {
+    return "/school";
+  }
+  if (url.origin !== "http://shop.invalid" || !isSchoolPath(url.pathname)) return "/school";
+  return url.pathname + url.search;
 }
 
 /** "/school/catalog?q=chalk": a path with only the query values that are set. */

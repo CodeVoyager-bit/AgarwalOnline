@@ -118,7 +118,7 @@ export default async function RootLayout({
           Skip to content
         </a>
         <KeyboardAware />
-        <ServiceWorker account={user && pushPublicKey() ? user.id : null} />
+        <ServiceWorker account={user && pushPublicKey() ? user.id : null} signedOut={!user} />
         <BasketProvider
           at={basketAt}
           lines={Object.fromEntries(

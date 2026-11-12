@@ -171,4 +171,16 @@ describe.skipIf(!uri)("MongoDB catalog", () => {
     await ProductVariant.updateMany({}, [{ $set: { mrpPaise: "$pricePaise" } }], { updatePipeline: true });
     expect(await anyOnOffer()).toBe(false);
   });
+  it("takes odd values in the address in its stride instead of failing the page", async () => {
+    const all = (await catalog()).length;
+    // a rating that isn't one, a repeated key, an aisle name too long: the plain catalogue
+    expect(await catalog({ rating: "abc" })).toHaveLength(all);
+    expect(await catalog({ rating: "9" })).toHaveLength(all);
+    expect(await catalog({ q: ["rice", "x"] as unknown as string })).toHaveLength(all);
+    expect(await catalog({ category: "c".repeat(80) })).toHaveLength(all);
+    // a search longer than 100 characters is cut, not refused
+    await expect(catalog({ q: "x".repeat(150) })).resolves.toEqual([]);
+    // a web address no product can have finds nothing, never "any product"
+    expect(await catalog({ slug: "s".repeat(120) })).toEqual([]);
+  });
 });

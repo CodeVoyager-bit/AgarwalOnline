@@ -113,6 +113,14 @@ const itemSchema = new Schema(
     providerId: { type: Schema.Types.ObjectId, ref: "Provider" },
     providerName: String,
     providerTown: String,
+    // what the bill printed, kept when it is issued at delivery: a later change to the product's GST
+    // rate, HSN code or MRP doesn't rewrite a bill already given (documents/line-facts.ts)
+    billed: {
+      mrpPaise: Number,
+      hsnCode: String,
+      gstRatePercent: Number,
+      nameMr: String,
+    },
     // set when that provider bills its items in its own name (decided at checkout, so a later switch
     // doesn't move an order's lines from one bill to another); missing means Agarwal bills it
     billedBy: { type: Schema.Types.ObjectId, ref: "Provider" },

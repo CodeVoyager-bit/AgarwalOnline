@@ -71,8 +71,8 @@ export function CheckoutForm({
   const folded = (index: number, day: string) => !allDays && index >= SHOWN_DAYS && day !== chosenDay;
   const foldedCount = days.filter(({ day }, index) => folded(index, day)).length;
   const fee = subtotal >= threshold ? 0 : (a?.fee ?? 0);
-  const codBlocked = method === "cod" && a && (!a.codEnabled || subtotal + fee > a.codLimit);
   const total = subtotal - promotionDiscount + fee;
+  const codBlocked = method === "cod" && a && (!a.codEnabled || total > a.codLimit);
   return (
     <ActionForm
       action={checkoutAction}

@@ -175,6 +175,13 @@ describe.skipIf(!uri)("Transactional COD checkout", () => {
       { name: "Sharma Stationers, Roha", quantity: o.items[0].quantity, revenuePaise: o.items[0].linePaise },
     ]);
   });
+  it("shows analytics even for a delivered order with no rider recorded", async () => {
+    const id = await checkout(customer, input());
+    await Order.updateOne({ _id: id }, { $set: { deliveryStatus: "delivered" }, $unset: { assignedTo: 1 } });
+    const staff = await User.create({ name: "Staff", phone: "9000000080", roles: ["customer", "admin"] });
+    const report = await analytics(String(staff._id), {});
+    expect(report.metrics.orders).toBeGreaterThan(0);
+  });
   it("records who bills a line: a provider set to bill in its own name, else Agarwal", async () => {
     const provider = await Provider.create({
       name: "Kale Toys",
