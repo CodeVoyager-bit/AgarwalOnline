@@ -23,6 +23,8 @@ export const SHOP_PLAN = [
     shelves: ["games-puzzles", "learning-toys", "building-sets", "outdoor-play", "pretend-play", "baby-toddler"],
   },
   { slug: "gifts-party", en: "Gifts and party", mr: "भेटवस्तू व पार्टी", shelves: ["party-gifting", "chocolates-sweets", "diaries", "art-craft"] },
+  // packaged foods (the owner's pack photos, 2026-11-13); chocolates have a second home here
+  { slug: "food", en: "Snacks and food", mr: "खाद्यपदार्थ", shelves: ["namkeen-papad", "instant-mixes", "chocolates-sweets"] },
   { slug: "home-pooja", en: "Home and pooja", mr: "घर व पूजा", shelves: ["pooja-needs", "home-essentials"] },
 ];
 

@@ -96,6 +96,7 @@ const AISLE_ORDER = [
   "office",
   "toys-games",
   "gifts-party",
+  "food",
   "home-pooja",
   "pens",
   "pencils",
@@ -116,6 +117,9 @@ const AISLE_ORDER = [
   "baby-toddler",
   // everyday things beside the stationery (the owner's photos, 2026-10-19)
   "chocolates-sweets",
+  // packaged foods (the owner's pack photos, 2026-11-13)
+  "namkeen-papad",
+  "instant-mixes",
   "pooja-needs",
   "home-essentials",
   "party-gifting",
