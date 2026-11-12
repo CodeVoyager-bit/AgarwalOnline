@@ -303,6 +303,55 @@ The Packs and prices card on Edit product is a list of settings rows (`pack-card
 - **Staff lists and saves** spread `notDeleted` (`src/lib/catalog/deleted.ts`) into their filters. A new staff list of packs or products must do the same.
 - **Not built:** an Undo or Restore page. A deleted record stays in the database, so it can be restored by hand.
 
+## Bug bash (12 November 2026)
+
+Three read-only code reviews (shopper side; staff, owner and rider side; schools, policies, site shell, analytics and push), then the full test suites and the layout crawl. What was fixed:
+
+- **Kept out of Google Analytics:** bill links (`/b/<code>` added to `SECRET_AFTER` in `analytics-url.ts`); the WhatsApp invites for shared baskets and families, which carry a secret link, are buttons (`whatsapp-button.tsx`) so the stream's outbound-click count never sees the code; a support conversation's title is sent as "Conversation" (`data-analytics-label`).
+- **Push after signing out:** a browser where nobody is signed in turns its notifications off (`ServiceWorker signedOut`), so a shared phone stops showing the last person's orders and chats.
+- **Home page offers:** a private code (not listed) or one used up is never shown (`advertisable`), and the wording includes the cap ("10% off, up to ₹50").
+- **One-tap Buy** (kit, board, shared basket): tops the basket up to the list (`addLinesToBasket(…, { atLeast })`) instead of adding again; the kit's price counts only what's in stock.
+- **Catalogue addresses:** a repeated key, a rating that isn't one or a value too long falls back instead of failing the page; an impossible product address finds nothing.
+- **Same-day promise:** "Delivery today" and the countdown skip holidays and closed dates, naming the next open day (`deliveryPromise` in `commerce/delivery.ts`).
+- **Basket:** the delivery line uses the shopper's own area fee (`deliveryArea`), not a fixed ₹30; the cash-on-delivery warning at checkout compares the total after the offer, as the server does.
+- **Account:** a delivered order is no longer the "active order"; the bill buttons there get what they need for providers' bills; Saved counts only products still in the shop, and a hidden one can be taken out.
+- **Bills:** a cancelled order has none, by any route; a bill once issued keeps each line's MRP, HSN, GST rate and Marathi name (`items.billed`, `factsOf`), so a later product edit can't rewrite it.
+- **Staff:** Analytics no longer fails on a delivered order with no rider, and "on time" uses the delivered time from the timeline; a rider given another role from the picker hands back waiting deliveries; "Packs sold out" leaves out deleted packs; Stock → Recent changes shows sales as minus; the rider's delivered list no longer links to pages riders can't open.
+- **Schools and policies:** sign-in returns to the school page someone came from; `/school/view` and `/school/use` encode `then`; `/school/catalog` takes a repeated key; a malformed `#…` on a policy page no longer shows the error page.
+- **Profile:** saving a name no longer resets the payment method chosen before.
+- **Product page:** "Create & add" (a new basket) links to that basket, not the shopper's own.
+
+**Reported, not fixed:** a refund can be paid twice when Razorpay times out (payments are left to the owner); providers' own bills after short packing (the feature is switched off behind its checklist); hidden items in shared baskets still counted; the 320px header overlap at 200% text on back-arrow pages.
+
+## Bill PDFs: errors and blank pages (13 November 2026)
+
+Reported from the Android app: downloading a bill's PDF gave an error, and downloading or going back showed blank pages. The live server's logs can't be read from here, so the fixes cover every way this could happen. Look for `bill-pdf.failed`, `bill-pdf.retry` and `bill-pdf.slow-assets` in Vercel's logs to see which one it was.
+
+- **Making the PDF** (`documents/pdf.ts`):
+  - **Fonts and logo:** the page no longer waits for every font and the logo to load. It gives them 8 seconds (fonts 3 more), then prints without the slow one, instead of failing the whole PDF.
+  - **A crashed Chromium:** a Chromium that died or hung since the last bill is thrown away. The bill is tried once more with a fresh one.
+  - **On Vercel:** the serverless Chromium starts without its 3D graphics.
+- **The buttons** (`components/bill-actions.tsx`, the bill page's bar in `documents/bill-bar.ts`, the view-only link `/b/<code>`):
+  - **Errors in words:** a failed PDF shows the server's own reason ("Too many PDFs in a short time…", "The PDF couldn't be made just now…"). The host's timeout page becomes "The PDF took too long to make…", and a lost connection says so. The page stays as it was. Anything that isn't a PDF is never saved as one.
+  - **Download never leaves the page:** on the view-only link and the bill page, Download PDF was a plain link to the PDF. It left a blank page behind in some phone browsers, or a page of bare error text when the PDF failed. It is now a button that saves the file in place.
+  - **Saved files:** each file stays downloadable for 5 minutes, not 10 seconds, so Android's "Download again?" question can be answered.
+  - **No blank WhatsApp window on a computer:** the window opened on the tap says "Making your PDF…", and WhatsApp *replaces* it. Back in that window used to land on an empty page. If the PDF fails, the window closes.
+  - **Phone browsers that can't share files** (Firefox, some apps' own browsers): the PDF is saved, and an **Open WhatsApp** button opens the chat with the view-only link. A window opened by the page after the wait was blocked, so nothing happened before.
+  - **Share is chosen by what the browser can do:** whether it can hand a PDF to another app, not just whether it's a touch screen. A share the phone refuses falls back to saving the file and Open WhatsApp.
+  - **Print on a phone and in the app:** the bill opens in place, with **← Back** at the top, instead of in a separate window. The bill page shows Back whenever it was opened in place from the shop (View bill on the link, too).
+  - **Several bills:** their PDFs are made one after another, not all at once on the server's one Chromium.
+- **Tests:** `tests/e2e/bills.spec.ts` covers these:
+  - the server's reasons;
+  - the timeout page;
+  - a non-PDF;
+  - no window left behind;
+  - the bar's errors;
+  - the phone without file sharing;
+  - Download staying on the link page;
+  - View bill and Back;
+  - the bill page's Download;
+  - WhatsApp replacing the waiting window.
+
 ## English only (November 2026)
 
 The owner asked on 2026-11-12 for the whole website in English. The English and मराठी switch is gone and nothing Marathi is shown; Marathi search still works.

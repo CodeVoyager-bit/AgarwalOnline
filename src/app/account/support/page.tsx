@@ -43,6 +43,7 @@ export default async function Support() {
               className="panel order-row"
               key={c.id}
               href={`/account/support/${c.id}`}
+              data-analytics-label="Conversation"
             >
               <strong>{c.title}</strong>
               <span>

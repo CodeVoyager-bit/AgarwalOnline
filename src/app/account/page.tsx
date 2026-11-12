@@ -28,7 +28,8 @@ import { ActionForm } from "@/components/action-form";
 import { profileAction } from "@/lib/profile/actions";
 import { Order } from "@/lib/commerce/models";
 import { WishlistItem, Notification } from "@/lib/engagement/models";
-import { User } from "@/lib/db/models";
+import { Product, User } from "@/lib/db/models";
+import { shopperVisible } from "@/lib/catalog/visibility";
 import { currentLocale } from "@/lib/i18n";
 import { customerStage } from "@/lib/display";
 import { dayLabel } from "@/lib/commerce/slots";
@@ -51,17 +52,25 @@ export default async function Account({
           Order.findOne({
             customerId: user.id,
             orderStatus: { $in: ["placed", "confirmed"] },
+            // delivered is done for the shopper, even before staff close the order
+            deliveryStatus: { $ne: "delivered" },
           })
             .sort({ createdAt: -1 })
             .select("number orderStatus fulfilmentStatus deliveryStatus paymentMethod paymentStatus deliveryDate"),
           Order.countDocuments({ customerId: user.id }),
-          WishlistItem.countDocuments({ customerId: user.id }),
+          // only what the Saved page can show: products hidden since don't count
+          WishlistItem.find({ customerId: user.id })
+            .distinct("productId")
+            .then((ids) => Product.countDocuments({ _id: { $in: ids }, ...shopperVisible })),
           Notification.countDocuments({ userId: user.id, readAt: null }),
           // the latest few, so past orders are one tap away from the account page
           Order.find({ customerId: user.id })
             .sort({ createdAt: -1 })
             .limit(5)
-            .select("number createdAt totalPaise items.quantity orderStatus fulfilmentStatus deliveryStatus paymentMethod paymentStatus codStatus"),
+            // the bill buttons need who bills each line, as on the Orders page
+            .select(
+              "number createdAt totalPaise items.quantity items.linePaise items.billedBy deliveryPaise promotionDiscountPaise providerBills bill orderStatus fulfilmentStatus deliveryStatus paymentMethod paymentStatus codStatus",
+            ),
         ]);
   return (
     <section className="page-container">

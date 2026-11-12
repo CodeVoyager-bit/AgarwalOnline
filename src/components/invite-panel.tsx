@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { listAction } from "@/lib/lists/actions";
 import { ShareLink } from "./share-link";
+import { WhatsAppButton } from "./whatsapp-button";
 import { safeAction } from "./safe-action";
 
 const updateSharing = safeAction(listAction);
@@ -32,14 +33,7 @@ export function InvitePanel({
       : `${mr ? "आपली बास्केट एकत्र भरूया" : "Let’s fill our basket"} “${name}” ${mr ? "" : "together"}: ${url}`;
   return (
     <div className="invite-panel">
-      <a
-        className="primary-button"
-        href={`https://wa.me/?text=${encodeURIComponent(message)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {mr ? "WhatsApp वर पाठवा" : "Send on WhatsApp"}
-      </a>
+      <WhatsAppButton text={message}>{mr ? "WhatsApp वर पाठवा" : "Send on WhatsApp"}</WhatsAppButton>
       <ShareLink
         label={mr ? "लिंक" : "Link"}
         url={url}

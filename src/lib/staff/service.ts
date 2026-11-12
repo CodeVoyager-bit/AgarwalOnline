@@ -52,6 +52,9 @@ async function giveRole(
   details: Record<string, unknown> = {},
 ) {
   const previousRole = staffRoleOf(person.roles as Role[]);
+  // a rider who no longer delivers hands back deliveries not yet started; one out for delivery stops this
+  if (previousRole === "delivery" && role !== "delivery")
+    await releaseRiderOrders(String(person._id), actorId, session, `${person.name} no longer delivers; ready for another rider`);
   person.roles = rolesFor(role === "customer" ? null : role);
   await person.save({ session });
   await revokeStaffSessions(String(person._id), session);

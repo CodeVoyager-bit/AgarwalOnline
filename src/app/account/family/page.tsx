@@ -23,6 +23,7 @@ import { PageHeading } from "@/components/page-heading";
 import { PolicyNotice } from "@/components/policy-notice";
 import { Popover } from "@/components/popover";
 import { ShareLink } from "@/components/share-link";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 import { ShareSheet } from "@/components/share-sheet";
 import { StatTiles } from "@/components/stat-tiles";
 export const metadata = { title: "Family", robots: { index: false } };
@@ -201,16 +202,11 @@ export default async function FamilyPage() {
               }
             >
               <div className="invite-panel">
-                <a
-                  className="primary-button"
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    t(`Join our family “${family.name}” on Agarwal Online: ${inviteUrl}`, `अग्रवाल ऑनलाइनवर आपल्या “${family.name}” मध्ये सामील व्हा: ${inviteUrl}`),
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <WhatsAppButton
+                  text={t(`Join our family “${family.name}” on Agarwal Online: ${inviteUrl}`, `अग्रवाल ऑनलाइनवर आपल्या “${family.name}” मध्ये सामील व्हा: ${inviteUrl}`)}
                 >
                   {t("Send on WhatsApp", "WhatsApp वर पाठवा")}
-                </a>
+                </WhatsAppButton>
                 <ShareLink
                   label={t("Link", "लिंक")}
                   url={inviteUrl}

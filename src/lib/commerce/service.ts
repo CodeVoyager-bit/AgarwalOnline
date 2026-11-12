@@ -474,10 +474,15 @@ export async function reorder(customerId: string, orderInput: unknown) {
     })),
   );
 }
-/** Adds lines to the basket, each capped at stock and the per-order limit; lines that cannot be bought are skipped. */
+/**
+ * Adds lines to the basket, each capped at stock and the per-order limit; lines that cannot be bought
+ * are skipped. `atLeast`: a line already in the basket is raised to the wanted quantity, not added to
+ * again, so tapping a one-tap Buy twice doesn't order everything twice.
+ */
 export async function addLinesToBasket(
   customerId: string,
   items: { variantId: unknown; quantity: number }[],
+  { atLeast = false }: { atLeast?: boolean } = {},
 ) {
   await connectDB();
   const user = await User.exists({
@@ -522,7 +527,7 @@ export async function addLinesToBasket(
       const quantity = Math.min(
         variant.maxQuantity,
         available,
-        (current?.quantity ?? 0) + item.quantity,
+        atLeast ? Math.max(current?.quantity ?? 0, item.quantity) : (current?.quantity ?? 0) + item.quantity,
       );
       await CartLine.updateOne(
         { customerId, variantId: variant._id },

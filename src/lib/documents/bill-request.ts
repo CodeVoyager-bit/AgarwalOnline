@@ -34,6 +34,7 @@ export async function billAccess(request: Request, id: string): Promise<Access |
     if (!BILL_CODE_RE.test(code) || !objectId.safeParse(id).success) return { error: plainText("Bill not found", 404) };
     await connectDB();
     const order = await Order.findOne({ _id: id, billShareToken: code });
+    if (order?.orderStatus === "cancelled") return { error: plainText("A cancelled order has no bill.", 409) };
     return order ? { order, staff: false, code, who: `link:${code}` } : { error: plainText("Bill not found", 404) };
   }
   const user = await currentUser();
@@ -41,6 +42,7 @@ export async function billAccess(request: Request, id: string): Promise<Access |
   // staff who manage orders may open any bill; everyone else their own, or their family's
   const order = await invoiceOrder(user, id);
   if (!order) return { error: plainText("Bill not found", 404) };
+  if (order.orderStatus === "cancelled") return { error: plainText("A cancelled order has no bill.", 409) };
   return { order, staff: hasPermission(user.roles, "order:manage"), code: null, who: `user:${user.id}` };
 }
 

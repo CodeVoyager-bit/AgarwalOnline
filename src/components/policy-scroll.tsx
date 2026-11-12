@@ -11,7 +11,12 @@ import { centreCurrent } from "./centre-current";
 export function PolicyScroll() {
   useEffect(() => {
     centreCurrent(".policy-switcher");
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    let id = window.location.hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      // "#%" and the like: look for it as written
+    }
     if (id) document.getElementById(id)?.scrollIntoView({ block: "start" });
   }, []);
   return null;

@@ -17,13 +17,23 @@ const inStock = (item: CatalogItem) => item.variants.some((variant) => variant.a
 
 /** The delivery area of the shopper's default address (or latest one), if it's switched on. */
 export async function deliveryAreaName(customerId: string) {
+  return (await deliveryArea(customerId))?.name;
+}
+
+/**
+ * The area the shopper's delivery address is in, with its fee; with no address, the cheapest area's
+ * fee and no name, so the basket's delivery line is never a made-up number.
+ */
+export async function deliveryArea(customerId: string | undefined): Promise<{ name?: string; feePaise: number } | undefined> {
   await connectDB();
-  const address =
-    (await Address.findOne({ customerId, isDefault: true }).select("areaId")) ??
-    (await Address.findOne({ customerId }).sort({ createdAt: -1 }).select("areaId"));
-  if (!address) return undefined;
-  const area = await ServiceArea.findOne({ _id: address.areaId, enabled: true }).select("name");
-  return area?.name as string | undefined;
+  const address = customerId
+    ? ((await Address.findOne({ customerId, isDefault: true }).select("areaId")) ??
+      (await Address.findOne({ customerId }).sort({ createdAt: -1 }).select("areaId")))
+    : null;
+  const area = address ? await ServiceArea.findOne({ _id: address.areaId, enabled: true }).select("name feePaise") : null;
+  if (area) return { name: area.name as string, feePaise: area.feePaise as number };
+  const cheapest = await ServiceArea.findOne({ enabled: true }).sort({ feePaise: 1 }).select("feePaise");
+  return cheapest ? { feePaise: cheapest.feePaise as number } : undefined;
 }
 
 /** Items the shopper ordered in their last few orders that aren't in the basket now. */

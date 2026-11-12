@@ -7,7 +7,7 @@ import { AGARWAL, billFileName, isSplit, orderBillList, sellerOf, withRevision }
 import { shopSettings } from "../settings/shop";
 import { getEnv } from "../env";
 import { renderInvoice, type InvoiceLine, type InvoiceOrder, type LineFacts } from "./invoice";
-import { lineFacts } from "./line-facts";
+import { factsOf, lineFacts } from "./line-facts";
 import type { BillBar } from "./bill-bar";
 
 type OrderDoc = {
@@ -29,7 +29,7 @@ type PlainOrder = Omit<InvoiceOrder, "items" | "bill"> & {
 /** What a line was printed at before the shop's own discount, times the quantity: the line's MRP saving. */
 const savingsOf = (lines: InvoiceLine[], facts: Map<string, LineFacts>) =>
   lines.reduce((sum, line) => {
-    const mrp = facts.get(String(line.variantId))?.mrpPaise;
+    const mrp = factsOf(line, facts).mrpPaise;
     return sum + (mrp && mrp > line.pricePaise ? (mrp - line.pricePaise) * line.quantity : 0);
   }, 0);
 

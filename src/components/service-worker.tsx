@@ -13,12 +13,27 @@ import { PUSH_OWNER_KEY } from "./push-settings";
  * notifications were turned on for somebody else, they stop here, so a shared phone never shows
  * one person's updates to the next. The new person can turn them on for themselves.
  */
-export function ServiceWorker({ account }: { account: string | null }) {
+export function ServiceWorker({ account, signedOut = false }: { account: string | null; signedOut?: boolean }) {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
     (async () => {
       const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
-      if (!account || !("PushManager" in window)) return;
+      if (!("PushManager" in window)) return;
+      // signed out: notifications only ever belong to someone signed in, so they stop on this browser
+      // (a shared phone would otherwise keep showing the last person's orders and chats)
+      if (signedOut) {
+        const leftover = await registration.pushManager.getSubscription();
+        if (!leftover) return;
+        await turnOffPushAction(leftover.endpoint);
+        await leftover.unsubscribe();
+        try {
+          localStorage.removeItem(PUSH_OWNER_KEY);
+        } catch {
+          // no storage: nothing was kept
+        }
+        return;
+      }
+      if (!account) return;
       const subscription = await registration.pushManager.getSubscription();
       if (!subscription) return;
       let owner: string | null = null;
@@ -39,6 +54,6 @@ export function ServiceWorker({ account }: { account: string | null }) {
       await turnOffPushAction(subscription.endpoint);
       await subscription.unsubscribe();
     })().catch(() => {});
-  }, [account]);
+  }, [account, signedOut]);
   return null;
 }

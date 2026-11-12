@@ -13,10 +13,13 @@ export function DeliveryPromise({
   cutoffHour,
   initialMinutes,
   locale,
+  promise,
 }: {
   cutoffHour: number;
   initialMinutes: number;
   locale: Locale;
+  /** From deliveryPromise(): no countdown on a holiday or a closed date, and the next open day named. */
+  promise?: { today: boolean; now: string; later: string };
 }) {
   const [minutes, setMinutes] = useState(initialMinutes);
   useEffect(() => {
@@ -26,12 +29,14 @@ export function DeliveryPromise({
     return () => window.clearInterval(timer);
   }, [cutoffHour]);
   const text = copy[locale];
-  const open = minutes > 0;
+  const open = (promise?.today ?? true) && minutes > 0;
+  // after the cutoff, or on a closed day: when an order placed now arrives ("tomorrow", "on Monday")
+  const nextDay = promise ? (promise.today ? promise.later : promise.now) : "tomorrow";
   return (
     <p className="delivery-promise" data-open={open}>
       <Clock3 size={16} aria-hidden="true" />
       <span>
-        {open ? text.orderWithin(formatDuration(minutes, locale)) : text.orderTomorrow}
+        {open ? text.orderWithin(formatDuration(minutes, locale)) : `Ordering now for delivery ${nextDay}`}
       </span>
     </p>
   );

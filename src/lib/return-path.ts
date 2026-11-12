@@ -13,5 +13,8 @@ export function returnPath(value: unknown) {
   if (typeof value !== "string") return null;
   if (EXACT.has(value)) return value;
   if (/^\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) return value;
+  // the school area's own pages; its query (a search, a school) is dropped
+  const schoolPage = value.split("?")[0];
+  if (/^\/school\/(basket|checkout|catalog|quotations(\/[a-f\d]{24})?|products\/[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(schoolPage)) return schoolPage;
   return listPath(value) ?? schoolJoinPath(value);
 }
