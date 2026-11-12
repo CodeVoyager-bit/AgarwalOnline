@@ -34,7 +34,7 @@
   .shop-header .header-inner { display: flex; gap: 8px; min-height: 0; padding: 2px var(--gutter) 8px; }
   .shop-header .brand, .shop-header .location { display: none; }
   .shop-header .smart-search { flex: 1 1 auto; min-width: 0; }
-  .shop-strip .top-strip-inner { flex-wrap: nowrap; gap: 8px; min-height: 44px; padding: 4px var(--gutter) 0; }
+  .shop-strip .top-strip-inner { flex-wrap: wrap; gap: 8px; min-height: 44px; padding: 4px var(--gutter) 0; }
   /* "Online" sits under "Agarwal", so the promise beside it has room for both of its lines */
   .strip-brand {
     flex: none;
@@ -49,9 +49,19 @@
     line-height: 1;
   }
   .strip-brand small { margin-top: 2px; font-size: 8px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
-  .shop-strip p { flex: 1 1 0; flex-wrap: nowrap; justify-content: flex-end; }
-  /* the offer line gives its place to the promise; it is on the home page and in the basket bar */
-  .shop-strip p > :not(.strip-promise) { display: none; }
+  /* one line at normal text; enlarged text wraps it onto more lines instead of pushing the page sideways */
+  .shop-strip p { flex: 1 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 2px 8px; min-width: 0; }
+  /* Beside the name: the team's offer line, free delivery and the welcome code side by side
+     (store.spec, "the phone top bar shows free delivery and the welcome code"). The delivery
+     promise stands in only when the owners switch both off in Customize → Shop front. */
+  .shop-strip p:has(.strip-free, .offer-code) > .strip-promise { display: none; }
+  .shop-strip p > span[aria-hidden="true"] { display: none; }
+  .shop-strip .strip-free { flex: none; gap: 4px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+  .shop-strip p > span:has(.offer-code) { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 2px 4px; max-width: 100%; font-size: 0.72rem; font-weight: 600; }
+  .shop-strip .offer-code { white-space: nowrap; }
+  /* the welcome words in their shortest form ("₹499+"); the code says the rest */
+  .shop-strip :is(.welcome-long, .welcome-short) { display: none; }
+  .shop-strip .welcome-tiny { display: inline; }
   .strip-promise {
     display: grid;
     align-content: center;
@@ -75,6 +85,11 @@
   /* the basket bar says how far the basket is from free delivery */
   .cart-bar:has(.cart-free) b { font-size: 0.95rem; font-weight: 700; opacity: 1; }
   .cart-bar .cart-free { color: var(--offer); font-family: var(--font-sans); font-size: 0.75rem; font-weight: 600; }
+}
+@media (max-width: 359px) {
+  /* the smallest phones: a narrower edge, and the code alone without "₹499+" */
+  .shop-strip .top-strip-inner { gap: 6px; padding-inline: 12px; }
+  .shop-strip .welcome-tiny { display: none; }
 }
 
 /* ---------- Shelves: section tabs across the top, the section's shelves down a rail ---------- */

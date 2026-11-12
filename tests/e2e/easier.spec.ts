@@ -2,7 +2,7 @@
 // that remember, Load more, recent and popular searches, the packing slip, the new-order sound and
 // stock from a spreadsheet, and checkout's delivery times folded to two days. (Picking a delivery
 // time is in store.spec, the rider's Call and Map in journey.spec.)
-import { test, expect, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { test, expect, type Browser, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
@@ -84,15 +84,25 @@ test.afterAll(async () => {
   await mongoose.disconnect();
 });
 
+/**
+ * Each person signs in once per run and later tests reuse that session: sign-in by email allows five
+ * tries a window per address (src/lib/auth/actions.ts), and this file opens more owner pages than that.
+ */
+const sessions = new Map<string, Awaited<ReturnType<BrowserContext["storageState"]>>>();
 async function signedIn(browser: Browser, who: keyof typeof EMAILS, use: TestInfo["project"]["use"]): Promise<Page> {
   const { baseURL, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor } = use;
-  const page = await (await browser.newContext({ baseURL, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor })).newPage();
+  // per project: each one reseeds the database, which ends the sessions before it
+  const key = `${test.info().project.name}:${who}`;
+  const context = await browser.newContext({ baseURL, viewport, isMobile, hasTouch, userAgent, deviceScaleFactor, storageState: sessions.get(key) });
+  const page = await context.newPage();
+  if (sessions.has(key)) return page;
   await page.goto("/login");
   await page.getByRole("button", { name: "Email", exact: true }).click();
   await page.getByLabel("Email address").fill(EMAILS[who]);
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in with email" }).click();
   await page.waitForURL((url) => url.pathname !== "/login", { timeout: 30_000 });
+  sessions.set(key, await context.storageState());
   return page;
 }
 async function shot(page: Page, name: string) {
