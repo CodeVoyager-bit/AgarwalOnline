@@ -12,10 +12,12 @@ const config: NextConfig = {
   // into <body> instead, a canonical link is ignored. Pages already wait on the database before they render.
   htmlLimitedBots: /.*/,
   // bill PDFs (src/lib/documents/pdf.ts) are drawn by a real Chromium: these load from node_modules at run
-  // time, and the serverless Chromium's compressed browser files go along with the PDF route on Vercel
+  // time, and the serverless Chromium's compressed browser files go along with the PDF route on Vercel.
+  // The route is matched with "*", not "[id]": in a glob "[id]" means one letter, i or d, so it never
+  // matched and every PDF on Vercel failed without the browser files (tests/next-config.test.ts)
   serverExternalPackages: ["playwright-core", "@sparticuz/chromium"],
   outputFileTracingIncludes: {
-    "/api/invoices/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+    "/api/invoices/*/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
   },
   experimental: {
     // photo uploads go through server actions, which refuse bodies over 1 MB by default;
