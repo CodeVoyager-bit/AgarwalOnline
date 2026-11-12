@@ -57,7 +57,7 @@ export async function saveCategory(actorId: string, input: unknown) {
       if (parents.some((parent) => parentsOf(parent).length)) throw Error("A category can only sit inside a top-level one.");
       if (
         data.categoryId &&
-        (await Category.exists({ $or: [{ parentIds: data.categoryId }, { parentId: data.categoryId }] }).session(session))
+        (await Category.exists({ parentIds: data.categoryId }).session(session))
       )
         throw Error("A category that holds others can’t sit inside one itself.");
     }
@@ -70,7 +70,7 @@ export async function saveCategory(actorId: string, input: unknown) {
       name: { en: data.nameEn, mr: data.nameMr || before?.name.mr || data.nameEn },
       ...(data.symbol === undefined ? {} : { symbol: data.symbol }),
       parentIds,
-      // the single "inside" from before a shelf could sit in several sections
+      // the old "Inside another category" box, which nothing reads any more
       parentId: null,
     };
     const category = data.categoryId

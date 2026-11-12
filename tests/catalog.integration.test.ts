@@ -127,11 +127,13 @@ describe.skipIf(!uri)("MongoDB catalog", () => {
       // before any shelf is grouped, there are no sections: one list of shelves
       expect(await catalogSections()).toEqual([]);
       await Category.updateOne({ _id: paper!._id }, { $set: { parentIds: [school._id, office._id] } });
-      // saved before a shelf could sit in several sections: its one parent still counts
-      await Category.updateOne({ _id: staples!._id }, { $set: { parentId: school._id } });
+      // the old "Inside another category" box is ignored: on the live shop it put one shelf of products
+      // inside another (Pencils inside School Essentials), and reading it hid School Essentials' own page
+      await Category.updateOne({ _id: staples!._id }, { $set: { parentId: paper!._id } });
       expect((await catalogSections()).map((section) => [section.slug, section.shelves.map((shelf) => shelf.slug)])).toEqual([
         ["for-office", ["paper"]],
-        ["for-school", ["paper", "staples"]],
+        ["for-school", ["paper"]],
+        ["", ["staples"]],
       ]);
       // a section is not a shelf: menus, the footer and the sitemap list shelves only
       expect((await catalogCategories()).map((category) => category.slug)).toEqual(["paper", "staples"]);

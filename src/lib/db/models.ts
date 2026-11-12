@@ -82,14 +82,17 @@ const categorySchema = new Schema(
      * simply a category some shelf names here, and has none of its own (two levels, no deeper).
      */
     parentIds: [{ type: Schema.Types.ObjectId, ref: "Category" }],
-    /** From before a shelf could sit in several sections; read through `parentsOf`, cleared on the next save. */
+    /**
+     * The old "Inside another category" box. The shop never showed it, and the live data has shelves
+     * that hold products set inside one another (Pencils inside School Essentials), which the
+     * category/subcategory grouping can't use, so nothing reads it any more. Cleared on the next save.
+     */
     parentId: { type: Schema.Types.ObjectId, ref: "Category" },
   },
   opts,
 );
-/** The ids of the sections a category sits in, whichever way it was saved. */
-export const parentsOf = (category: { parentIds?: unknown[] | null; parentId?: unknown }): string[] =>
-  category.parentIds?.length ? category.parentIds.map(String) : category.parentId ? [String(category.parentId)] : [];
+/** The ids of the categories a subcategory sits in. The old single `parentId` is ignored on purpose (see above). */
+export const parentsOf = (category: { parentIds?: unknown[] | null }): string[] => (category.parentIds ?? []).map(String);
 const productSchema = new Schema(
   {
     slug: { type: String, required: true, unique: true },

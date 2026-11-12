@@ -57,7 +57,7 @@ export async function groupShelves(write: boolean, plan = SHOP_PLAN) {
       if (parent && parents.includes(String(parent._id))) continue;
       moves += 1;
       done.push(`${shelf.name.en} → ${section.en}`);
-      // the old single "inside" is carried into the list, then cleared
+      // the old "Inside another category" box is cleared, not carried over: it put shelves with products inside each other
       if (write && parent)
         await Category.updateOne({ _id: shelf._id }, { $set: { parentIds: [...parents, String(parent._id)], parentId: null } });
     }
