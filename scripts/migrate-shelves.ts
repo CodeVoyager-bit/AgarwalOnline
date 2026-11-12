@@ -1,4 +1,4 @@
-// One-time, safe to run again: sorts the shop's subcategories into five categories, so a
+// One-time, safe to run again: sorts the shop's subcategories into the plan's categories, so a
 // subcategory can show under more than one (Pens under Stationery and under Office). The plan and
 // the work are in src/lib/catalog/sections.ts; owners can do the same from Admin → Categories
 // ("Sort them for me"). Without --write this only prints the plan.

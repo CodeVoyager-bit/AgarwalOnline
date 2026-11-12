@@ -23,6 +23,7 @@ import type { PipelineStage } from "mongoose";
 import { ProductReview } from "../reviews/models";
 import { schoolVisible, shopperVisible } from "./visibility";
 import { shared } from "../db/shop-cache";
+import { SHOP_PLAN } from "./sections";
 import { Provider, type ProviderLabel } from "../providers/models";
 export type CatalogItem = {
   id: string;
@@ -411,7 +412,16 @@ export const catalogSections = async () => {
   return [
     ...all
       .filter((category) => sectionIds.has(category.id))
-      .map((section) => ({ ...section, shelves: shelves.filter((shelf) => shelf.parentIds.includes(section.id)) })),
+      .map((section) => {
+        // a planned category opens on the subcategory it's about (Gifts on Party & Gifting, not Diaries);
+        // ones added by hand follow, in the shop's aisle order
+        const plan: readonly string[] = SHOP_PLAN.find((planned) => planned.slug === section.slug)?.shelves ?? [];
+        const rank = (slug: string) => plan.indexOf(slug) + 1 || plan.length + 1;
+        return {
+          ...section,
+          shelves: shelves.filter((shelf) => shelf.parentIds.includes(section.id)).sort((a, b) => rank(a.slug) - rank(b.slug)),
+        };
+      }),
     ...(loose.length ? [{ id: "", slug: "", en: "More", mr: "आणखी", symbol: "", parentIds: [] as string[], shelves: loose }] : []),
   ];
 };

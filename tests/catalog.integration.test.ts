@@ -142,6 +142,20 @@ describe.skipIf(!uri)("MongoDB catalog", () => {
       await Category.updateMany({}, { $unset: { parentIds: 1, parentId: 1 } });
     }
   });
+  it("opens a planned category on the subcategory it's about, not the first in aisle order", async () => {
+    const gifts = await Category.create({ slug: "gifts-party", name: { en: "Gifts and party", mr: "Gifts and party" } });
+    // Diaries comes before Party & Gifting in the shop's aisle order; the plan puts Party & Gifting first
+    const made = await Category.create([
+      { slug: "diaries", name: { en: "Diaries", mr: "Diaries" }, parentIds: [gifts._id] },
+      { slug: "party-gifting", name: { en: "Party & Gifting", mr: "Party & Gifting" }, parentIds: [gifts._id] },
+    ]);
+    try {
+      const section = (await catalogSections()).find((item) => item.slug === "gifts-party")!;
+      expect(section.shelves.map((shelf) => shelf.slug)).toEqual(["party-gifting", "diaries"]);
+    } finally {
+      await Category.deleteMany({ _id: { $in: [gifts._id, ...made.map((item) => item._id)] } });
+    }
+  });
   it("keeps working when Atlas Search is switched on but unavailable", async () => {
     process.env.ATLAS_SEARCH_ENABLED = "true";
     try {

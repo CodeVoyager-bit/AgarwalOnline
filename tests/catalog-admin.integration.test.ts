@@ -111,7 +111,8 @@ describe.skipIf(!uri)("Showing, hiding and changing packs", () => {
     expect((await sortIntoCategories(admin)).moves).toBe(4);
     expect((await catalogSections()).map((section) => [section.slug, section.shelves.map((shelf) => shelf.slug)])).toEqual([
       ["stationery", ["pens"]],
-      ["office", ["pens", "office-supplies"]],
+      // in the plan's order: Office opens on Office Supplies, with Pens after it
+      ["office", ["office-supplies", "pens"]],
       ["home-pooja", ["pooja-needs"]],
       ["", ["paper"]],
     ]);
