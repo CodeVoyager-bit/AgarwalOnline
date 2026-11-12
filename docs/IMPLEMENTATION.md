@@ -327,6 +327,8 @@ Three read-only code reviews (shopper side; staff, owner and rider side; schools
 
 Reported from the Android app: downloading a bill's PDF gave an error, and downloading or going back showed blank pages. The live server's logs can't be read from here, so the fixes cover every way this could happen. Look for `bill-pdf.failed`, `bill-pdf.retry` and `bill-pdf.slow-assets` in Vercel's logs to see which one it was.
 
+- **The cause on the live site (found 13 November):** Vercel never received the serverless Chromium. `next.config.ts` named the route `/api/invoices/[id]/pdf` in `outputFileTracingIncludes`, and in the route glob `[id]` means one letter, i or d. So the Turbopack build matched no route, the PDF function went out without `@sparticuz/chromium/bin`, and every PDF failed. The key is now `/api/invoices/*/pdf`. A build shows the four archives in `.next/server/app/api/invoices/[id]/pdf/route.js.nft.json`, and `tests/next-config.test.ts` refuses a bracketed key.
+
 - **Making the PDF** (`documents/pdf.ts`):
   - **Fonts and logo:** the page no longer waits for every font and the logo to load. It gives them 8 seconds (fonts 3 more), then prints without the slow one, instead of failing the whole PDF.
   - **A crashed Chromium:** a Chromium that died or hung since the last bill is thrown away. The bill is tried once more with a fresh one.
