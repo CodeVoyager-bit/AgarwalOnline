@@ -49,7 +49,8 @@ type QueueDef = {
   lateAfterMinutes: number;
 };
 
-const SOLD_OUT = { $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 0] } };
+// a pack whose stock alert is off (0) isn't counted; every deleted pack is set that way (catalog/deleted.ts)
+const SOLD_OUT = { $expr: { $lte: [{ $subtract: ["$onHand", "$reserved"] }, 0] }, alertBelow: { $ne: 0 } };
 const asModel = (model: unknown) => model as Model<unknown>;
 
 /** Everything that can wait on the team, oldest-first within each. Filters match the order list's steps. */

@@ -87,7 +87,7 @@ export function AddToList({
       {state.success && picked && (
         <p role="status" className="success-message">
           {mr ? `“${picked.name}” मध्ये जोडले.` : `Added to ${picked.name}.`}{" "}
-          <Link href={picked.id ? `/cart?basket=${picked.id}` : "/cart"}>
+          <Link href={picked.id || state.listId ? `/cart?basket=${picked.id ?? state.listId}` : "/cart"}>
             {mr ? "बास्केट पाहा" : "View basket"}
           </Link>
         </p>

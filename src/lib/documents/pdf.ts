@@ -33,6 +33,9 @@ async function launch(): Promise<Browser> {
   const { chromium } = await import("playwright-core");
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_VERSION) {
     const serverless = (await import("@sparticuz/chromium")).default;
+    // a bill draws no 3D: without the software graphics stack the single-process Chromium starts
+    // sooner and has less to crash on
+    serverless.setGraphicsMode = false;
     return chromium.launch({ executablePath: await serverless.executablePath(), args: serverless.args, headless: true });
   }
   return chromium.launch({ headless: true, ...(process.env.PDF_CHROME_PATH ? { executablePath: process.env.PDF_CHROME_PATH } : {}) });
@@ -70,21 +73,47 @@ function release() {
   shared.idle.unref?.();
 }
 
+/** Throws the shared Chromium away (it crashed, or hung), so the next bill starts a fresh one. */
+function discard(broken: Promise<BrowserContext> | null) {
+  if (!broken || shared.context !== broken) return;
+  shared.context = null;
+  broken.then((ctx) => ctx.browser()?.close()).catch(() => {});
+}
+
+/** One bill page drawn as a PDF in a tab of the shared Chromium. */
+async function render(html: string) {
+  const current = context();
+  try {
+    const page = await (await current).newPage();
+    try {
+      // "domcontentloaded", not "load": the fonts and the logo come over the network, and waiting for all
+      // of them used to fail the whole PDF when one was slow. They get a little time below, then are left out.
+      await page.setContent(html.replace("</head>", `${FONTS}</head>`), { waitUntil: "domcontentloaded", timeout: 20_000 });
+      await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => log("warn", "bill-pdf.slow-assets", {}));
+      await page.evaluate(() => Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, 3_000))]));
+      return await page.pdf({ printBackground: true, preferCSSPageSize: true, format: "A4" });
+    } finally {
+      await page.close().catch(() => {});
+    }
+  } catch (error) {
+    discard(current);
+    throw error;
+  }
+}
+
 /** The PDF of a bill page's HTML. The page's own @page rule sets the paper (A4, A5 or the receipt roll). */
 export async function htmlToPdf(html: string) {
   if (shared.idle) clearTimeout(shared.idle);
   shared.idle = null;
   shared.busy += 1;
   try {
-    const page = await (await context()).newPage();
     try {
-      await page.setContent(html.replace("</head>", `${FONTS}</head>`), { waitUntil: "load", timeout: 20_000 });
-      // the fonts and the logo come over the network; a slow one is waited for a little, then left out
-      await page.waitForLoadState("networkidle", { timeout: 8_000 }).catch(() => log("warn", "bill-pdf.slow-assets", {}));
-      await page.evaluate(() => document.fonts.ready);
-      return await page.pdf({ printBackground: true, preferCSSPageSize: true, format: "A4" });
-    } finally {
-      await page.close().catch(() => {});
+      return await render(html);
+    } catch (error) {
+      // a Chromium that died since the last bill (on Vercel it runs as a single process, and a frozen
+      // function can wake with it gone) is replaced, and the bill tried once more before giving up
+      log("warn", "bill-pdf.retry", { error });
+      return await render(html);
     }
   } finally {
     release();

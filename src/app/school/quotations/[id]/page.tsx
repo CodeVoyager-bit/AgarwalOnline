@@ -36,7 +36,7 @@ export default async function SchoolQuotation({
   const { id } = await params;
   const query = await searchParams;
   const user = await currentUser();
-  if (!user) redirect(`/login?then=${encodeURIComponent("/school/quotations")}`);
+  if (!user) redirect(`/login?then=${encodeURIComponent(`/school/quotations/${id}`)}`);
   const found = await quotationForViewer(user, id);
   if (!found) notFound();
   const { request } = found;

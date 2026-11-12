@@ -50,7 +50,8 @@ export function Analytics({ id }: { id: string }) {
       const url = new URL(link.href, window.location.href);
       if (/^https?:$/.test(url.protocol) && url.origin !== window.location.origin) return;
       // innerText keeps the line breaks between a card's badge, name and pack, so the words don't run together
-      const words = (link.getAttribute("aria-label") || link.innerText || "").replace(/\s+/g, " ").trim();
+      // data-analytics-label stands in for words people typed themselves, like a conversation's title
+      const words = (link.dataset.analyticsLabel || link.getAttribute("aria-label") || link.innerText || "").replace(/\s+/g, " ").trim();
       gtag("event", "link_click", {
         link_target: cleanUrl(link.href, window.location.origin),
         link_label: scrub(words).slice(0, 100),

@@ -60,6 +60,12 @@ describe("School links and pages", () => {
     expect(schoolJoinHref(token)).toBe(`/school/join/${token}`);
     expect(returnPath(`/school/join/${token}`)).toBe(`/school/join/${token}`);
     expect(returnPath("/school")).toBe("/school");
+    // the school area's own pages come back too; a query is dropped
+    expect(returnPath("/school/basket")).toBe("/school/basket");
+    expect(returnPath("/school/catalog?q=chalk")).toBe("/school/catalog");
+    expect(returnPath(`/school/quotations/${"a".repeat(24)}`)).toBe(`/school/quotations/${"a".repeat(24)}`);
+    expect(returnPath("/school/products/white-chalk")).toBe("/school/products/white-chalk");
+    expect(returnPath("/school/quotations/../../admin")).toBeNull();
     expect(schoolJoinPath("/school/join/short")).toBeNull();
     expect(returnPath(`/school/join/${token}/../../admin`)).toBeNull();
     expect(returnPath("https://example.com/school")).toBeNull();
@@ -80,5 +86,17 @@ describe("School links and pages", () => {
     expect(repStatus("quoted", "2000-01-01")).toEqual({ label: "Expired", tone: "bad" });
     expect(ownerStatus("changes-requested").tone).toBe("warn");
     expect(ownerStatus("accepted").label).toBe("Accepted");
+  });
+});
+
+describe("where /school/view and /school/use may send someone", () => {
+  it("stays in the school area, and encodes what goes into the redirect", () => {
+    expect(safeSchoolPath("/school/catalog?q=chalk")).toBe("/school/catalog?q=chalk");
+    expect(safeSchoolPath("/school/catalog?q=पेन")).toBe("/school/catalog?q=%E0%A4%AA%E0%A5%87%E0%A4%A8");
+    expect(safeSchoolPath("/school/%0Ax")).toBe("/school/%0Ax");
+    expect(safeSchoolPath("/school/\nx")).toBe("/school");
+    expect(safeSchoolPath("//evil.example/school")).toBe("/school");
+    expect(safeSchoolPath("https://evil.example/school")).toBe("/school");
+    expect(safeSchoolPath("/admin")).toBe("/school");
   });
 });

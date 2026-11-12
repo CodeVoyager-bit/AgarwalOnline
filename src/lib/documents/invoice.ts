@@ -5,9 +5,12 @@ import type { SectionValues } from "../settings/shop";
 import { dateOnly, escape, money } from "./format";
 import { renderBoxed, type BoxedTheme } from "./invoice-boxed";
 import { billBar, type BillBar } from "./bill-bar";
+import { factsOf } from "./line-facts";
 
 export type InvoiceLine = PackedLine & {
   variantId?: unknown;
+  /** Kept when the bill was issued; see factsOf. */
+  billed?: LineFacts | null;
   name: string;
   label: string;
   quantity: number;
@@ -191,7 +194,7 @@ export function renderInvoice({
   bar?: BillBar | null;
 }) {
   const cash = order.paymentMethod === "cod";
-  const factOf = (line: InvoiceLine) => facts.get(String(line.variantId)) ?? {};
+  const factOf = (line: InvoiceLine) => factsOf(line, facts);
   const rates = order.items.map((line) => factOf(line).gstRatePercent ?? null);
   const kind = billKind({ estimate, sellerGstin: seller.gstin, buyerGstin: order.bill?.gstin, rates, composition });
   const taxed = kind === "tax-invoice" || kind === "tax-invoice-cum-bill-of-supply";

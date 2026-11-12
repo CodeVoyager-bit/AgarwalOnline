@@ -125,7 +125,8 @@ export async function childKits(family: { children: KitChild[] }) {
         kit: kit
           ? {
               lines: rows.length,
-              totalPaise: rows.reduce((sum, row) => sum + row.pricePaise * row.quantity, 0),
+              // what Buy kit can actually put in the basket: no more than is in stock
+              totalPaise: rows.reduce((sum, row) => sum + row.pricePaise * Math.min(row.quantity, Math.max(0, row.available)), 0),
               unavailable: rows.filter((row) => row.available < row.quantity).length,
               images: rows.slice(0, 3).map((row) => ({ image: row.image, slug: row.slug })),
             }
@@ -151,7 +152,7 @@ export async function kitToBasket(userId: string, childInput: unknown) {
     status: "published",
   }).collation(SCHOOL_COLLATION);
   if (!kit) throw Error("This kit is not available yet.");
-  return addLinesToBasket(userId, kit.items);
+  return addLinesToBasket(userId, kit.items, { atLeast: true });
 }
 
 /** The yearly question: moved up a class, or staying, for the school's newer year. */

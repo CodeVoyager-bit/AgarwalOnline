@@ -19,7 +19,8 @@ import { deliveryRules } from "@/lib/commerce/service";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductQuantity } from "@/components/quick-add";
 import { orderedPhotos } from "@/lib/catalog/photos";
-import { discountPercent, formatPrice, minutesUntilCutoff } from "@/lib/display";
+import { discountPercent, formatPrice } from "@/lib/display";
+import { deliveryPromise } from "@/lib/commerce/delivery";
 import { getEnv } from "@/lib/env";
 import { jsonLd, productDescription, productJsonLd } from "@/lib/seo";
 import { listsFor } from "@/lib/lists/service";
@@ -92,7 +93,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // every published review counts, as on the product cards; only the latest 20 are listed below
   const averageRating = p.reviewCount ? p.rating : 0;
   // the cutoff is an IST hour; the server clock is UTC on Vercel
-  const deliveryDay = minutesUntilCutoff(rules.cutoffHour) > 0 ? "today" : "tomorrow";
+  // skips holidays and closed dates, as checkout does: "today", "tomorrow" or "on Monday"
+  const deliveryDay = deliveryPromise(new Date(), rules).now;
   const photos = orderedPhotos(p).length ? orderedPhotos(p) : image ? [image] : [];
   const structuredData = productJsonLd(
     p,

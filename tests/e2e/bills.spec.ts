@@ -2,7 +2,9 @@
 // name shows one bill per seller, each with Print bill and Share PDF on WhatsApp, on the order page, in
 // the order history, the family's spend list, on the staff order page and the packing slip. Share hands the phone's share list a
 // real PDF (stubbed here), or on a computer saves the PDF and opens WhatsApp Web with the view-only link,
-// which works signed out. An admin's change to a provider's tax details waits for the owner.
+// which works signed out. A PDF that can't be made says why and leaves the page as it was; a phone browser
+// that can't share files saves the PDF and offers Open WhatsApp. An admin's change to a provider's tax
+// details waits for the owner.
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import mongoose from "mongoose";
@@ -161,6 +163,20 @@ async function signedIn(browser: Browser, page: Page, who: { email: string }) {
 async function shot(page: Page, name: string) {
   if (out) await page.screenshot({ path: `${out}/${test.info().project.name}_bills-${name}.png`, fullPage: true });
 }
+/**
+ * Print bill: on a computer the bill opens in a new tab, ready to print; on a phone it opens in place
+ * (a second window there is a separate screen), with Back to come back.
+ */
+async function printFrom(page: Page, button: ReturnType<Page["getByRole"]>) {
+  if (mobile()) {
+    await button.click();
+    await page.waitForURL(/\/api\/invoices\/.*print=1/);
+    return page;
+  }
+  const [printed] = await Promise.all([page.context().waitForEvent("page"), button.click()]);
+  await printed.waitForLoadState();
+  return printed;
+}
 /** A download is a real PDF, named after its seller and bill. */
 async function expectPdf(download: { suggestedFilename(): string; path(): Promise<string | null> }, name: RegExp) {
   expect(download.suggestedFilename()).toMatch(name);
@@ -201,27 +217,110 @@ test("the order page gives each seller's bill its own row, with Print bill and S
     ]);
     await expectPdf(saved, /^Agarwal-General-Stores-bill-20261107-00031\.pdf$/);
     await expect.poll(() => whatsapp.url(), { timeout: 30_000 }).toMatch(/^https:\/\/wa\.me\/\?text=/);
+    // WhatsApp took the waiting window's place: Back there doesn't land on an empty page
+    expect(await whatsapp.evaluate(() => history.length)).toBe(1);
     const text = decodeURIComponent(new URL(whatsapp.url()).searchParams.get("text")!);
     expect(text).toMatch(/^Bill for order AGS-20261107-00031\. http:\/\/127\.0\.0\.1:3002\/b\/[A-Za-z0-9_-]{24}$/);
     await expect(agarwal.locator(".bill-actions-status")).toContainText("The PDF is in your downloads");
   }
-  // pictures only after Share: a full-page screenshot switches an emulated phone's touch off
-  await shot(customer, "order-page");
 
   // Print opens the provider's bill on its own, ready to print
-  const [printed] = await Promise.all([customer.context().waitForEvent("page"), kale.getByRole("button", { name: "Print bill" }).click()]);
-  await printed.waitForLoadState();
+  const printed = await printFrom(customer, kale.getByRole("button", { name: "Print bill" }));
   expect(printed.url()).toContain(`bill=${kaleId}`);
   expect(printed.url()).toContain("print=1");
   await expect(printed.getByText("BILL OF SUPPLY", { exact: false }).first()).toBeVisible();
   await expect(printed.locator("body")).toContainText(KALE_GSTIN);
   await expect(printed.locator("body")).toContainText("Sold through Agarwal Online");
   await expect(printed.getByRole("button", { name: "Share PDF on WhatsApp" })).toBeVisible();
-  await printed.close();
+  // the bill page's own Download PDF saves the PDF and stays on the bill
+  const billUrl = printed.url();
+  const [fromBill] = await Promise.all([printed.waitForEvent("download"), printed.getByRole("button", { name: "Download PDF" }).click()]);
+  await expectPdf(fromBill, /^Kale-Toys-and-Games-bill-KT-26-27-0001\.pdf$/);
+  await expect(printed.locator("#bb-status")).toHaveText("The PDF is in your downloads.");
+  expect(printed.url()).toBe(billUrl);
+  if (mobile()) {
+    // opened in place: Back comes back to the order
+    await printed.getByRole("button", { name: "Back" }).click();
+    await customer.waitForURL(`**/account/orders/${orderId}`);
+  } else {
+    // a tab of its own has nothing to go back to
+    await expect(printed.getByRole("button", { name: "Back" })).toBeHidden();
+    await printed.close();
+  }
 
   // Download PDF: the PDF itself
   const [download] = await Promise.all([customer.waitForEvent("download"), kale.getByRole("button", { name: "Download PDF" }).click()]);
   await expectPdf(download, /^Kale-Toys-and-Games-bill-KT-26-27-0001\.pdf$/);
+  await expect(kale.locator(".bill-actions-status")).toHaveText("The PDF is in your downloads.");
+  // pictures only after the phone-only steps (Share, Print): a full-page screenshot switches an emulated phone's touch off
+  await shot(customer, "order-page");
+});
+
+test("a PDF that can't be made says why, and the page stays as it was", async ({ browser, page }) => {
+  const customer = await signedIn(browser, page, SHOPPER);
+  await customer.goto(`/account/orders/${orderId}`);
+  const kale = customer.locator("#bills > li").filter({ hasText: "Kale Toys and Games" });
+  const pdf = "**/api/invoices/*/pdf**";
+  const failing = async (status: number, body: string, contentType = "text/plain; charset=utf-8") => {
+    await customer.unroute(pdf);
+    await customer.route(pdf, (route) => route.fulfill({ status, contentType, body }));
+  };
+  const before = customer.url();
+
+  // the server's own reason, word for word
+  await failing(503, "The PDF couldn't be made just now. Try again, or use Print bill.");
+  await kale.getByRole("button", { name: "Download PDF" }).click();
+  await expect(kale.locator(".bill-actions-status")).toHaveText("The PDF couldn't be made just now. Try again, or use Print bill.");
+  await failing(429, "Too many PDFs in a short time. Try again in a while.");
+  await kale.getByRole("button", { name: "Download PDF" }).click();
+  await expect(kale.locator(".bill-actions-status")).toHaveText("Too many PDFs in a short time. Try again in a while.");
+  // the host's own error page for a PDF that ran out of time: our words instead of its page
+  await failing(504, "<!doctype html><title>504</title><h1>FUNCTION_INVOCATION_TIMEOUT</h1>", "text/html");
+  await kale.getByRole("button", { name: "Download PDF" }).click();
+  await expect(kale.locator(".bill-actions-status")).toContainText("The PDF took too long to make");
+  // something that isn't a PDF, served as if it were, is never saved
+  await failing(200, "<html>Sign in</html>", "application/pdf");
+  await kale.getByRole("button", { name: "Download PDF" }).click();
+  await expect(kale.locator(".bill-actions-status")).toContainText("Couldn’t make the PDF just now");
+  // Share says the same, and on a computer leaves no window behind
+  await failing(503, "The PDF couldn't be made just now. Try again, or use Print bill.");
+  const windows = customer.context().pages().length;
+  await kale.getByRole("button", { name: "Share PDF on WhatsApp" }).click();
+  await expect(kale.locator(".bill-actions-status")).toHaveText("The PDF couldn't be made just now. Try again, or use Print bill.");
+  await expect.poll(() => customer.context().pages().length).toBe(windows);
+  await expect(kale.getByRole("button", { name: "Share PDF on WhatsApp" })).toBeEnabled();
+  expect(customer.url()).toBe(before);
+
+  // the bill page's own bar says why too
+  await customer.goto(`/api/invoices/${orderId}?bill=${kaleId}&view=1`);
+  await customer.getByRole("button", { name: "Download PDF" }).click();
+  await expect(customer.locator("#bb-status")).toHaveText("The PDF couldn't be made just now. Try again, or use Print bill.");
+  await expect(customer.getByRole("button", { name: "Download PDF" })).toBeEnabled();
+  await customer.unroute(pdf);
+  await customer.context().close();
+});
+
+test("a phone browser that can't share files saves the PDF and offers Open WhatsApp", async ({ browser, page }) => {
+  test.skip(!mobile(), "a phone's share list; a computer always saves and opens WhatsApp Web");
+  const customer = await signedIn(browser, page, SHOPPER);
+  // Firefox, and some apps' own browsers: no file sharing
+  await customer.addInitScript(() => Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true }));
+  await customer.goto(`/account/orders/${orderId}`);
+  const agarwal = customer.locator("#bills > li").filter({ hasText: "Agarwal General Stores" });
+  const [saved] = await Promise.all([customer.waitForEvent("download"), agarwal.getByRole("button", { name: "Share PDF on WhatsApp" }).click()]);
+  await expectPdf(saved, /^Agarwal-General-Stores-bill-20261107-00031\.pdf$/);
+  await expect(agarwal.locator(".bill-actions-status")).toContainText("Tap Open WhatsApp");
+  // a window opened after the wait would be blocked: the tap on Open WhatsApp opens it
+  const [whatsapp] = await Promise.all([customer.context().waitForEvent("page"), agarwal.getByRole("button", { name: "Open WhatsApp" }).click()]);
+  await expect.poll(() => whatsapp.url(), { timeout: 30_000 }).toMatch(/^https:\/\/wa\.me\/\?text=/);
+  expect(decodeURIComponent(new URL(whatsapp.url()).searchParams.get("text")!)).toMatch(/\/b\/[A-Za-z0-9_-]{24}$/);
+
+  // the bill page's bar does the same
+  await customer.goto(`/api/invoices/${orderId}?view=1`);
+  await Promise.all([customer.waitForEvent("download"), customer.getByRole("button", { name: "Share PDF on WhatsApp" }).click()]);
+  await expect(customer.getByRole("link", { name: "Open WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\/\?text=.*%2Fb%2F/);
+  await shot(customer, "open-whatsapp");
+  await customer.context().close();
 });
 
 test("each delivered order in the history has the two bill buttons", async ({ browser, page }) => {
@@ -275,11 +374,14 @@ test("the family's spend list has the bill buttons: the buyer's one pair, a rela
       })
       .toEqual(["Kale-Toys-and-Games-bill-KT-26-27-0001.pdf"]);
   }
-  await shot(relative, "family");
-  const [printed] = await Promise.all([relative.context().waitForEvent("page"), bills.nth(1).getByRole("button", { name: "Print bill" }).click()]);
-  await printed.waitForLoadState();
+  const printed = await printFrom(relative, bills.nth(1).getByRole("button", { name: "Print bill" }));
   expect(printed.url()).toContain(`bill=${kaleId}`);
   await expect(printed.locator("body")).toContainText("Kale Toys and Games");
+  if (mobile()) {
+    await printed.getByRole("button", { name: "Back" }).click();
+    await relative.waitForURL("**/account/family**");
+  }
+  await shot(relative, "family");
   await relative.context().close();
 });
 
@@ -294,11 +396,28 @@ test("the view-only link opens the bills signed out, and only with the right cod
   const rows = guest.locator(".order-bills > li");
   await expect(rows).toHaveCount(2);
   await shot(guest, "link");
-  const [download] = await Promise.all([
-    guest.waitForEvent("download"),
-    rows.filter({ hasText: "Kale Toys and Games" }).getByRole("link", { name: "Download PDF" }).click(),
-  ]);
+  const kaleRow = rows.filter({ hasText: "Kale Toys and Games" });
+  const [download] = await Promise.all([guest.waitForEvent("download"), kaleRow.getByRole("button", { name: "Download PDF" }).click()]);
   await expectPdf(download, /^Kale-Toys-and-Games-bill-KT-26-27-0001\.pdf$/);
+  // saved without leaving the page (a plain link to the PDF left a blank page behind in some phone browsers)
+  await expect(kaleRow.locator(".bill-actions-status")).toHaveText("The PDF is in your downloads.");
+  expect(new URL(guest.url()).pathname).toBe(`/b/${code}`);
+  // View bill opens the bill in place; its Back comes back to the link
+  await kaleRow.getByRole("link", { name: "View bill" }).click();
+  await guest.waitForURL(/\/api\/invoices\/.*view=1/);
+  await expect(guest.locator("body")).toContainText(KALE_GSTIN);
+  await guest.getByRole("button", { name: "Back" }).click();
+  await guest.waitForURL(`**/b/${code}`);
+  // the PDF failing there says why, and stays
+  await guest.route("**/api/invoices/*/pdf**", (route) =>
+    route.fulfill({ status: 503, contentType: "text/plain; charset=utf-8", body: "The PDF couldn't be made just now. Try again, or use Print bill." }),
+  );
+  await guest.locator(".order-bills > li").filter({ hasText: "Kale Toys and Games" }).getByRole("button", { name: "Download PDF" }).click();
+  await expect(guest.locator(".order-bills > li").filter({ hasText: "Kale Toys and Games" }).locator(".bill-actions-status")).toHaveText(
+    "The PDF couldn't be made just now. Try again, or use Print bill.",
+  );
+  expect(new URL(guest.url()).pathname).toBe(`/b/${code}`);
+  await guest.unroute("**/api/invoices/*/pdf**");
   // a wrong code, or no code and no sign-in, shows nothing (the page streams, so the not-found page can
   // arrive with a 200: check what is on it)
   await guest.goto(`/b/${code.replace(/^./, (c: string) => (c === "A" ? "B" : "A"))}`);

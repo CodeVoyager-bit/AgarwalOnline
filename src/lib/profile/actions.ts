@@ -16,7 +16,8 @@ export async function profileAction(
     const data = z
       .object({
         name: z.string().trim().min(2).max(80),
-        preferredPaymentMethod: z.enum(["cod", "razorpay"]).catch("cod"),
+        // only when the form shows the choice (online payment on): otherwise the saved one stays
+        preferredPaymentMethod: z.enum(["cod", "razorpay"]).optional().catch(undefined),
         substitutionPreference: z
           .enum(["contact", "best-match", "no-substitutions"])
           .catch("contact"),
@@ -26,7 +27,7 @@ export async function profileAction(
     if (!before) throw Error("UNAUTHENTICATED");
     await User.updateOne(
       { _id: user.id, active: true },
-      { $set: data },
+      { $set: Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) },
     );
     await AuditLog.create({
       actorId: user.id,

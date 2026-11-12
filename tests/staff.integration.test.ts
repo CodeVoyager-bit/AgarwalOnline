@@ -288,4 +288,35 @@ describe.skipIf(!uri)("Staff access management", () => {
     expect(back?.deliveryStatus).toBe("unassigned");
     expect(back?.assignedTo).toBeUndefined();
   });
+
+  it("hands deliveries back when a rider is given another role from the picker, and holds off while one is on the road", async () => {
+    const rider = await User.create({ name: "Picker rider", phone: "9000000078", roles: ["customer", "delivery"] });
+    const order = (deliveryStatus: string, n: number) =>
+      Order.create({
+        customerId: superAdminId,
+        number: `PICK-${n}`,
+        idempotencyKey: `pick-${n}`,
+        items: [],
+        address: {},
+        slotId: new mongoose.Types.ObjectId(),
+        paymentMethod: "cod",
+        subtotalPaise: 100,
+        deliveryPaise: 0,
+        totalPaise: 100,
+        orderStatus: "confirmed",
+        fulfilmentStatus: "ready",
+        deliveryStatus,
+        assignedTo: rider._id,
+      });
+    const waiting = await order("assigned", 1);
+    const onTheRoad = await order("out-for-delivery", 2);
+    const makeAdmin = () => grantStaffRole(superAdminId, { userId: String(rider._id), role: "admin" });
+    await expect(makeAdmin()).rejects.toThrow("out for delivery right now");
+    expect((await User.findById(rider._id))?.roles).toContain("delivery");
+    await Order.updateOne({ _id: onTheRoad._id }, { deliveryStatus: "delivered" });
+    await makeAdmin();
+    const back = await Order.findById(waiting._id);
+    expect(back?.deliveryStatus).toBe("unassigned");
+    expect(back?.assignedTo).toBeUndefined();
+  });
 });

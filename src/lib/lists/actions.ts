@@ -21,12 +21,15 @@ function errorMessage(e: unknown) {
 }
 
 /** Every board and basket form posts here with an `intent`; the service decides who may make each change. */
-export async function listAction(_state: MutationState, form: FormData): Promise<MutationState> {
+/** What the list forms get back; listId: a basket made just now by "Create & add". */
+export type ListState = MutationState & { listId?: string };
+export async function listAction(_state: ListState, form: FormData): Promise<ListState> {
   const listId = form.get("listId");
   // where Leave and Delete land: Saved for a board, the basket for a basket
   const back = form.get("back") === "/cart" ? "/cart" : "/account/wishlist";
   let next: string | null = null;
   let success = "Saved.";
+  let createdList: string | undefined;
   try {
     const user = await requirePermission("cart:own");
     switch (form.get("intent")) {
@@ -41,6 +44,8 @@ export async function listAction(_state: MutationState, form: FormData): Promise
         const id = form.get("name") ? await lists.createList(user.id, form.get("name"), "basket") : listId;
         await lists.saveListItem(user.id, id, form.get("variantId"), form.get("quantity"), true);
         success = "Added.";
+        // a basket made just now: the form's "View basket" link needs its id
+        if (form.get("name")) createdList = String(id);
         break;
       }
       case "save": {
@@ -60,7 +65,12 @@ export async function listAction(_state: MutationState, form: FormData): Promise
         break;
       case "basket":
       case "checkout": {
-        const { added, skipped } = await lists.listToBasket(user.id, { listId, token: form.get("token") });
+        // "Buy this board" and "Order <basket>" top the basket up to the list, so a second tap doesn't double it
+        const { added, skipped } = await lists.listToBasket(
+          user.id,
+          { listId, token: form.get("token") },
+          form.get("intent") === "checkout",
+        );
         success = `${added} item${added === 1 ? "" : "s"} added to your basket${skipped ? ` · ${skipped} unavailable` : ""}.`;
         // "Buy this board" and "Order <basket>" go straight on to checkout, unless nothing could be added
         if (form.get("intent") === "checkout" && added) next = "/checkout";
@@ -97,5 +107,5 @@ export async function listAction(_state: MutationState, form: FormData): Promise
   }
   revalidatePath("/", "layout");
   if (next) redirect(next);
-  return { success };
+  return createdList ? { success, listId: createdList } : { success };
 }

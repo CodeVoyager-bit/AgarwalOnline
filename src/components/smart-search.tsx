@@ -166,7 +166,8 @@ export function SmartSearch({
   const searchFor = (text: string) => {
     remember(text);
     setOpen(false);
-    router.push(`${action}?q=${encodeURIComponent(text.trim())}`);
+    // the catalogue reads 100 characters; a long spoken search is cut there rather than refused
+    router.push(`${action}?q=${encodeURIComponent(text.trim().slice(0, 100))}`);
   };
 
   function toggleVoice() {
