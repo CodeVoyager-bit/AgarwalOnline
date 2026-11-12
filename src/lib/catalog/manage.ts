@@ -16,6 +16,7 @@ import { gstRateField, hsnField, optionalField } from "../tax/gst";
 import { orderedPhotos, photoFields, photoList } from "./photos";
 import { chosenProvider } from "../providers/service";
 import { notDeleted } from "./deleted";
+import { groupShelves } from "./sections";
 
 async function authorize(actorId: string, permission: Permission = "catalog:write") {
   await connectDB();
@@ -36,7 +37,8 @@ const categoryInput = z.object({
     .max(60),
   nameEn: z.string().trim().min(2).max(80),
   nameMr: z.string().trim().min(2).max(80),
-  symbol: z.string().trim().max(12).default(""),
+  /** Not on the form any more (nothing shows it); a category that has one keeps it. */
+  symbol: z.string().trim().max(12).optional(),
   /** The sections it shows under; none makes it a top-level category. */
   parentIds: z.array(objectId).max(10).default([]),
 });
@@ -61,7 +63,7 @@ export async function saveCategory(actorId: string, input: unknown) {
     const payload = {
       slug: data.slug,
       name: { en: data.nameEn, mr: data.nameMr },
-      symbol: data.symbol,
+      ...(data.symbol === undefined ? {} : { symbol: data.symbol }),
       parentIds,
       // the single "inside" from before a shelf could sit in several sections
       parentId: null,
@@ -98,6 +100,14 @@ export async function saveCategory(actorId: string, input: unknown) {
       { session },
     );
   });
+}
+
+/** "Sort them for me": the shop's own plan (catalog/sections.ts) applied to the subcategories that sit loose. */
+export async function sortIntoCategories(actorId: string) {
+  await authorize(actorId);
+  const result = await groupShelves(true);
+  if (result.moves) await AuditLog.create({ actorId, action: "category.sort", target: "categories", details: { done: result.done } });
+  return result;
 }
 
 export async function updateProductMetadata(actorId: string, input: unknown) {

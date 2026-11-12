@@ -88,7 +88,7 @@ export async function catalogForSchools(input: { q?: string; category?: string }
 }
 /** The shop's sections, then its aisles, in display order: menus, the aisle tiles and browsing follow it; unlisted ones come after, by name. */
 const AISLE_ORDER = [
-  // the sections shelves are grouped under (scripts/migrate-shelves.ts)
+  // the categories that subcategories are grouped under (src/lib/catalog/sections.ts)
   "stationery",
   "office",
   "toys-games",

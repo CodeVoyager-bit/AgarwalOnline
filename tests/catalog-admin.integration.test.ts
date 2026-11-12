@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 import { connectDB } from "../src/lib/db/connect";
 import { Category, InventoryItem, Product, ProductVariant, User, parentsOf } from "../src/lib/db/models";
 import { CartLine } from "../src/lib/commerce/models";
-import { saveCategory, setProductVisibility, updateProductMetadata, updateVariant } from "../src/lib/catalog/manage";
-import { catalog } from "../src/lib/catalog/queries";
+import { saveCategory, setProductVisibility, sortIntoCategories, updateProductMetadata, updateVariant } from "../src/lib/catalog/manage";
+import { catalog, catalogSections } from "../src/lib/catalog/queries";
+import { AuditLog } from "../src/lib/db/models";
 import { basketFor, setCartLine } from "../src/lib/commerce/service";
 
 const uri = process.env.TEST_MONGODB_URI;
@@ -98,6 +99,30 @@ describe.skipIf(!uri)("Showing, hiding and changing packs", () => {
     // unticking every section makes it a plain shelf again
     await saveCategory(admin, { ...paperFields, categoryId: paper, parentIds: [] });
     expect(parentsOf((await Category.findById(paper))!)).toEqual([]);
+  });
+
+  it("sorts loose subcategories into the shop's categories, once", async () => {
+    await Category.create([
+      { slug: "pens", name: { en: "Pens", mr: "पेन" } },
+      { slug: "office-supplies", name: { en: "Office Supplies", mr: "कार्यालयीन साहित्य" } },
+      { slug: "pooja-needs", name: { en: "Pooja Needs", mr: "पूजा साहित्य" } },
+    ]);
+    // Pens goes in two; a category nobody has subcategories for (toys, gifts) isn't made
+    expect((await sortIntoCategories(admin)).moves).toBe(4);
+    expect((await catalogSections()).map((section) => [section.slug, section.shelves.map((shelf) => shelf.slug)])).toEqual([
+      ["stationery", ["pens"]],
+      ["office", ["pens", "office-supplies"]],
+      ["home-pooja", ["pooja-needs"]],
+      ["", ["paper"]],
+    ]);
+    expect(await AuditLog.countDocuments({ action: "category.sort" })).toBe(1);
+    // a second tap finds nothing left to do, and a subcategory moved by hand since then stays where it was put
+    const pens = (await Category.findOne({ slug: "pens" }))!;
+    const office = (await Category.findOne({ slug: "office" }))!;
+    await saveCategory(admin, { categoryId: String(pens._id), slug: "pens", nameEn: "Pens", nameMr: "पेन", parentIds: [String(office._id)] });
+    expect((await sortIntoCategories(admin)).moves).toBe(1); // Pens back under Stationery; Office is kept
+    expect(parentsOf((await Category.findById(pens._id))!)).toHaveLength(2);
+    expect((await sortIntoCategories(admin)).moves).toBe(0);
   });
 
   it("saves a product's extra shelves and keeps them through a shelf's new web address", async () => {

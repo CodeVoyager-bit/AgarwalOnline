@@ -604,6 +604,14 @@ input[type="checkbox"], input[type="radio"] {
 .tick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0 16px; margin-top: 6px; }
 .staff-form-grid .tick-grid .checkbox-label { grid-column: auto; }
 .tick-note { grid-column: 1 / -1; margin: 0; }
+/* categories page: a subcategory sits a step in under its category; "Sort them for me" is words beside one button */
+.subcat { position: relative; display: block; padding-left: 22px; }
+.subcat::before { content: "↳"; position: absolute; left: 2px; top: 0; color: var(--faint); }
+.subcat small { display: block; }
+.sort-offer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.sort-offer > div { flex: 1 1 320px; min-width: 0; }
+.sort-offer h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.sort-offer p { margin: 0; }
 .also-on > summary { min-height: 44px; padding: 10px 0; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
 .field-wide { grid-column: 1 / -1; }
 .settings-grid .panel, .analytics-grid .panel { margin: 0; }

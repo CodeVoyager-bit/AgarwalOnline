@@ -10,7 +10,7 @@ import {
   SearchSynonym,
 } from "../src/lib/db/models";
 import { categories, seedProducts } from "../src/lib/catalog/seed-data";
-import { groupShelves } from "./migrate-shelves";
+import { groupShelves } from "../src/lib/catalog/sections";
 import { productImages } from "../src/lib/catalog/images";
 import { Address, DeliverySlot, Order } from "../src/lib/commerce/models";
 import { Notification } from "../src/lib/engagement/models";

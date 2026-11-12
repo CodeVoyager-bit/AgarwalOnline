@@ -6,7 +6,7 @@ import { test, expect, type Browser, type Page, type TestInfo } from "@playwrigh
 import { execFileSync } from "node:child_process";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { InventoryItem, Product, ProductVariant, ServiceArea, User } from "../../src/lib/db/models";
+import { Category, InventoryItem, Product, ProductVariant, ServiceArea, User } from "../../src/lib/db/models";
 import { Address, DeliverySlot, Order, SystemSetting } from "../../src/lib/commerce/models";
 import { WishlistItem } from "../../src/lib/engagement/models";
 import { OrderFeedback } from "../../src/lib/feedback/models";
@@ -349,6 +349,38 @@ test("staff: the name on the bill, a re-issue, and the estimate (kaccha bill)", 
   expect(revised).toContain("replaces");
   expect((await page.request.get(`/api/invoices/${order.id}?kind=estimate`)).status()).toBe(409);
   await Order.updateOne({ _id: order.id }, { $set: { deliveryStatus: before.deliveryStatus }, $unset: { bill: "" } });
+  await page.context().close();
+});
+
+test("staff: a category first, then a subcategory inside it", async ({ browser }, info) => {
+  const page = await signedIn(browser, "owner", info.project.use);
+  await page.goto("/admin/categories");
+  const main = page.locator("main");
+  const addCategory = main.locator("details", { hasText: "Add a category" });
+  await addCategory.locator("summary").click();
+  await addCategory.getByLabel("English name").fill("Festival");
+  await addCategory.getByLabel("Marathi name").fill("सण");
+  await addCategory.getByLabel(/^Web address/).fill("festival");
+  await addCategory.getByRole("button", { name: "Add category" }).click();
+  await expect(addCategory.getByText("Saved.")).toBeVisible();
+  const addSub = main.locator("details", { hasText: "Add a subcategory" });
+  await addSub.locator("summary").click();
+  await addSub.getByLabel("English name").fill("Rangoli");
+  await addSub.getByLabel("Marathi name").fill("रांगोळी");
+  await addSub.getByLabel(/^Web address/).fill("rangoli");
+  // a subcategory has to say which category it sits in; what was typed stays
+  await addSub.getByRole("button", { name: "Add subcategory" }).click();
+  await expect(addSub.getByText("Tick the category it sits in.")).toBeVisible();
+  await expect(addSub.getByLabel("English name")).toHaveValue("Rangoli");
+  await addSub.getByLabel("Festival", { exact: true }).check();
+  await addSub.getByRole("button", { name: "Add subcategory" }).click();
+  await expect(addSub.getByText("Saved.")).toBeVisible();
+  // the list shows it one step in, under its category
+  await page.goto("/admin/categories?q=rangoli");
+  await expect(main.locator(".subcat", { hasText: "Rangoli" })).toBeVisible();
+  await expect(main).toContainText("Festival");
+  await shot(page, "categories");
+  await Category.deleteMany({ slug: { $in: ["festival", "rangoli"] } });
   await page.context().close();
 });
 

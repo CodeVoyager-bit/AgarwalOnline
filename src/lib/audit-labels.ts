@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   "auth.google.merge": "Linked a Google account",
   "category.create": "Added a category",
   "category.update": "Changed a category",
+  "category.sort": "Sorted the subcategories into categories",
   "cod.discrepancy.resolve": "Resolved a cash difference",
   "cod.reconcile": "Recorded a cash handover",
   "complaint.create": "Raised a complaint",

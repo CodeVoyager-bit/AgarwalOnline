@@ -11,6 +11,7 @@ import {
   setAlertLevel,
   setPackCost,
   setSchoolPrice,
+  sortIntoCategories,
   updateProductMetadata,
   updateVariant,
 } from "./manage";
@@ -19,7 +20,8 @@ import { plainMessage } from "../form-errors";
 import { log } from "../logger";
 
 const SAVED = {
-  category: "Category saved.",
+  category: "Saved.",
+  sort: "",
   product: "Product details saved.",
   visibility: "",
   pack: "Pack saved.",
@@ -41,13 +43,23 @@ export async function catalogManagementAction(
     const user = await requirePermission("catalog:write");
     // new pack sizes go through governanceAction (operation "variant"), like other price changes
     const operation = z
-      .enum(["category", "product", "visibility", "pack", "audience", "school-price", "alert", "cost"])
+      .enum(["category", "sort", "product", "visibility", "pack", "audience", "school-price", "alert", "cost"])
       .parse(form.get("operation"));
     // only an owner prices for schools or sees purchase prices; the services check again
     if (operation === "school-price" || operation === "cost") await requirePermission("settings:write");
     const raw = formWithPaise(form);
+    if (operation === "sort") {
+      const { moves } = await sortIntoCategories(user.id);
+      revalidatePath("/admin/categories");
+      revalidatePath("/", "layout");
+      return { success: moves ? `Sorted: ${moves} ${moves === 1 ? "subcategory is" : "subcategories are"} now inside a category.` : "Everything was already sorted." };
+    }
     // tick boxes send one value each, and `raw` keeps only the last of a repeated name
-    if (operation === "category") await saveCategory(user.id, { ...raw, parentIds: form.getAll("parentIds") });
+    if (operation === "category") {
+      // a new subcategory names its category: one added loose would read as a category of its own
+      if (form.get("kind") === "subcategory" && !form.getAll("parentIds").length) return { error: "Tick the category it sits in." };
+      await saveCategory(user.id, { ...raw, parentIds: form.getAll("parentIds") });
+    }
     else if (operation === "product")
       await updateProductMetadata(user.id, {
         ...raw,
