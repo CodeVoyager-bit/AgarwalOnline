@@ -4,6 +4,8 @@ import {
   assertPermission,
   rolesFor,
   accountRoles,
+  ownerLevel,
+  pickedRole,
   staffRoleOf,
   staffRoles,
   type AccountRole,
@@ -51,7 +53,7 @@ async function giveRole(
   session: mongoose.ClientSession,
   details: Record<string, unknown> = {},
 ) {
-  const previousRole = staffRoleOf(person.roles as Role[]);
+  const previousRole = pickedRole(person.roles as Role[]);
   // a rider who no longer delivers hands back deliveries not yet started; one out for delivery stops this
   if (previousRole === "delivery" && role !== "delivery")
     await releaseRiderOrders(String(person._id), actorId, session, `${person.name} no longer delivers; ready for another rider`);
@@ -113,7 +115,7 @@ export async function createStaff(actorId: string, input: unknown) {
         throw Error("Manage your own account from your account page. This number is yours.");
       if (
         staffRoleOf(existing.roles as Role[]) === "super-admin" &&
-        data.role !== "super-admin" &&
+        !ownerLevel(data.role) &&
         !(await User.countDocuments({
           roles: "super-admin",
           active: true,
@@ -199,12 +201,12 @@ export async function updateStaff(actorId: string, input: unknown) {
       roles: { $in: staffRoles },
     }).session(session);
     if (!staff) throw Error("Staff account not found.");
-    const currentRole = staffRoleOf(staff.roles as Role[]);
+    const currentRole = pickedRole(staff.roles as Role[]);
     const nextRole = data.role === "customer" ? null : data.role;
     if (
-      currentRole === "super-admin" &&
+      ownerLevel(currentRole) &&
       staff.active &&
-      (nextRole !== "super-admin" || !data.active)
+      (!ownerLevel(nextRole) || !data.active)
     ) {
       const remaining = await User.countDocuments({
         roles: "super-admin",

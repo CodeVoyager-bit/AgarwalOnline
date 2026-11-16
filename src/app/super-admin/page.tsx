@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import {
   BellRing,
   CalendarClock,
+  Code2,
   ChevronLeft,
   ChevronRight,
   FileText,
@@ -21,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { requirePage } from "@/lib/auth/session";
+import { hasPermission } from "@/lib/auth/permissions";
 import { ServiceArea, SearchSynonym } from "@/lib/db/models";
 import { DeliverySlot, SlotPattern, SystemSetting } from "@/lib/commerce/models";
 import { deliveryRules } from "@/lib/commerce/service";
@@ -146,7 +148,9 @@ export default async function StoreSettings({
 }: {
   searchParams: Promise<{ area?: string; pattern?: string; slot?: string; slots?: string }>;
 }) {
-  await requirePage("settings:write");
+  const user = await requirePage("settings:write");
+  // the developer credits are Tech's alone
+  const tech = hasPermission(user.roles, "tech:write");
   const params = await searchParams;
   // weekly delivery times become bookable slots two weeks ahead
   await ensureSlots();
@@ -277,6 +281,14 @@ export default async function StoreSettings({
         { id: "queues", title: CUSTOMIZE_TITLES.queues, Icon: Timer, line: "When a job counts as late" },
       ],
     },
+    ...(tech
+      ? [
+          {
+            title: "Tech",
+            rows: [{ id: "team", title: CUSTOMIZE_TITLES.team, Icon: Code2, line: `${saved.team.devName} · ${saved.team.devRole}` }],
+          },
+        ]
+      : []),
   ];
   // an edit panel in the address opens its section
   const initial = params.slot || params.slots ? "slots" : params.area ? "areas" : params.pattern ? "delivery" : undefined;
@@ -911,7 +923,7 @@ export default async function StoreSettings({
           </div>
         </div>
       </section>
-          <CustomizeSections saved={saved} />
+          <CustomizeSections saved={saved} tech={tech} />
         </div>
       </SettingsShell>
     </section>

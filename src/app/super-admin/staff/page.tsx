@@ -13,7 +13,7 @@ import { When } from "@/components/when";
 import { requirePage } from "@/lib/auth/session";
 import {
   grants,
-  staffRoleOf,
+  pickedRole,
   accountRoles,
   staffRoles,
   type Permission,
@@ -28,11 +28,12 @@ const labels: Record<string, string> = {
   delivery: "Delivery partner",
   admin: "Admin",
   "super-admin": "Owner",
+  tech: "Tech",
 };
-/** The same four roles, in the same order, in every picker on this page. */
+/** The same five roles, in the same order, in every picker on this page. */
 const roleOptions = accountRoles.map((role) => (
   <option key={role} value={role}>
-    {{ customer: "Customer", delivery: "Delivery partner", admin: "Admin", "super-admin": "Owner (super admin)" }[role]}
+    {{ customer: "Customer", delivery: "Delivery partner", admin: "Admin", "super-admin": "Owner (super admin)", tech: "Tech (owner and the site's own settings)" }[role]}
   </option>
 ));
 const SUMMARY: Record<string, string> = {
@@ -42,6 +43,7 @@ const SUMMARY: Record<string, string> = {
     "Runs the day: orders, packing, delivery, catalog, stock, customers and support.",
   "super-admin":
     "Everything an admin does, plus settings, staff, approvals, offers, refunds and the audit trail.",
+  tech: "Everything an owner does, including purchase prices and profit, plus the site's own settings: the developer and team credits in the footer.",
 };
 /** What each permission lets a person do, in the words the owner would use. */
 const CAN: Partial<Record<Permission, string>> = {
@@ -169,7 +171,7 @@ export default async function StaffManagement({
                   <select
                     name="role"
                     defaultValue={
-                      staffRoleOf(editing.roles as Role[]) ?? "customer"
+                      pickedRole(editing.roles as Role[]) ?? "customer"
                     }
                   >
                     {roleOptions}
@@ -374,7 +376,7 @@ export default async function StaffManagement({
           {joined && (
             <p className="success-message" role="status">
               {joined.name} is now on the team as{" "}
-              {labels[staffRoleOf(joined.roles as Role[]) ?? ""] ?? "staff"}.
+              {labels[pickedRole(joined.roles as Role[]) ?? ""] ?? "staff"}.
             </p>
           )}
           <DataTable
@@ -401,7 +403,7 @@ export default async function StaffManagement({
                 header: "Role",
                 cell: (member) => (
                   <StatusPill>
-                    {labels[staffRoleOf(member.roles as Role[]) ?? ""] ??
+                    {labels[pickedRole(member.roles as Role[]) ?? ""] ??
                       "Customer"}
                   </StatusPill>
                 ),
@@ -434,7 +436,7 @@ export default async function StaffManagement({
               <summary>{labels[role]}</summary>
               <p className="muted">{SUMMARY[role]}</p>
               {/* an owner can do everything: the summary says so, a list of every permission would just be long */}
-              {role !== "super-admin" && (
+              {role !== "super-admin" && role !== "tech" && (
                 <ul>
                   {grants[role as Role]
                     .filter((grant) => CAN[grant as Permission])

@@ -135,6 +135,18 @@ const customize: FinderEntry[] = [
     ["late", "overdue", "work queue", "timings", "sla", "reminder"],
     ["उशीर", "रांग"],
   ),
+  // Tech only: the developer credits
+  {
+    ...custom(
+      "team",
+      "Developer card and team page: name, photo, email, WhatsApp, links",
+      "डेव्हलपर कार्ड व टीम पान: नाव, फोटो, ईमेल, व्हॉट्सॲप, लिंक",
+      ["Developer and team", "डेव्हलपर व टीम"],
+      ["developer", "developed by", "credits", "team", "tech", "footer card", "linkedin", "instagram", "portfolio", "whatsapp", "photo"],
+      ["डेव्हलपर", "टीम"],
+    ),
+    permission: "tech:write",
+  },
 ];
 
 const settings: FinderEntry[] = [

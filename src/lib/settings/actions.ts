@@ -15,6 +15,7 @@ const SAVED: Record<SectionKey, string> = {
   numbers: "Numbering saved. New orders and quotations use it.",
   defaults: "Defaults saved. New packs, areas, delivery times and offers start from them.",
   queues: "Work queue timings saved.",
+  team: "Developer and team saved. The footer card and the team page show it within a minute.",
 };
 
 /** Customize: an owner saves one section (the form's hidden `section` field says which). */

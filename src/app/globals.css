@@ -1586,6 +1586,30 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
 .footer-base { border-top: 1px solid var(--line); }
 .footer-base-inner { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding: 16px var(--gutter); font-size: 0.8rem; color: var(--muted); }
 .footer-base p { margin: 0; }
+/* the developer credit (DevCredit): one card above the copyright line, and the same pieces on /p/team */
+.footer-credit { width: min(100%, calc(var(--content) + 2 * var(--gutter))); margin-inline: auto; padding: 0 var(--gutter) 32px; }
+.dev-credit { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; padding: 20px 24px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.dev-photo { flex: none; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px var(--band); }
+.dev-photo.is-initials { display: grid; place-items: center; background: var(--band); color: var(--on-band); font-weight: 800; font-size: 1.3rem; }
+.dev-credit-text { flex: 1 1 180px; min-width: 0; }
+.dev-credit-text p { margin: 0; }
+.dev-credit-eyebrow { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.dev-credit-name { margin-top: 2px; font-size: 1.15rem; font-weight: 800; color: var(--ink); }
+.dev-credit-role { color: var(--muted); }
+.site-footer .dev-contacts, .team-card .dev-contacts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.site-footer .dev-contacts a, .team-card .dev-contacts a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--canvas); color: var(--ink); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.site-footer .dev-contacts a:hover, .team-card .dev-contacts a:hover { border-color: var(--brand); }
+.dev-contacts svg { color: var(--brand); }
+.dev-team-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--brand); font-weight: 700; text-decoration: none; }
+.team-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.team-card { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.team-card h2 { margin: 0; }
+.team-card p { margin: 0; }
+.team-card .dev-photo { width: 120px; height: 120px; font-size: 2.4rem; }
+.team-card.is-small .dev-photo { width: 72px; height: 72px; font-size: 1.5rem; }
+.team-note { margin-top: 20px; }
+/* the team page already shows the card's details */
+body:has(.team-page) .footer-credit { display: none; }
 
 /* ---------- Store policies (/privacy, /terms, /refunds, /shipping, /contact) ---------- */
 .legal-meta { margin: -16px 0 20px; color: var(--muted); font-size: 0.85rem; }
@@ -1939,6 +1963,18 @@ a.order-row:hover { border-color: var(--ink); color: var(--ink); }
   .footer-store h2 { flex-basis: 100%; }
   .footer-store ul { display: flex; gap: 0 20px; }
   .footer-base-inner { flex-direction: column; gap: 2px; padding-block: 12px; }
+  /* the developer card: photo and name on one row, the contacts two across, the team page a full-width button */
+  .footer-credit { padding-bottom: 20px; }
+  .dev-credit { gap: 12px 14px; padding: 16px; }
+  .dev-credit > .dev-photo { width: 56px; height: 56px; }
+  /* one contact fills the row; more sit two across */
+  .site-footer .dev-contacts { flex: 1 1 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); }
+  .site-footer .dev-contacts a { width: 100%; justify-content: center; }
+  .dev-credit .dev-team-link { flex: 1 1 100%; justify-content: center; border: 1px solid var(--brand); border-radius: 999px; }
+  .team-grid { grid-template-columns: minmax(0, 1fr); }
+  .team-card .dev-contacts { width: 100%; }
+  .team-card .dev-contacts li { flex: 1 1 100%; }
+  .team-card .dev-contacts a { width: 100%; }
   .legal-layout { grid-template-columns: 1fr; gap: 20px; }
   /* the sticky contents column gives way to a folded list above the text */
   .legal-toc { display: none; }

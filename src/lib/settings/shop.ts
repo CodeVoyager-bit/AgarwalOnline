@@ -401,6 +401,69 @@ export const SECTIONS = {
       },
     },
   },
+  // only Tech can change these (saveShopSettings); the footer card and /p/team show them
+  team: {
+    fields: {
+      devName: { kind: "text", label: "Your name", group: "Developer card in the footer", default: "Krish Modi", min: 2, max: 60 },
+      devRole: { kind: "text", label: "Your role", default: "Lead developer", min: 2, max: 60 },
+      devPhoto: {
+        kind: "text",
+        label: "Photo link",
+        hint: "A link to a square photo, starting https://. Left blank, your initials show in its place.",
+        default: "",
+        max: 500,
+        pattern: /^https:\/\/\S+$/,
+        patternMessage: "Photo link: start it with https://.",
+      },
+      devEmail: {
+        kind: "text",
+        label: "Email",
+        hint: "Every contact left blank is hidden.",
+        default: "krishmodi3030@gmail.com",
+        max: 120,
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        patternMessage: "Email: check the address.",
+      },
+      devWhatsapp: {
+        kind: "text",
+        label: "WhatsApp number",
+        placeholder: "10 digits",
+        default: "",
+        max: 10,
+        pattern: /^[6-9]\d{9}$/,
+        patternMessage: "WhatsApp number: 10 digits, starting with 6, 7, 8 or 9.",
+      },
+      devInstagram: {
+        kind: "text",
+        label: "Instagram link",
+        placeholder: "https://instagram.com/yourname",
+        default: "",
+        max: 200,
+        pattern: /^https:\/\/(www\.)?instagram\.com\/\S+$/,
+        patternMessage: "Instagram link: start it with https://instagram.com/.",
+      },
+      devLinkedin: {
+        kind: "text",
+        label: "LinkedIn link",
+        placeholder: "https://www.linkedin.com/in/yourname",
+        default: "",
+        max: 200,
+        pattern: /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/\S+$/,
+        patternMessage: "LinkedIn link: start it with https://www.linkedin.com/.",
+      },
+      devPortfolio: {
+        kind: "text",
+        label: "Portfolio link",
+        placeholder: "https://",
+        default: "",
+        max: 200,
+        pattern: /^https:\/\/\S+$/,
+        patternMessage: "Portfolio link: start it with https://.",
+      },
+      helperName: { kind: "text", label: "Name", group: "Also on the team (on the team page)", default: "Swarnabh", min: 2, max: 60 },
+      helperRole: { kind: "text", label: "Role", default: "Developer", min: 2, max: 60 },
+    },
+  },
   queues: {
     fields: {
       toConfirm: { kind: "duration", label: "Orders to confirm", default: 60 },
@@ -549,7 +612,7 @@ export async function saveShopSettings(actorId: string, section: SectionKey, for
   if (!mongoose.isValidObjectId(actorId)) throw Error("UNAUTHENTICATED");
   const actor = await User.findOne({ _id: actorId, active: true });
   if (!actor) throw Error("UNAUTHENTICATED");
-  assertPermission(actor.roles as Role[], "settings:write");
+  assertPermission(actor.roles as Role[], section === "team" ? "tech:write" : "settings:write");
   const after = valuesFromForm(section, form);
   await mongoose.connection.transaction(async (session) => {
     const before = (await SystemSetting.findOne({ key: keyOf(section) }).session(session))?.value ?? null;

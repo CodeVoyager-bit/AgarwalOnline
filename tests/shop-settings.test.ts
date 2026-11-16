@@ -91,4 +91,21 @@ describe("shop settings", () => {
     const timed = readValues("storefront", { heroTitle: { en: "Order by {cutoff},", mr: "" } });
     expect(fill(frontWords(timed, "heroTitle", "en"), { cutoff: "3 PM" })).toBe("Order by 3 PM,");
   });
+
+  it("credit the developer until Tech changes it, and hide contacts left blank", () => {
+    const team = defaultsOf("team");
+    expect(team.devName).toBe("Krish Modi");
+    expect(team.devRole).toBe("Lead developer");
+    expect(team.devEmail).toBe("krishmodi3030@gmail.com");
+    expect([team.devPhoto, team.devWhatsapp, team.devInstagram, team.devLinkedin, team.devPortfolio]).toEqual(["", "", "", "", ""]);
+    expect(team.helperName).toBe("Swarnabh");
+    const saved = valuesFromForm(
+      "team",
+      form({ ...team, devWhatsapp: "9876543210", devLinkedin: "https://www.linkedin.com/in/krish", devInstagram: "https://instagram.com/krish" }),
+    );
+    expect(saved.devWhatsapp).toBe("9876543210");
+    expect(() => valuesFromForm("team", form({ ...team, devWhatsapp: "12345" }))).toThrow(ZodError);
+    expect(() => valuesFromForm("team", form({ ...team, devLinkedin: "linkedin.com/in/krish" }))).toThrow(ZodError);
+    expect(() => valuesFromForm("team", form({ ...team, devPhoto: "http://example.com/me.jpg" }))).toThrow(ZodError);
+  });
 });
