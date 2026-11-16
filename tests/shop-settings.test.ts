@@ -107,5 +107,8 @@ describe("shop settings", () => {
     expect(() => valuesFromForm("team", form({ ...team, devWhatsapp: "12345" }))).toThrow(ZodError);
     expect(() => valuesFromForm("team", form({ ...team, devLinkedin: "linkedin.com/in/krish" }))).toThrow(ZodError);
     expect(() => valuesFromForm("team", form({ ...team, devPhoto: "http://example.com/me.jpg" }))).toThrow(ZodError);
+    // an uploaded photo: this site's own address, or the photo service's
+    expect(valuesFromForm("team", form({ ...team, devPhoto: "/api/evidence/0123456789abcdef01234567" })).devPhoto).toBe("/api/evidence/0123456789abcdef01234567");
+    expect(valuesFromForm("team", form({ ...team, devPhoto: "https://res.cloudinary.com/x/me.jpg" })).devPhoto).toBe("https://res.cloudinary.com/x/me.jpg");
   });
 });

@@ -55,6 +55,8 @@ export type FieldSpec = Base &
     /** Minutes, picked from a list. */
     | { readonly kind: "duration"; readonly default: number }
     | { readonly kind: "colour"; readonly default: string }
+    /** An uploaded photo's address (TeamPhotoField uploads it; Save keeps it). */
+    | { readonly kind: "photo"; readonly default: string }
   );
 
 export const PAPERS = [
@@ -406,15 +408,7 @@ export const SECTIONS = {
     fields: {
       devName: { kind: "text", label: "Your name", group: "Developer card in the footer", default: "Krish Modi", min: 2, max: 60 },
       devRole: { kind: "text", label: "Your role", default: "Lead developer", min: 2, max: 60 },
-      devPhoto: {
-        kind: "text",
-        label: "Photo link",
-        hint: "A link to a square photo, starting https://. Left blank, your initials show in its place.",
-        default: "",
-        max: 500,
-        pattern: /^https:\/\/\S+$/,
-        patternMessage: "Photo link: start it with https://.",
-      },
+      devPhoto: { kind: "photo", label: "Your photo", hint: "A square photo works best. Until there is one, your initials show.", default: "" },
       devEmail: {
         kind: "text",
         label: "Email",
@@ -531,6 +525,13 @@ function schemaOf(name: string, spec: FieldSpec): z.ZodType {
       return z.number().refine((value) => (DURATIONS as readonly number[]).includes(value), `${label}: pick one.`);
     case "colour":
       return z.string().regex(/^#[0-9a-f]{6}$/i, `${label}: pick a colour.`);
+    case "photo":
+      // stored by the upload (this site's own address, or the photo service's https one), or none
+      return z
+        .string()
+        .trim()
+        .max(500)
+        .refine((value) => !value || /^(https:\/\/\S+|\/api\/evidence\/[a-f0-9]{24})$/.test(value), `${label}: upload the photo again.`);
     default:
       throw Error(`Unknown field kind for ${name}`);
   }

@@ -1,6 +1,6 @@
 // The developer credit, at desktop and phone width: every shop page ends with a "Developed by" card
 // that leads to /p/team; only Tech sees Settings → Developer and team, and what Tech saves there
-// shows on the card and the team page. An owner without Tech doesn't get the section.
+// shows on the card and the team page, the uploaded photo included. An owner without Tech doesn't get the section.
 import { test, expect, type Browser, type TestInfo } from "@playwright/test";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
@@ -14,6 +14,11 @@ const PEOPLE = {
 };
 type Who = keyof typeof PEOPLE;
 const out = process.env.SHOT_DIR;
+// a 1×1 PNG: the upload path checks type and size, not pixels
+const png = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 test.beforeAll(async () => {
   await mongoose.connect(uri);
@@ -69,10 +74,22 @@ test("only Tech changes the credits, and the card shows what Tech saves", async 
   const section = tech.locator("#team");
   await expect(section.getByRole("heading", { name: "Developer and team" })).toBeVisible();
   await section.getByLabel("WhatsApp number").fill("9876543210");
+  // the photo uploads as soon as it's picked, and goes on the card with Save
+  await section.locator('input[type="file"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: png });
+  await expect(section.getByText("Photo ready. Save to put it on the card.")).toBeVisible();
+  await expect(section.getByRole("img", { name: "Your photo" })).toBeVisible();
+  if (out) await section.screenshot({ path: `${out}/${info.project.name}_team-settings.png` });
   await section.getByRole("button", { name: "Save developer and team" }).click();
   await expect(section.getByText("Developer and team saved.")).toBeVisible();
   await tech.goto("/p/team");
   await expect(tech.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/919876543210");
+  // shown to everyone, like product photos
+  const photo = tech.getByRole("img", { name: "Krish Modi" });
+  await expect(photo).toBeVisible();
+  const src = await photo.getAttribute("src");
+  const guest = await browser.newContext();
+  expect((await guest.request.get(new URL(src!, tech.url()).href)).status()).toBe(200);
+  await guest.close();
   // the footer card leaves the team page alone, and carries the number everywhere else
   await expect(tech.getByRole("region", { name: "Developed by Krish Modi" })).toBeHidden();
   await tech.goto("/p");
