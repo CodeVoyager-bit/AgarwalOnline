@@ -59,9 +59,10 @@ describe("shop settings", () => {
     });
     const defaults = valuesFromForm(
       "defaults",
-      form({ packOrderLimit: "12", areaFeeRupees: "40", areaCodLimitRupees: "2500.50", slotCapacity: "15", offerDays: "7", analyticsDays: "60" }),
+      form({ packOrderLimit: "12", areaFeeRupees: "40", areaCodLimitRupees: "2500.50", slotCapacity: "15", offerDays: "7", analyticsDays: "60", riderPayRupees: "25" }),
     );
     expect(defaults.areaFee).toBe(4000);
+    expect(defaults.riderPay).toBe(2500);
     expect(defaults.areaCodLimit).toBe(250050);
   });
 

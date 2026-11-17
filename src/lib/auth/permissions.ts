@@ -49,6 +49,8 @@ export const grants = {
     "staff:manage",
     "audit:read",
     "refund:write",
+    // a delivery the customer's code can't confirm (no phone, no internet): only the owner closes it
+    "delivery:confirm",
     "promotion:write",
     "review:moderate",
   ],

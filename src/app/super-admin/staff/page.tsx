@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { LiveFilter } from "@/components/filter-live";
 import Link from "next/link";
 import mongoose from "mongoose";
 import { UsersRound } from "lucide-react";
@@ -272,6 +274,9 @@ export default async function StaffManagement({
             placeholder="Name, phone or email"
             maxLength={60}
           />
+          <Suspense fallback={null}>
+            <LiveFilter />
+          </Suspense>
           <button className="secondary-button compact-button">Find</button>
           {term && (
             <Link href="/super-admin/staff#add" className="text-button">

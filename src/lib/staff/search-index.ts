@@ -124,7 +124,7 @@ const customize: FinderEntry[] = [
     "Defaults for new packs, areas, delivery times and offers",
     "नवीन पॅक, क्षेत्र, वेळा व ऑफरसाठी सुरुवातीची मूल्ये",
     ["Form defaults", "सुरुवातीची मूल्ये"],
-    ["default", "purchase limit", "default fee", "default capacity", "offer length", "analytics range"],
+    ["default", "purchase limit", "default fee", "default capacity", "offer length", "analytics range", "rider pay", "delivery pay", "pay per delivery", "partner pay"],
     ["सुरुवातीची", "मूल्ये"],
   ),
   custom(

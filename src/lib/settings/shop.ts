@@ -393,6 +393,14 @@ export const SECTIONS = {
         max: 10000,
       },
       offerDays: { kind: "number", label: "Days a new offer runs", group: "A new offer", default: 30, min: 1, max: 365 },
+      riderPay: {
+        kind: "money",
+        label: "Pay for each delivery (₹)",
+        group: "Delivery partners",
+        hint: "What a partner earns per delivered order. Leave it at 0 if you don’t pay per delivery: their page then shows no pay.",
+        default: 0,
+        max: 100000,
+      },
       analyticsDays: {
         kind: "number",
         label: "Days Analytics shows when it opens",

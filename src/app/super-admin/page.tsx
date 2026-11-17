@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { LiveFilter } from "@/components/filter-live";
 import Link from "next/link";
 import mongoose from "mongoose";
 import {
@@ -277,7 +279,7 @@ export default async function StoreSettings({
           Icon: ShieldCheck,
           line: `Approval from ${Number(stockThreshold?.value ?? 100)} units · low-stock email ${report.hour === null ? "off" : hourLabel(report.hour)}`,
         },
-        { id: "defaults", title: CUSTOMIZE_TITLES.defaults, Icon: SlidersHorizontal, line: "What new packs, areas and offers start with" },
+        { id: "defaults", title: CUSTOMIZE_TITLES.defaults, Icon: SlidersHorizontal, line: "What new packs, areas and offers start with, and pay per delivery" },
         { id: "queues", title: CUSTOMIZE_TITLES.queues, Icon: Timer, line: "When a job counts as late" },
       ],
     },
@@ -538,6 +540,9 @@ export default async function StoreSettings({
                 ))}
               </select>
             </label>
+            <Suspense fallback={null}>
+              <LiveFilter />
+            </Suspense>
             <button className="primary-button">Show slots</button>
           </form>
           <DataTable
