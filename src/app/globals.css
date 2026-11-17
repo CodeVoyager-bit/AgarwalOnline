@@ -304,6 +304,9 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .primary-button:hover { background: var(--brand-strong); color: var(--on-brand); }
 .secondary-button { background: transparent; border-color: var(--ink); color: var(--ink); }
 .secondary-button:hover { background: var(--ink); color: var(--canvas); }
+/* a link drawn as a button inside a table keeps the button's look, not the table's underlined link colour */
+td a.secondary-button { color: var(--ink); text-decoration: none; }
+td a.secondary-button:hover { color: var(--canvas); }
 .primary-button:active, .secondary-button:active, .orange-button:active { transform: translateY(1px); }
 .text-button {
   min-height: 40px;
