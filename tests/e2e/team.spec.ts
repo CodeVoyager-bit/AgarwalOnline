@@ -11,14 +11,10 @@ const PASSWORD = "Local-test-password-123";
 const PEOPLE = {
   tech: { name: "Team Tech", email: "team-tech@e2e.test", phone: "9000000141", roles: ["customer", "super-admin", "tech"] },
   owner: { name: "Team Owner", email: "team-owner@e2e.test", phone: "9000000142", roles: ["customer", "super-admin"] },
+  shopper: { name: "Team Shopper", email: "team-shopper@e2e.test", phone: "9000000143", roles: ["customer"] },
 };
 type Who = keyof typeof PEOPLE;
 const out = process.env.SHOT_DIR;
-// a 1×1 PNG: the upload path checks type and size, not pixels
-const png = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
-  "base64",
-);
 
 test.beforeAll(async () => {
   await mongoose.connect(uri);
@@ -74,8 +70,36 @@ test("only Tech changes the credits, and the card shows what Tech saves", async 
   const section = tech.locator("#team");
   await expect(section.getByRole("heading", { name: "Developer and team" })).toBeVisible();
   await section.getByLabel("WhatsApp number").fill("9876543210");
-  // the photo uploads as soon as it's picked, and goes on the card with Save
-  await section.locator('input[type="file"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: png });
+  // a wide photo opens in the framing square: drag it and zoom, then Use this photo uploads that square
+  const wide = Buffer.from(
+    (
+      await tech.evaluate(() => {
+        const canvas = Object.assign(document.createElement("canvas"), { width: 300, height: 100 });
+        const context = canvas.getContext("2d")!;
+        context.fillStyle = "#c33";
+        context.fillRect(0, 0, 150, 100);
+        context.fillStyle = "#33c";
+        context.fillRect(150, 0, 150, 100);
+        return canvas.toDataURL("image/png");
+      })
+    ).split(",")[1],
+    "base64",
+  );
+  await section.locator('input[type="file"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: wide });
+  const square = section.getByRole("group", { name: /Drag it, or use the arrow keys/ });
+  await expect(square).toBeVisible();
+  const photoIn = square.locator("img");
+  const before = await photoIn.evaluate((img) => img.style.left);
+  const box = (await square.boundingBox())!;
+  await tech.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await tech.mouse.down();
+  await tech.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 5 });
+  await tech.mouse.up();
+  await expect.poll(() => photoIn.evaluate((img) => img.style.left)).not.toBe(before);
+  await section.getByLabel("Zoom").fill("2");
+  await expect.poll(() => photoIn.evaluate((img) => img.style.height)).toBe("200%");
+  if (out) await section.screenshot({ path: `${out}/${info.project.name}_team-framing.png` });
+  await section.getByRole("button", { name: "Use this photo" }).click();
   await expect(section.getByText("Photo ready. Save to put it on the card.")).toBeVisible();
   await expect(section.getByRole("img", { name: "Your photo" })).toBeVisible();
   if (out) await section.screenshot({ path: `${out}/${info.project.name}_team-settings.png` });
@@ -95,4 +119,32 @@ test("only Tech changes the credits, and the card shows what Tech saves", async 
   await tech.goto("/p");
   await expect(tech.getByRole("region", { name: "Developed by Krish Modi" }).getByRole("link", { name: "WhatsApp" })).toBeVisible();
   await tech.context().close();
+});
+
+test("Staff shows who is a customer, who is staff, where to change a role, and lets an owner become Tech", async ({ browser }, info) => {
+  const owner = await signedIn(browser, info, "owner");
+  await owner.goto("/super-admin/staff");
+  // someone without a staff role: a customer now, and nothing picked for them
+  const shopper = owner.getByRole("row", { name: /Team Shopper/ });
+  await expect(shopper.getByText("Customer", { exact: true })).toBeVisible();
+  await expect(shopper.getByLabel("Role for Team Shopper")).toHaveValue("");
+  // the team list: Change role for the others, never for yourself
+  const team = owner.getByRole("table", { name: /Team accounts/ });
+  await expect(team.getByRole("row", { name: /Team Tech/ }).getByRole("link", { name: "Change role" })).toBeVisible();
+  await expect(team.getByRole("row", { name: /Team Owner/ }).getByRole("link", { name: "Change my role" })).toBeVisible();
+  await team.getByRole("row", { name: /Team Tech/ }).getByRole("link", { name: "Change role" }).click();
+  await expect(owner.locator("#edit").getByRole("heading", { name: "Team Tech" })).toBeVisible();
+  // searching for someone already on the team, yourself included, says so
+  await owner.goto(`/super-admin/staff?find=${PEOPLE.owner.phone}`);
+  await expect(owner.getByText(/Already on the team: Team Owner \(you\) \(Owner\)/)).toBeVisible();
+  if (out) await owner.screenshot({ path: `${out}/${info.project.name}_staff-search.png`, fullPage: true });
+  // an owner can make themselves Tech, and Settings then shows the developer credits
+  await owner.getByRole("table", { name: /Team accounts/ }).getByRole("link", { name: "Change my role" }).click();
+  const mine = owner.locator("#edit");
+  await mine.getByLabel("Your role").selectOption("tech");
+  await mine.getByRole("button", { name: "Save my role" }).click();
+  await expect(mine.getByText("You’re Tech now")).toBeVisible();
+  await owner.goto("/super-admin#team");
+  await expect(owner.locator("#team").getByRole("heading", { name: "Developer and team" })).toBeVisible();
+  await owner.context().close();
 });

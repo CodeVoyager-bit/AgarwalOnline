@@ -73,6 +73,30 @@ async function giveRole(
   );
 }
 
+/**
+ * An owner moves themselves between Owner and Tech: the one change to your own role made here. Both
+ * keep every owner's power, so the shop is never left without one; any other change to your own
+ * account still needs another owner. Roles are read fresh on every request, so it applies at once.
+ */
+export async function setOwnOwnerRole(actorId: string, input: unknown) {
+  await authorize(actorId);
+  const { role } = z.object({ role: z.enum(["super-admin", "tech"]) }).parse(input);
+  await mongoose.connection.transaction(async (session) => {
+    const me = await User.findOne({ _id: actorId, active: true }).session(session);
+    if (!me) throw Error("UNAUTHENTICATED");
+    const previousRole = pickedRole(me.roles as Role[]);
+    if (!ownerLevel(previousRole)) throw Error("Only an owner can switch between Owner and Tech.");
+    if (previousRole === role) return;
+    me.roles = rolesFor(role);
+    await me.save({ session });
+    await AuditLog.create(
+      [{ actorId, action: "staff.grant", target: actorId, details: { role, previousRole, own: true } }],
+      { session },
+    );
+  });
+  return { role };
+}
+
 /** Gives someone picked from the list of existing accounts a staff role. Works for accounts without a phone number. */
 export async function grantStaffRole(actorId: string, input: unknown) {
   await authorize(actorId);

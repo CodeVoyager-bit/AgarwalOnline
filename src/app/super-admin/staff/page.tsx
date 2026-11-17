@@ -13,6 +13,7 @@ import { When } from "@/components/when";
 import { requirePage } from "@/lib/auth/session";
 import {
   grants,
+  ownerLevel,
   pickedRole,
   accountRoles,
   staffRoles,
@@ -30,12 +31,33 @@ const labels: Record<string, string> = {
   "super-admin": "Owner",
   tech: "Tech",
 };
+const ROLE_OPTION = {
+  customer: "Customer",
+  delivery: "Delivery partner",
+  admin: "Admin",
+  "super-admin": "Owner (super admin)",
+  tech: "Tech (owner and the site's own settings)",
+} as const;
 /** The same five roles, in the same order, in every picker on this page. */
 const roleOptions = accountRoles.map((role) => (
   <option key={role} value={role}>
-    {{ customer: "Customer", delivery: "Delivery partner", admin: "Admin", "super-admin": "Owner (super admin)", tech: "Tech (owner and the site's own settings)" }[role]}
+    {ROLE_OPTION[role]}
   </option>
 ));
+/**
+ * For someone who isn't staff yet nothing is picked: a picker already showing "Admin" read as if
+ * they were one. The owner chooses, then Save role.
+ */
+const pickARole = (roles: readonly (keyof typeof ROLE_OPTION)[]) => [
+  <option key="" value="" disabled>
+    Pick a role
+  </option>,
+  ...roles.map((role) => (
+    <option key={role} value={role}>
+      {ROLE_OPTION[role]}
+    </option>
+  )),
+];
 const SUMMARY: Record<string, string> = {
   delivery:
     "Delivers the orders assigned to them and records the cash they collect.",
@@ -98,6 +120,10 @@ export default async function StaffManagement({
       .limit(pattern ? 25 : 8)
       .select("name phone email createdAt"),
   ]);
+  // a search for someone already on the team (yourself included) points at their row instead of saying "nobody"
+  const onTeam = pattern
+    ? staff.filter((member) => [member.name, member.phone, member.email].some((value) => value && pattern.test(String(value))))
+    : [];
   const editing =
     edit && mongoose.isValidObjectId(edit)
       ? staff.find((member) => String(member._id) === edit)
@@ -130,11 +156,26 @@ export default async function StaffManagement({
             </Link>
           </div>
           {String(editing._id) === actor.id ? (
-            <p className="notice">
-              This is your own account. Change your name and password from your
-              account page; your role can only be changed by another owner, so
-              the store is never left without one.
-            </p>
+            <>
+              <p className="notice">
+                This is your own account. Change your name and password from your
+                account page. Another owner changes your role, so the store is
+                never left without one; the one exception is moving between Owner
+                and Tech, which both keep every owner&rsquo;s power.
+              </p>
+              {ownerLevel(pickedRole(editing.roles as Role[])) && (
+                <ActionForm action={staffAction} submit="Save my role" className="form-stack own-role">
+                  <input type="hidden" name="operation" value="own-role" />
+                  <label>
+                    Your role
+                    <select name="role" defaultValue={pickedRole(editing.roles as Role[]) ?? "super-admin"}>
+                      <option value="super-admin">{ROLE_OPTION["super-admin"]}</option>
+                      <option value="tech">{ROLE_OPTION.tech}</option>
+                    </select>
+                  </label>
+                </ActionForm>
+              )}
+            </>
           ) : (
             <ActionForm
               action={staffAction}
@@ -238,6 +279,22 @@ export default async function StaffManagement({
             </Link>
           )}
         </form>
+        {onTeam.length > 0 && (
+          <p className="notice">
+            Already on the team:{" "}
+            {onTeam.map((member, index) => (
+              <span key={String(member._id)}>
+                {index > 0 && ", "}
+                <Link href={`/super-admin/staff?edit=${member._id}#edit`}>
+                  {member.name}
+                  {String(member._id) === actor.id ? " (you)" : ""}
+                </Link>{" "}
+                ({labels[pickedRole(member.roles as Role[]) ?? ""] ?? "staff"})
+              </span>
+            ))}
+            . Change a role from the team list below.
+          </p>
+        )}
         <p className="results-line">
           <span>
             {term ? (
@@ -282,7 +339,14 @@ export default async function StaffManagement({
               cell: (person) => <When at={person.createdAt} />,
             },
             {
-              header: "Role",
+              // this list only holds accounts without a staff role
+              header: "Role now",
+              text: () => "Customer",
+              cell: () => <StatusPill>Customer</StatusPill>,
+            },
+            {
+              // they have no staff role yet: this is where one is given
+              header: "Give a role",
               cell: (person) => (
                 <ActionForm
                   action={staffAction}
@@ -303,9 +367,10 @@ export default async function StaffManagement({
                   <select
                     id={`role-${person._id}`}
                     name="role"
-                    defaultValue="admin"
+                    defaultValue=""
+                    required
                   >
-                    {roleOptions}
+                    {pickARole(staffRoles)}
                   </select>
                 </ActionForm>
               ),
@@ -314,11 +379,13 @@ export default async function StaffManagement({
           empty={
             <EmptyState
               icon={UsersRound}
-              title={term ? "Nobody matches" : "No other accounts yet"}
+              title={onTeam.length ? "Nobody new matches" : term ? "Nobody matches" : "No other accounts yet"}
               body={
-                term
-                  ? "Check the spelling or search by phone. If they have never signed up, create an account below."
-                  : "When customers sign up they appear here, ready to be added."
+                onTeam.length
+                  ? "Everyone this matches is already on the team, listed above."
+                  : term
+                    ? "Check the spelling or search by phone. If they have never signed up, create an account below."
+                    : "When customers sign up they appear here, ready to be added."
               }
               heading="h3"
             />
@@ -347,8 +414,8 @@ export default async function StaffManagement({
             </label>
             <label>
               Role
-              <select name="role" defaultValue="admin">
-                {roleOptions}
+              <select name="role" defaultValue="" required>
+                {pickARole(accountRoles)}
               </select>
             </label>
             <label>
@@ -415,6 +482,21 @@ export default async function StaffManagement({
                     <StatusPill tone="ok">Can sign in</StatusPill>
                   ) : (
                     <StatusPill tone="bad">Paused</StatusPill>
+                  ),
+              },
+              {
+                // the name opens the same panel; this says so out loud
+                header: "Access",
+                text: () => "",
+                cell: (member) =>
+                  String(member._id) === actor.id ? (
+                    <Link href={`/super-admin/staff?edit=${member._id}#edit`} className="secondary-button compact-button">
+                      Change my role
+                    </Link>
+                  ) : (
+                    <Link href={`/super-admin/staff?edit=${member._id}#edit`} className="secondary-button compact-button">
+                      Change role
+                    </Link>
                   ),
               },
             ]}

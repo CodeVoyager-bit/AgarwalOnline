@@ -1623,6 +1623,16 @@ body:has(.team-page) .footer-credit { display: none; }
 .team-photo-actions label.secondary-button:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
 .team-photo-actions .is-busy { opacity: 0.6; pointer-events: none; }
 .team-photo-actions .text-button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+/* framing it: the square that gets saved, with the card's circle marked on it */
+.photo-crop { display: grid; gap: 12px; justify-items: start; }
+.photo-crop p { margin: 0; }
+.photo-crop-stage { position: relative; width: min(100%, 280px); aspect-ratio: 1; overflow: hidden; border-radius: var(--r-md); background: var(--ink); touch-action: none; cursor: grab; user-select: none; }
+.photo-crop-stage:active { cursor: grabbing; }
+.photo-crop-stage:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.photo-crop-stage img { position: absolute; max-width: none; pointer-events: none; }
+.photo-crop-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 200px var(--scrim); outline: 2px solid var(--canvas); pointer-events: none; }
+.photo-crop-zoom { display: grid; gap: 4px; width: min(100%, 280px); color: var(--ink-2); font-size: 0.875rem; font-weight: 600; }
+.photo-crop-zoom input { width: 100%; min-height: 44px; accent-color: var(--brand); }
 
 /* ---------- Store policies (/privacy, /terms, /refunds, /shipping, /contact) ---------- */
 .legal-meta { margin: -16px 0 20px; color: var(--muted); font-size: 0.85rem; }
