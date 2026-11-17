@@ -69,6 +69,14 @@ test("only Tech changes the credits, and the card shows what Tech saves", async 
   await tech.goto("/super-admin#team");
   const section = tech.locator("#team");
   await expect(section.getByRole("heading", { name: "Developer and team" })).toBeVisible();
+  // the long section never makes the page scroll sideways; any box running off the edge is named
+  const offEdge = await tech.evaluate(() =>
+    [...document.querySelectorAll("main *")]
+      .filter((el) => el.getBoundingClientRect().right > document.documentElement.clientWidth + 1)
+      .map((el) => `${el.tagName.toLowerCase()}.${el.className}`),
+  );
+  expect(offEdge).toEqual([]);
+  if (out) await tech.screenshot({ path: `${out}/${info.project.name}_team-settings-page.png`, fullPage: true });
   await section.getByLabel("WhatsApp number").fill("9876543210");
   // a wide photo opens in the framing square: drag it and zoom, then Use this photo uploads that square
   const wide = Buffer.from(
@@ -85,7 +93,7 @@ test("only Tech changes the credits, and the card shows what Tech saves", async 
     ).split(",")[1],
     "base64",
   );
-  await section.locator('input[type="file"]').setInputFiles({ name: "me.png", mimeType: "image/png", buffer: wide });
+  await section.locator('input[type="file"]').first().setInputFiles({ name: "me.png", mimeType: "image/png", buffer: wide });
   const square = section.getByRole("group", { name: /Drag it, or use the arrow keys/ });
   await expect(square).toBeVisible();
   const photoIn = square.locator("img");

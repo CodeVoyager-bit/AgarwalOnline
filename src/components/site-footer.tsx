@@ -166,9 +166,11 @@ export async function SiteFooter({
           </ul>
         </nav>
       </div>
-      <div className="footer-credit">
-        <DevCredit team={team} mr={mr} />
-      </div>
+      {team.showFooterCard && (
+        <div className="footer-credit">
+          <DevCredit team={team} mr={mr} />
+        </div>
+      )}
       <div className="footer-base">
         <div className="footer-base-inner">
           <p>© {new Date().getFullYear()} Agarwal Online</p>

@@ -94,12 +94,23 @@ describe("shop settings", () => {
   });
 
   it("credit the developer until Tech changes it, and hide contacts left blank", () => {
-    const team = defaultsOf("team");
+    const defaults = defaultsOf("team");
+    // as a browser sends the form: a ticked box as "on", an unticked one not at all
+    const team = Object.fromEntries(
+      Object.entries(defaults).flatMap(([key, value]) =>
+        typeof value === "boolean" ? (value ? [[key, "on"]] : []) : [[key, String(value)]],
+      ),
+    ) as Record<string, string>;
     expect(team.devName).toBe("Krish Modi");
     expect(team.devRole).toBe("Lead developer");
     expect(team.devEmail).toBe("krishmodi3030@gmail.com");
     expect([team.devPhoto, team.devWhatsapp, team.devInstagram, team.devLinkedin, team.devPortfolio]).toEqual(["", "", "", "", ""]);
     expect(team.helperName).toBe("Swarnabh");
+    expect([defaults.showFooterCard, defaults.hireOn]).toEqual([true, true]);
+    // Swarnabh's card can be hidden by leaving his name blank, and takes the same kinds of contact
+    expect(valuesFromForm("team", form({ ...team, helperName: "" })).helperName).toBe("");
+    expect(() => valuesFromForm("team", form({ ...team, helperWhatsapp: "12345" }))).toThrow(ZodError);
+    expect(valuesFromForm("team", form({ ...team, helperGithub: "https://github.com/swarnabh" })).helperGithub).toBe("https://github.com/swarnabh");
     const saved = valuesFromForm(
       "team",
       form({ ...team, devWhatsapp: "9876543210", devLinkedin: "https://www.linkedin.com/in/krish", devInstagram: "https://instagram.com/krish" }),

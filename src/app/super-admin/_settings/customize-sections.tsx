@@ -98,7 +98,7 @@ export function CustomizeSections({ saved, tech }: { saved: Record<SectionKey, R
         <Section id="team" values={saved.team} submit="Save developer and team">
           <p>
             The &ldquo;Developed by&rdquo; card at the bottom of every shop page and the <a href="/p/team">team page</a>, with the
-            ways people can reach you. Only Tech can change this.
+            ways people can reach you. A contact left blank is left off. Only Tech can change this.
           </p>
         </Section>
       )}

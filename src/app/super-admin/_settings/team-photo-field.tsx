@@ -144,13 +144,13 @@ export function TeamPhotoField({ name, label, hint, value }: { name: string; lab
       </span>
       {frame && shape ? (
         <div className="photo-crop">
-          <p className="muted">Drag the photo to place your face in the circle, and zoom to make it bigger.</p>
+          <p className="muted">Drag the photo to place the face in the circle, and zoom to make it bigger.</p>
           <div
             ref={stage}
             className="photo-crop-stage"
             tabIndex={0}
             role="group"
-            aria-label="Your photo. Drag it, or use the arrow keys, to move it in the circle."
+            aria-label={`${label}. Drag it, or use the arrow keys, to move it in the circle.`}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={() => (drag.current = null)}
@@ -188,7 +188,7 @@ export function TeamPhotoField({ name, label, hint, value }: { name: string; lab
         <div className="team-photo-row">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element -- a preview of a just-uploaded photo
-            <img src={url} alt="Your photo" className="dev-photo" />
+            <img src={url} alt={label} className="dev-photo" />
           ) : (
             <span className="dev-photo is-empty" aria-hidden="true">
               <ImagePlus size={28} />
